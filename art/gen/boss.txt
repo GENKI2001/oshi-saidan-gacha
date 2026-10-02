@@ -1,0 +1,7 @@
+Create one image 1536x1024: a character sheet of 4 cells in one row (4 columns x 1 row, equal widths), the SAME character in 4 expressions, bust-up (head and chest), facing the viewer:
+the character is "Pon-oyabun", a chubby cute tanuki debt collector boss of a festival stall, wearing a happi coat, a tiny towel headband and small round sunglasses pushed up on the forehead, holding a little abacus. Very kawaii, comedic.
+1 neutral smug grin
+2 very happy laughing (got paid)
+3 shocked with big sweat drop (player paid way too much)
+4 grumpy angry pouting with steam (player failed to pay)
+Style: kawaii flat 2D sticker illustrations, chunky rounded chibi shapes, big cute eyes where it makes sense, soft pastel colors with a few saturated accents, clean dark-brown outlines, each object has a thick white die-cut sticker border. Every object is centered in its own cell, same scale, fully inside the cell with generous margin, no overlap between cells. The whole background is ONE flat solid pure magenta color (#FF00FF) everywhere, no gradients, no shadows on the background, no grid lines, no text, no letters, no numbers, no watermark.

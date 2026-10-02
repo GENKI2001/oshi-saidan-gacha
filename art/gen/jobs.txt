@@ -1,0 +1,10 @@
+figs1
+figs2
+boss
+machine
+figs3
+figs4
+figs5
+figs6
+figs7
+figs8

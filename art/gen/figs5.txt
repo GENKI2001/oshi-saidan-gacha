@@ -1,0 +1,14 @@
+Create one image 1536x1024: a sprite sheet laid out as an exact grid of 4 columns x 3 rows (12 cells of equal size). Japanese summer festival (ennichi) themed collectible capsule-toy figures, one per cell, in this order left-to-right, top-to-bottom:
+1 a grilled whole squid (ikayaki) on a stick, glossy with soy sauce
+2 a baked potato with a melting pat of butter in foil (jaga-butter)
+3 three round menko cards with bold samurai and dragon pictures
+4 a black bug-eyed goldfish (demekin) with big round eyes
+5 a pink katanuki candy tablet with a cute shape being carved out by a pin
+6 a red tengu festival mask with a long nose and fierce brows
+7 a paper cup of karaage fried chicken pieces with a toothpick
+8 a red wooden kendama toy with its ball balanced on the spike
+9 a fluffy yellow baby chick (hiyoko)
+10 an open red Japanese paper umbrella (wagasa)
+11 a skewer of three-color dango (pink, white, green)
+12 a tanabata bamboo branch with colorful paper wish strips and decorations
+Style: kawaii flat 2D sticker illustrations, chunky rounded chibi shapes, big cute eyes where it makes sense, soft pastel colors with a few saturated accents, clean dark-brown outlines, each object has a thick white die-cut sticker border. Every object is centered in its own cell, same scale, fully inside the cell with generous margin, no overlap between cells. The whole background is ONE flat solid pure magenta color (#FF00FF) everywhere, no gradients, no shadows on the background, no grid lines, no text, no letters, no numbers, no watermark.

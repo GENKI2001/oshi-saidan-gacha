@@ -1,0 +1,14 @@
+Create one image 1536x1024: a sprite sheet laid out as an exact grid of 4 columns x 3 rows (12 cells of equal size). Japanese summer festival (ennichi) themed collectible capsule-toy figures, one per cell, in this order left-to-right, top-to-bottom:
+1 a toy cork-shooting gun from a festival shooting gallery
+2 a hexagonal wooden lottery spinner (garagara) with a handle
+3 a red paper lantern (chochin) glowing
+4 a big round firework bursting with colorful sparks
+5 a festival taiko drum with two sticks
+6 a cute small pastel paper bag of mystery lottery tickets (kuji box)
+7 a wooden offering box (saisen-bako) with a coin
+8 a chibi lucky god Daikoku with a mallet and a rice bag, very cute
+9 a chibi Shinto priest (kannushi) with a purification wand, cute
+10 a chibi crying lost child in a yukata holding a pinwheel
+11 a grumpy little business card with a cartoon face and a tiny angry frown (a debt collector's card)
+12 a golden shiny capsule-toy capsule with a star
+Style: kawaii flat 2D sticker illustrations, chunky rounded chibi shapes, big cute eyes where it makes sense, soft pastel colors with a few saturated accents, clean dark-brown outlines, each object has a thick white die-cut sticker border. Every object is centered in its own cell, same scale, fully inside the cell with generous margin, no overlap between cells. The whole background is ONE flat solid pure magenta color (#FF00FF) everywhere, no gradients, no shadows on the background, no grid lines, no text, no letters, no numbers, no watermark.
