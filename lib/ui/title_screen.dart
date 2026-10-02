@@ -247,6 +247,12 @@ class _SelectScreenState extends State<SelectScreen> {
   late final _pc = PageController(initialPage: _i, viewportFraction: _cardFraction);
 
   @override
+  void initState() {
+    super.initState();
+    Bgm.play('bgm_select');
+  }
+
+  @override
   void dispose() {
     _pc.dispose();
     super.dispose();

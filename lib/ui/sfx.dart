@@ -96,7 +96,7 @@ class Bgm {
 
   static AudioPlayer get _p => _player ??= AudioPlayer()..setReleaseMode(ReleaseMode.loop);
 
-  /// Switches to [track] ('bgm_title' / 'bgm_game'); no-op if already on it.
+  /// Switches to [track] (`bgm_title`, `bgm_select`, or `bgm_` + a machine id); no-op if already on it.
   static void play(String track) {
     _want = track;
     _sync();

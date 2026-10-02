@@ -38,7 +38,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    Bgm.play('bgm_game');
+    Bgm.play('bgm_${g.machine.id}'); // each machine has its own tune
   }
 
   @override
@@ -1583,6 +1583,18 @@ class _GameScreenState extends State<GameScreen> {
                       Sfx.enabled = m.sound;
                       set(() {});
                     },
+                  ),
+                  // ends the run right away and shows the result
+                  PopButton(
+                    'あきらめる',
+                    fontSize: 18,
+                    color: C.red,
+                    onTap: g.canGiveUp
+                        ? () {
+                            Navigator.of(ctx).pop();
+                            g.giveUp();
+                          }
+                        : null,
                   ),
                   PopButton(
                     'タイトルへもどる',

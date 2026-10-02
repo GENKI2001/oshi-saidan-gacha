@@ -307,7 +307,7 @@ class GameController extends ChangeNotifier {
     final best = bestOption;
     Sfx.play('drop_${best == Rarity.curse ? 0 : math.min(best.index, 3)}');
     await _wait(450);
-    if (!_alive) return;
+    if (!_alive || phase == Phase.over) return;
     phase = Phase.capsule;
     if (coach == Coach.wait) Future.delayed(const Duration(milliseconds: 600), openCapsule);
     Sfx.play(omen ? 'omen' : 'rattle');
@@ -565,6 +565,7 @@ class GameController extends ChangeNotifier {
   }
 
   void _afterPlace() {
+    if (phase == Phase.over) return; // gave up from the menu mid-animation
     if (pending.isNotEmpty) {
       notifyListeners();
       return;
@@ -765,7 +766,11 @@ class GameController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The menu's あきらめる: not while a spin or the coin count is playing out.
+  bool get canGiveUp => phase != Phase.dropping && phase != Phase.scoring && phase != Phase.over;
+
   void giveUp() {
+    if (phase == Phase.over) return;
     if (tutorial) meta.finishTutorial();
     _countEarned();
     // the level goes up (by one at most) when the run is over; celebrated on the result screen

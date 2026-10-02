@@ -74,4 +74,22 @@ void main() {
     g.pending.add(figureById[kCardId]!);
     expect(g.canDiscard, isFalse);
   });
+
+  testWidgets('あきらめる from the menu goes straight to the result, also mid-capsule', (t) async {
+    Sfx.enabled = false;
+    final meta = Meta();
+    final g = GameController(meta);
+    g.turnHandle();
+    expect(g.canGiveUp, isFalse, reason: 'not while the capsule drops');
+    for (var k = 0; k < 20 && g.phase != Phase.capsule; k++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
+    expect(g.canGiveUp, isTrue);
+    g.giveUp();
+    expect(g.phase, Phase.over);
+    expect(meta.runs, 1);
+    await t.pump(const Duration(seconds: 2));
+    expect(g.phase, Phase.over, reason: 'nothing pending brings the run back');
+    g.dispose();
+  });
 }
