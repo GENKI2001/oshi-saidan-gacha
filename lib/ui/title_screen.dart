@@ -67,6 +67,25 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
     });
   }
 
+  bool _warmed = false;
+
+  /// Loads the pictures the first pulls need while the title is up (on the web they come over the network).
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_warmed) return;
+    _warmed = true;
+    final paths = [
+      for (var k = 0; k < 5; k++) ...['assets/ui/capsule_${k}_top.png', 'assets/ui/capsule_${k}_bot.png'],
+      for (final m in members) ...[portrait(m), portrait(m, happy: true)],
+      for (final f in figures) 'assets/figures/${f.id}.webp',
+      for (var k = 0; k < 4; k++) 'assets/ui/venue_$k.jpg',
+    ];
+    for (final p in paths) {
+      precacheImage(AssetImage(p), context).ignore();
+    }
+  }
+
   @override
   void dispose() {
     _c.dispose();
@@ -134,7 +153,8 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset('assets/ui/title_bg.jpg', fit: BoxFit.cover, alignment: Alignment.bottomCenter),
+            // faces sit a little above the middle: keep them in view on wide (landscape / desktop) screens too
+            Image.asset('assets/ui/title_bg.jpg', fit: BoxFit.cover, alignment: const Alignment(0, -0.1)),
             const _Twinkles(),
             SafeArea(
               child: Center(
