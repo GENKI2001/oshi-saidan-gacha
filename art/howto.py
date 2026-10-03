@@ -23,8 +23,11 @@ PAGES = {
     'result': ((0, 350, 1206, 2000), []),
 }
 
+# which store-screenshot moment each page is cut from (tool/screenshots.sh → art/howto/shots)
+FROM = {'spin': 'h_spin', 'reveal': '5_pull', 'shelf': '4_scoring', 'payday': '6_payday', 'shop': '8_shop', 'result': 'h_result'}
+
 for name, (box, rings) in PAGES.items():
-    im = Image.open(SRC / f'{name}.png').convert('RGB')
+    im = Image.open(SRC / 'shots' / f'{FROM[name]}.png').convert('RGB')
     d = ImageDraw.Draw(im)
     for x0, y0, x1, y1 in rings:
         d.rounded_rectangle((x0, y0, x1, y1), radius=60, outline='white', width=22)

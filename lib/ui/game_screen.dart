@@ -5,19 +5,26 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../logic/achievements.dart';
 import '../logic/defs.dart';
 import '../logic/figures.dart';
 import '../logic/levels.dart';
 import '../logic/modes.dart';
 import '../logic/run.dart';
 import 'controller.dart';
+import 'crowd.dart';
 import 'howto_screen.dart';
+import 'achievement_screen.dart';
+import 'idol_widgets.dart';
 import 'coach.dart';
 import 'level_card.dart';
+import 'lines.dart';
+import 'voice.dart';
 import 'meta.dart';
 import 'rank_screen.dart';
 import 'rank.dart';
 import 'sfx.dart';
+import 'venue.dart';
 import 'widgets.dart';
 
 class GameScreen extends StatefulWidget {
@@ -39,10 +46,12 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     Bgm.play('bgm_${g.machine.id}'); // each machine has its own tune
+    Crowd.start(); // the hall
   }
 
   @override
   void dispose() {
+    Crowd.stop();
     g.dispose();
     super.dispose();
   }
@@ -55,45 +64,52 @@ class _GameScreenState extends State<GameScreen> {
   final _kCells = <int, GlobalKey>{};
   GlobalKey _cellKey(int i) => _kCells.putIfAbsent(i, GlobalKey.new);
 
+  Coach? _spokenCoach;
+
   /// The tutorial overlay for the current step (null when there is nothing to show).
   Widget? _coach() {
     final r = g.run;
     final (keys, text, circle, info) = switch (g.coach) {
-      Coach.spin1 => ([_kSpin], '「回す！」をタップして ガチャを回そう', true, false),
-      Coach.place1 => ([_kPlace], 'たこ焼きが出た！「棚に置く」をタップしよう', false, false),
-      Coach.cell1 => ([_cellKey(GameController.tutorialCell1)], 'このマスをタップして 置こう', false, false),
-      Coach.coins => ([_kCoin, _kTotal], '小判を稼いだ！ 棚の駒は 回すたびに 小判を稼ぐよ', false, true),
-      Coach.goal => ([_kBubble], 'あと${r.turnsToPayday}回のうちに ${r.due}枚 ためよう。足りないと 親分の取り立てで おしまい！', false, true),
-      Coach.spin2 => ([_kSpin], 'もう一度 回してみよう', true, false),
-      Coach.repull => ([_kRepull], 'うーん、イマイチ…？ そんな時は「もう一回ひく」', false, false),
-      Coach.item => ([_kItem], 'りんご飴が出た！', false, true),
-      Coach.tags => ([_kTags], '駒には「食べ物」などの 種類がある', false, true),
-      Coach.effect => ([_kEffect], '駒には効果がある。りんご飴は となりの「食べ物」を×2！ うまく組み合わせて 小判を稼ごう', false, true),
-      Coach.place2 => ([_kPlace], '「棚に置く」をタップ', false, false),
-      Coach.cell2 => ([_cellKey(GameController.tutorialCell2)], 'たこ焼きの となりに置こう', false, false),
-      Coach.doubled => ([_cellKey(GameController.tutorialCell1), _cellKey(GameController.tutorialCell2)], 'りんご飴の効果で たこ焼きから得られる小判が 2倍になったよ！', false, true),
-      Coach.spin3 => ([_kSpin], 'もう一度 回そう', true, false),
-      Coach.place3 => ([_kPlace], 'わたあめが出た！「棚に置く」をタップ', false, false),
-      Coach.cell3 => ([_cellKey(GameController.tutorialCell3)], 'わたあめは ここに置いてみよう', false, false),
-      Coach.spin4 => ([_kSpin], 'つぎも 回そう', true, false),
-      Coach.place4 => ([_kPlace], '狸の置物が出た！「棚に置く」をタップ', false, false),
-      Coach.cell4 => ([_cellKey(GameController.tutorialCell4)], 'りんご飴の となりに置こう', false, false),
-      Coach.swap1 => ([_kSwap], 'わたあめも「食べ物」。りんご飴の となりなら ×2！「いれかえ」をタップ', false, false),
-      Coach.swap2 => ([_cellKey(GameController.tutorialCell3)], 'わたあめをタップ', false, false),
-      Coach.swap3 => ([_cellKey(GameController.tutorialCell4)], '狸の置物をタップして いれかえよう', false, false),
-      Coach.swapped => ([_cellKey(GameController.tutorialCell2), _cellKey(GameController.tutorialCell4)], 'わたあめが りんご飴の となりに来た！ これで わたあめも×2になるよ', false, true),
-      Coach.go => ([_kSpin], '取り立てまでに 小判を稼ごう！', true, false),
-      Coach.pay => ([_kPay], '取り立てだ！「払う！」をタップ', false, false),
-      Coach.expand => ([_kExpand], '払ったら 親分の夜店。「棚を広げる」で マスを増やそう', false, false),
-      Coach.reroll => ([_kReroll], '「品がえ」で 並んでいる品を 入れかえられる', false, false),
-      Coach.multi => ([_kShopList], '夜店では 何個でも買える！ 最初の1品は タダ、そのあとは 買うたびに値上がりするで', false, true),
-      Coach.leave => ([_kLeave], '買い物がすんだら「つぎへ」', false, false),
-      Coach.card => ([_cellKey(r.cells.indexWhere((f) => f?.def.id == kCardId))], '親分の名刺が 置かれてしもた… タップして 効果を見てみよう', false, false),
-      Coach.remove1 => ([_kRemove], '名刺は 毎回小判が減ってしまう…「どける」で どかそう', false, false),
-      Coach.remove2 => ([_cellKey(r.cells.indexWhere((f) => f?.def.id == kCardId))], '名刺をタップして どける', false, false),
-      Coach.tools => ([_kTools], 'どける・いれかえは 取り立てのたびに回復するよ。\nこれでチュートリアルはおしまい！ あとは自由に稼ごう', false, true),
+      Coach.spin1 => ([_kSpin], coachLines[Coach.spin1.name]!, true, false),
+      Coach.place1 => ([_kPlace], coachLines[Coach.place1.name]!, false, false),
+      Coach.cell1 => ([_cellKey(GameController.tutorialCell1)], coachLines[Coach.cell1.name]!, false, false),
+      Coach.coins => ([_kCoin, _kTotal], coachLines[Coach.coins.name]!, false, true),
+      Coach.goal => ([_kBubble], coachLines[Coach.goal.name]!, false, true),
+      Coach.spin2 => ([_kSpin], coachLines[Coach.spin2.name]!, true, false),
+      Coach.repull => ([_kRepull], coachLines[Coach.repull.name]!, false, false),
+      Coach.item => ([_kItem], coachLines[Coach.item.name]!, false, true),
+      Coach.tags => ([_kTags], coachLines[Coach.tags.name]!, false, true),
+      Coach.effect => ([_kEffect], coachLines[Coach.effect.name]!, false, true),
+      Coach.place2 => ([_kPlace], coachLines[Coach.place2.name]!, false, false),
+      Coach.cell2 => ([_cellKey(GameController.tutorialCell2)], coachLines[Coach.cell2.name]!, false, false),
+      Coach.doubled => ([_cellKey(GameController.tutorialCell1), _cellKey(GameController.tutorialCell2)], coachLines[Coach.doubled.name]!, false, true),
+      Coach.spin3 => ([_kSpin], coachLines[Coach.spin3.name]!, true, false),
+      Coach.place3 => ([_kPlace], coachLines[Coach.place3.name]!, false, false),
+      Coach.cell3 => ([_cellKey(GameController.tutorialCell3)], coachLines[Coach.cell3.name]!, false, false),
+      Coach.spin4 => ([_kSpin], coachLines[Coach.spin4.name]!, true, false),
+      Coach.place4 => ([_kPlace], coachLines[Coach.place4.name]!, false, false),
+      Coach.cell4 => ([_cellKey(GameController.tutorialCell4)], coachLines[Coach.cell4.name]!, false, false),
+      Coach.swap1 => ([_kSwap], coachLines[Coach.swap1.name]!, false, false),
+      Coach.swap2 => ([_cellKey(GameController.tutorialCell3)], coachLines[Coach.swap2.name]!, false, false),
+      Coach.swap3 => ([_cellKey(GameController.tutorialCell4)], coachLines[Coach.swap3.name]!, false, false),
+      Coach.swapped => ([_cellKey(GameController.tutorialCell2), _cellKey(GameController.tutorialCell4)], coachLines[Coach.swapped.name]!, false, true),
+      Coach.go => ([_kSpin], coachLines[Coach.go.name]!, true, false),
+      Coach.pay => ([_kPay], coachLines[Coach.pay.name]!, false, false),
+      Coach.expand => ([_kExpand], coachLines[Coach.expand.name]!, false, false),
+      Coach.reroll => ([_kReroll], coachLines[Coach.reroll.name]!, false, false),
+      Coach.multi => ([_kShopList], coachLines[Coach.multi.name]!, false, true),
+      Coach.leave => ([_kLeave], coachLines[Coach.leave.name]!, false, false),
+      Coach.card => ([_cellKey(r.cells.indexWhere((f) => f?.def.id == kCardId))], coachLines[Coach.card.name]!, false, false),
+      Coach.remove1 => ([_kRemove], coachLines[Coach.remove1.name]!, false, false),
+      Coach.remove2 => ([_cellKey(r.cells.indexWhere((f) => f?.def.id == kCardId))], coachLines[Coach.remove2.name]!, false, false),
+      Coach.tools => ([_kTools], coachLines[Coach.tools.name]!, false, true),
       _ => (const <GlobalKey>[], '', false, false),
     };
+    // つむぎ reads each step out once, as it appears
+    if (keys.isNotEmpty && g.coach != _spokenCoach) {
+      _spokenCoach = g.coach;
+      WidgetsBinding.instance.addPostFrameCallback((_) => Voice.say(kTsumugi, text, delayMs: 350));
+    }
     if (keys.isEmpty) {
       // between steps (animations): hold input; free play: nothing
       return g.coach == Coach.wait ? const AbsorbPointer(child: SizedBox.expand()) : null;
@@ -124,29 +140,45 @@ class _GameScreenState extends State<GameScreen> {
     ),
   );
 
-  Widget _screen(BuildContext context) => Container(
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [C.night, C.night2, Color(0xFF8A4A5E)]),
-      image: DecorationImage(image: AssetImage('assets/ui/game_bg.jpg'), fit: BoxFit.cover),
-    ),
-    child: SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Shake(
-            token: g.shakeToken,
-            child: Stack(
-              fit: StackFit.expand,
-              clipBehavior: Clip.none, // the dim reaches past the safe area
-              children: [
-                Positioned.fill(child: _main()),
-                ..._overlays(),
-                // keyed so they keep their state when the overlays above change in number
-                // (otherwise a finished banner would replay on the next spin)
-                KeyedSubtree(key: const ValueKey('banner'), child: _banner()),
-                KeyedSubtree(key: const ValueKey('total'), child: _total()),
-              ],
-            ),
+  Widget _screen(BuildContext context) {
+    Crowd.setHype(g.hype);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // the hall heats up with the hearts
+        Positioned.fill(
+          child: VenueBackground(hype: g.hype, burst: g.burstToken),
+        ),
+        _play(context),
+      ],
+    );
+  }
+
+  Widget _play(BuildContext context) => SafeArea(
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Shake(
+          token: g.shakeToken,
+          child: Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.none, // the dim reaches past the safe area
+            children: [
+              Positioned.fill(child: _main()),
+              ..._overlays(),
+              // keyed so they keep their state when the overlays above change in number
+              // (otherwise a finished banner would replay on the next spin)
+              KeyedSubtree(key: const ValueKey('banner'), child: _banner()),
+              KeyedSubtree(key: const ValueKey('total'), child: _total()),
+              if (g.achToast.isNotEmpty)
+                Positioned(
+                  key: const ValueKey('ach'),
+                  top: 54,
+                  left: 10,
+                  right: 10,
+                  child: IgnorePointer(child: AchievementToast(g.achToast, token: g.achToken)),
+                ),
+            ],
           ),
         ),
       ),
@@ -166,6 +198,17 @@ class _GameScreenState extends State<GameScreen> {
             child: Stack(
               children: [
                 Positioned.fill(child: _stage()),
+                // an idol cheering a big turn, over the machine (clear of つむぎ and 回す)
+                if (g.idol != null && !g.idolOnPull && (g.phase == Phase.scoring || g.phase == Phase.ready))
+                  Positioned(
+                    key: const ValueKey('idol'),
+                    left: 4,
+                    right: 176,
+                    bottom: 4,
+                    child: IgnorePointer(
+                      child: IdolToast(who: g.idol!, line: g.idolLine, token: g.idolToken),
+                    ),
+                  ),
                 // what this gacha has been tuned with, lined up with the shelf's left edge
                 if (g.run.luck > 0)
                   Positioned(
@@ -215,13 +258,13 @@ class _GameScreenState extends State<GameScreen> {
             ),
             child: Row(
               children: [
-                Image.asset('assets/figures/koban.png', width: 34, height: 34),
+                const HeartIcon(size: 34),
                 const SizedBox(width: 4),
                 TweenAnimationBuilder<double>(
                   tween: Tween(end: g.coinsShown.toDouble()),
                   duration: const Duration(milliseconds: 650),
                   curve: Curves.easeOutCubic,
-                  builder: (_, v, _) => Text('${v.round()}', style: outlined(26, C.gold, width: 3)),
+                  builder: (_, v, _) => Text('${v.round()}', style: outlined(26, C.pink, stroke: Colors.white, width: 4)),
                 ),
               ],
             ),
@@ -349,7 +392,6 @@ class _GameScreenState extends State<GameScreen> {
   Widget _boss(double width) {
     final r = g.run;
     final left = r.turnsToPayday;
-    final urgent = left <= 1;
     return SizedBox(
       width: width,
       child: Column(
@@ -366,66 +408,24 @@ class _GameScreenState extends State<GameScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: C.ink, width: 2.5),
+                    boxShadow: const [BoxShadow(color: Color(0x55220A2A), blurRadius: 8, offset: Offset(0, 3))],
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      AnimatedContainer(
+                      KeyedSubtree(
                         key: _kBubble,
-                        duration: const Duration(milliseconds: 300),
-                        padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
-                        color: urgent ? const Color(0xFFFFD9D9) : const Color(0xFFFFF0C8),
-                        // 取り立て 1/4 with five small boxes under it on the left, the amount at the right edge
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // shrinks instead of overflowing on narrow screens / wide fonts
-                            Flexible(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '取り立て ${r.paydaysPaid + 1}/${Run.clearPaydays}',
-                                      style: const TextStyle(fontSize: 13, color: C.ink, fontWeight: FontWeight.w900),
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Row(
-                                      children: [
-                                        for (var i = 0; i < Run.turnsPerPayday; i++)
-                                          Container(
-                                            margin: const EdgeInsets.only(right: 2),
-                                            width: 11,
-                                            height: 11,
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(3),
-                                              color: i < Run.turnsPerPayday - left ? (urgent ? C.red : C.gold) : const Color(0xFFE8DCC8),
-                                              border: Border.all(color: C.ink, width: 1.5),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Image.asset('assets/figures/koban.png', width: 28, height: 28),
-                                // green once the purse covers it, red on the last turn when it doesn't
-                                Text('${r.due}', style: outlined(28, r.coins >= r.due ? C.mint : (urgent ? C.red : C.gold), width: 4)),
-                              ],
-                            ),
-                          ],
+                        child: SongMeter(
+                          song: r.paydaysPaid + 1,
+                          songs: Run.clearPaydays,
+                          spinsLeft: left,
+                          spins: Run.turnsPerPayday,
+                          hearts: g.coinsShown,
+                          quota: r.due,
                         ),
                       ),
-                      Container(height: 2, color: const Color(0x334A2E2A)),
+                      Container(height: 2, color: const Color(0x33F59AC3)),
                       Padding(padding: const EdgeInsets.fromLTRB(10, 6, 10, 7), child: _TwoLines(g.bossLine)),
                     ],
                   ),
@@ -438,7 +438,11 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
           // the boss, right under the tail, at the right end above 回す
-          Bounce(token: g.bossToken, amount: 0.12, child: Image.asset('assets/ui/boss_${g.bossMood}.png', height: 80)),
+          GestureDetector(
+            key: const ValueKey('tsumugi'),
+            onTap: g.tapTsumugi,
+            child: Bounce(token: g.bossToken, amount: 0.12, child: Image.asset('assets/ui/boss_${g.bossMood}.png', height: 104)),
+          ),
         ],
       ),
     );
@@ -466,7 +470,7 @@ class _GameScreenState extends State<GameScreen> {
               children: [
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(full ? '上書きする駒をタップ' : '置く場所をタップ（上書きもOK）', style: outlined(14, Colors.white, width: 2)),
+                  child: Text(full ? '上書きするグッズをタップ' : '置く場所をタップ（上書きもOK）', style: outlined(14, Colors.white, width: 2)),
                 ),
                 const SizedBox(height: 4),
                 PopButton(
@@ -484,14 +488,14 @@ class _GameScreenState extends State<GameScreen> {
     }
     if (g.removing) {
       return Center(
-        child: Text('どける駒をタップ', style: outlined(17, C.red, stroke: Colors.white, width: 2)),
+        child: Text('どけるグッズをタップ', style: outlined(17, C.red, stroke: Colors.white, width: 2)),
       );
     }
     if (g.swapping) {
       return Center(
         child: FittedBox(
           fit: BoxFit.scaleDown,
-          child: Text(g.swapFirst == null ? 'いれかえる駒をタップ' : 'どこと いれかえる？', style: outlined(17, const Color(0xFF4FA3D9), stroke: Colors.white, width: 2)),
+          child: Text(g.swapFirst == null ? 'いれかえるグッズをタップ' : 'どこと いれかえる？', style: outlined(17, const Color(0xFF4FA3D9), stroke: Colors.white, width: 2)),
         ),
       );
     }
@@ -502,36 +506,67 @@ class _GameScreenState extends State<GameScreen> {
   Widget _shelf() {
     final r = g.run;
     final cols = r.cols, rows = g.shown.length ~/ cols;
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: C.wood,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: C.ink, width: 3),
-        boxShadow: const [BoxShadow(color: C.woodDark, offset: Offset(0, 6))],
-      ),
-      child: Column(
-        children: [
-          for (var y = 0; y < rows; y++)
-            Row(
-              children: [
-                for (var x = 0; x < cols; x++)
-                  Expanded(
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      // numbers in the corner scale with the cell (shelves grow up to 6x6)
-                      child: LayoutBuilder(
-                        builder: (_, c) => KeyedSubtree(
-                          key: _cellKey(y * cols + x),
-                          child: RepaintBoundary(child: _cell(y * cols + x, c.maxWidth)),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFFFE1EF), Color(0xFFF0E2FF)]),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: C.ink, width: 3),
+            boxShadow: const [
+              BoxShadow(color: Color(0xFFC77BAA), offset: Offset(0, 6)),
+              BoxShadow(color: Color(0x66FF6FA3), blurRadius: 22),
+            ],
+          ),
+          foregroundDecoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(19),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2),
+          ),
+          child: Column(
+            children: [
+              for (var y = 0; y < rows; y++)
+                Row(
+                  children: [
+                    for (var x = 0; x < cols; x++)
+                      Expanded(
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          // numbers in the corner scale with the cell (shelves grow up to 6x6)
+                          child: LayoutBuilder(
+                            builder: (_, c) => KeyedSubtree(
+                              key: _cellKey(y * cols + x),
+                              child: RepaintBoundary(child: _cell(y * cols + x, c.maxWidth)),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-              ],
+                  ],
+                ),
+            ],
+          ),
+        ),
+        // the altar's name tab
+        Positioned(
+          top: -13,
+          left: 0,
+          right: 0,
+          child: IgnorePointer(
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(12, 1, 12, 2),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [Color(0xFFFF8FBF), Color(0xFFC99BFF)]),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: C.ink, width: 2),
+                ),
+                child: Text('♡ 推し祭壇 ♡', style: outlined(12, Colors.white, stroke: C.ink, width: 2.5)),
+              ),
             ),
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -564,14 +599,15 @@ class _GameScreenState extends State<GameScreen> {
         margin: const EdgeInsets.all(3),
         decoration: BoxDecoration(
           // empty cells glow; figures that can be written over only get the pink border
-          color: picked ? const Color(0xFFD9F0FF) : (placing && f == null ? const Color(0xFFFFF0B3) : const Color(0xFFFFF3DF)),
-          borderRadius: BorderRadius.circular(12),
+          color: picked ? const Color(0xFFD9F0FF) : (placing && f == null ? const Color(0xFFFFF0B3) : (f == null ? const Color(0xFFFFF5FA) : Colors.white)),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: f == null ? null : const [BoxShadow(color: Color(0x33D9539A), blurRadius: 4, offset: Offset(0, 2))],
           border: Border.all(
             color: picked
                 ? const Color(0xFF4FA3D9)
                 : placing
                 ? C.pink
-                : (rar != null && rar.index >= Rarity.rare.index && rar != Rarity.curse ? C.rarity(rar) : C.woodDark),
+                : (rar != null && rar.index >= Rarity.rare.index && rar != Rarity.curse ? C.rarity(rar) : C.pinkLine),
             width: picked || placing || (rar != null && rar.index >= Rarity.rare.index) ? 3 : 1.5,
           ),
         ),
@@ -579,6 +615,7 @@ class _GameScreenState extends State<GameScreen> {
           clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
+            if (f == null) Icon(Icons.favorite_rounded, size: cell * 0.3, color: const Color(0xFFFFDDEB)),
             if (f != null)
               Shake(
                 token: g.hit[i],
@@ -730,6 +767,10 @@ class _GameScreenState extends State<GameScreen> {
   // ── overlays ──
   List<Widget> _overlays() => switch (g.phase) {
     Phase.dropping || Phase.capsule || Phase.reveal => [_dim(onTap: g.phase == Phase.capsule ? g.openCapsule : null), _capsules()],
+    Phase.cutin => [
+      _dim(onTap: g.skipCutin),
+      CutIn(who: g.idol!, line: g.idolLine, ssr: g.bestOption == Rarity.legend, token: g.idolToken, onTap: g.skipCutin),
+    ],
     Phase.payday => [_dim(), _payday()],
     Phase.failed => [_dim(), _failed()],
     Phase.cleared => [_dim(), _cleared()],
@@ -764,6 +805,11 @@ class _GameScreenState extends State<GameScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (g.phase == Phase.capsule) Text(g.omen ? 'な、なんか光ってる…！' : 'タップしてあける！', style: outlined(24, Colors.white)),
+            if (g.phase == Phase.reveal && g.idol != null && g.idolOnPull)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: IdolToast(who: g.idol!, line: g.idolLine, token: g.idolToken, fade: false),
+              ),
             const SizedBox(height: 12),
             Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [for (final o in opts) _capsuleSlot(o, opts.length)]),
             if (g.phase == Phase.reveal) ...[
@@ -850,22 +896,7 @@ class _GameScreenState extends State<GameScreen> {
                 runSpacing: 4,
                 alignment: WrapAlignment.center,
                 crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  RarityStars(o.rarity, size: 22),
-                  for (final t in o.tags)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: C.cream,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: C.ink, width: 2),
-                      ),
-                      child: Text(
-                        t,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: C.ink),
-                      ),
-                    ),
-                ],
+                children: [RarityStars(o.rarity, size: 22), for (final t in o.tags) TagChip(t)],
               ),
             ),
             const SizedBox(height: 8),
@@ -883,26 +914,27 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            _revealButton(PopButton(key: _kPlace, n == 1 ? '棚に置く' : 'これにする', onTap: () => g.choose(o))),
+            _revealButton(PopButton(key: _kPlace, n == 1 ? '祭壇に置く' : 'これにする', onTap: () => g.choose(o))),
           ],
         ),
       ),
     );
   }
 
-  Widget _bossCard({required Widget body}) => Center(
+  Widget _bossCard({required Widget body, String? ribbon}) => Center(
     child: Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 56, 20, 20),
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0.6, end: 1),
         duration: const Duration(milliseconds: 400),
         curve: Curves.elasticOut,
         builder: (_, s, c) => Transform.scale(scale: s, child: c),
         child: Panel(
+          ribbon: ribbon,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Bounce(token: g.bossToken, amount: 0.1, child: Image.asset('assets/ui/boss_${g.bossMood}.png', height: 130)),
+              Bounce(token: g.bossToken, amount: 0.1, child: Image.asset('assets/ui/boss_${g.bossMood}.png', height: 170)),
               Text(
                 g.bossLine,
                 textAlign: TextAlign.center,
@@ -919,15 +951,96 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _payday() {
     final p = g.payday;
+    final r = g.run;
+    final song = p != null && p.paid ? r.paydaysPaid : r.paydaysPaid + 1;
+    if (p != null && p.paid) return _songCleared(song);
     return _bossCard(
+      ribbon: '♪ $song曲目 おわり！',
       body: Column(
         children: [
-          Text('ショバ代 ${p?.due ?? g.run.due}', style: outlined(30, C.red, stroke: Colors.white)),
-          if (p != null && p.bonus > 0) Text('ラムネのおまけ +${p.bonus}', style: outlined(16, C.mint, width: 2)),
+          SizedBox(
+            width: 250,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: SongMeter(song: song, songs: Run.clearPaydays, spinsLeft: 0, spins: Run.turnsPerPayday, hearts: r.coins, quota: r.due),
+            ),
+          ),
+          if (r.coins >= r.due)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('ノルマ ♥${r.due} クリア！', style: outlined(20, C.pink, stroke: Colors.white, width: 4)),
+            ),
           const SizedBox(height: 10),
-          if (p == null) _wide(PopButton(key: _kPay, '払う！', onTap: g.pay, fontSize: 24)),
-          if (p != null && p.paid) Text('のこり ${g.run.coins}', style: outlined(22, C.gold)),
+          _wide(PopButton(key: _kPay, 'ハートを届ける！', onTap: g.pay, fontSize: 22)),
         ],
+      ),
+    );
+  }
+
+  /// The curtain call after a song: confetti, the idol thanks the crowd, then on to the merch booth.
+  Widget _songCleared(int song) {
+    final p = g.payday!;
+    final who = g.songIdol ?? 'ひなた';
+    return GestureDetector(
+      onTap: g.toShop,
+      behavior: HitTestBehavior.opaque,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 700),
+            curve: Curves.elasticOut,
+            builder: (_, t, c) => Transform.scale(scale: 0.5 + 0.5 * t, child: c),
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                Sparkles(token: g.burstToken, size: 420, colors: [C.gold, C.pink, idolColor[who]!, Colors.white], count: 50),
+                Panel(
+                  ribbon: '♪ $song曲目 大成功！',
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(portrait(who, happy: true), height: 230, fit: BoxFit.contain, alignment: Alignment.topCenter),
+                      Container(
+                        width: 270,
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: idolColor[who]!, width: 3),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(who, style: outlined(14, idolColor[who]!, stroke: Colors.white, width: 3)),
+                            Text(
+                              g.songLine,
+                              style: const TextStyle(fontSize: 15, height: 1.35, color: C.ink, fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('ハートを届けた ', style: outlined(15, C.ink, stroke: Colors.white, width: 3)),
+                          const HeartIcon(size: 22),
+                          Text('${p.due}', style: outlined(22, C.pink, stroke: Colors.white, width: 4)),
+                          if (p.bonus > 0) Text('  おまけ +${p.bonus}', style: outlined(14, C.mint, stroke: Colors.white, width: 3)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      _wide(PopButton('物販ブースへ ▶', onTap: g.toShop, fontSize: 20, color: C.lilac)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -936,9 +1049,10 @@ class _GameScreenState extends State<GameScreen> {
     final p = g.payday!;
     final short = p.due - (p.coinsBefore + p.bonus);
     return _bossCard(
+      ribbon: 'ノルマ未達成…',
       body: Column(
         children: [
-          Text('あと $short コイン足りない…', style: outlined(22, C.red, stroke: Colors.white)),
+          Text('ハートが あと $short 足りない…', style: outlined(22, C.red, stroke: Colors.white)),
           const SizedBox(height: 12),
           if (kAdsEnabled && g.run.canPostpone) _wide(PopButton('▶ 広告を見て延長！', onTap: g.watchAdToPostpone, color: C.mint, fontSize: 17)),
           const SizedBox(height: 10),
@@ -953,11 +1067,12 @@ class _GameScreenState extends State<GameScreen> {
     children: [
       Sparkles(token: 777, size: 460, colors: const [C.gold, C.pink, C.mint, Colors.white], count: 60),
       _bossCard(
+        ribbon: 'ライブ大成功！',
         body: Column(
           children: [
-            Text('完済！', style: outlined(44, C.gold)),
+            Image.asset('assets/ui/ui_medal.png', height: 90),
             const SizedBox(height: 8),
-            _wide(PopButton('延長戦へ', onTap: g.keepGoing)),
+            _wide(PopButton('アンコールへ！', onTap: g.keepGoing)),
             const SizedBox(height: 10),
             _wide(PopButton('おわる', onTap: g.giveUp, color: Colors.blueGrey, fontSize: 16)),
           ],
@@ -971,26 +1086,25 @@ class _GameScreenState extends State<GameScreen> {
     return Center(
       // scrolls when revivals add extra items
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.fromLTRB(14, 58, 14, 14),
         child: Panel(
+          ribbon: 'つむぎの物販ブース',
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 children: [
-                  Image.asset('assets/ui/boss_1.png', height: 56),
-                  const SizedBox(width: 8),
+                  Bounce(token: g.bossToken, amount: 0.1, child: Image.asset('assets/ui/boss_${g.bossMood}.png', height: 64)),
+                  const SizedBox(width: 6),
                   Expanded(
-                    child: Text('親分の夜店', style: outlined(26, C.pink, stroke: C.ink, width: 3)),
+                    child: Text(
+                      '次の曲のノルマ ♥${r.due}\n（5回後）',
+                      style: const TextStyle(color: C.ink, fontWeight: FontWeight.w800, fontSize: 13, height: 1.3),
+                    ),
                   ),
-                  Image.asset('assets/figures/koban.png', width: 30),
-                  Text('${r.coins}', style: outlined(24, C.gold, width: 3)),
+                  const HeartIcon(size: 30),
+                  Text('${r.coins}', style: outlined(24, C.pink, stroke: Colors.white, width: 4)),
                 ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '次の取り立て ${r.due}（5回後）',
-                style: const TextStyle(color: C.ink, fontWeight: FontWeight.w700),
               ),
               if (r.shopBuys == 0) Text('最初の1品は タダ！', style: outlined(16, C.pink, stroke: Colors.white, width: 3)),
               const SizedBox(height: 10),
@@ -1006,7 +1120,7 @@ class _GameScreenState extends State<GameScreen> {
                     color: const Color(0xFF8E7CC3),
                     fontSize: 16,
                   ),
-                  PopButton(key: _kLeave, r.shopBuys == 0 ? 'スキップ' : 'つぎへ', onTap: g.leaveShop, color: Colors.blueGrey, fontSize: 18),
+                  PopButton(key: _kLeave, 'つぎの曲へ ♪', onTap: g.leaveShop, color: C.pink, fontSize: 18),
                 ],
               ),
             ],
@@ -1020,7 +1134,7 @@ class _GameScreenState extends State<GameScreen> {
     final can = !o.sold && g.run.coins >= g.run.priceOf(o);
     final icon = switch (o.kind) {
       OfferKind.figure => FigureArt(o.fig!, size: 60),
-      OfferKind.luck => FigureArt(figureById['garagara']!, size: 60),
+      OfferKind.luck => FigureArt(figureById['gacha_charm']!, size: 60),
       OfferKind.removeTickets => const SizedBox(width: 60, child: Icon(Icons.back_hand_rounded, size: 44, color: Color(0xFF8E7CC3))),
       OfferKind.swapTicket => const SizedBox(width: 60, child: Icon(Icons.swap_horiz_rounded, size: 48, color: Color(0xFF4FA3D9))),
       OfferKind.repullTicket => const SizedBox(width: 60, child: Icon(Icons.replay_rounded, size: 46, color: Color(0xFF8E7CC3))),
@@ -1077,13 +1191,36 @@ class _GameScreenState extends State<GameScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(r.cleared ? 'おみごと！' : 'おしまい', style: outlined(36, C.pink, stroke: C.ink)),
+              Text(r.cleared ? 'ライブ成功！' : 'ライブ終了', style: outlined(36, C.pink, stroke: Colors.white, width: 5)),
+              // つむぎ sums the run up
+              _wide(
+                Row(
+                  children: [
+                    Image.asset('assets/ui/boss_${r.cleared || g.levelUps.isNotEmpty ? 1 : 0}.png', height: 76),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(10, 6, 10, 7),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: C.ink, width: 2),
+                        ),
+                        child: Text(
+                          g.overLine,
+                          style: const TextStyle(fontSize: 13, height: 1.35, color: C.ink, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 10),
               // the three records side by side, as wide as the buttons
               _wide(
                 Row(
                   children: [
-                    _stat('払えた取り立て', '${r.paydaysPaid}/${Run.clearPaydays}'),
+                    _stat('成功した曲', '${r.paydaysPaid}/${Run.clearPaydays}'),
                     _stat('一回の最高', '${r.bestTurn}'),
                     _stat('図鑑', '${widget.meta.seen.length}/${figures.length}'),
                   ],
@@ -1096,14 +1233,16 @@ class _GameScreenState extends State<GameScreen> {
                   duration: const Duration(milliseconds: 700),
                   curve: Curves.elasticOut,
                   builder: (_, t, c) => Transform.scale(scale: t, child: c),
-                  child: Text('最高かせぎ 全国 ${g.turnRank} 位！', style: outlined(24, C.pink, stroke: Colors.white, width: 4)),
+                  child: Text('最高ハート 全国 ${g.turnRank} 位！', style: outlined(24, C.pink, stroke: Colors.white, width: 4)),
                 ),
               const SizedBox(height: 10),
               Text(
-                'このランで稼いだ小判 ${r.earned}',
+                'このライブで集めたハート ${r.earned}',
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: C.ink),
               ),
               if (g.levelUps.isNotEmpty) _wide(_levelUp(g.levelUps.first - 1, g.levelUps.last)),
+              for (final a in g.runAchievements)
+                _wide(_unlock('実績解除！ ${a.title}', a.asmr != null ? '${asmrById[a.asmr]!.who}のささやきボイスが 聞けるように！（タイトルの「実績」から）' : a.text)),
               if (g.ascOpened != null) _wide(_unlock('段位 ${g.ascOpened} 解放！', ascensionText[g.ascOpened!])),
               for (final m in g.newMachines) _wide(_unlock('${m.name} 解放！', m.blurb, hue: m.hue)),
               const SizedBox(height: 14),
@@ -1273,7 +1412,7 @@ class _GameScreenState extends State<GameScreen> {
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: plus ? const [Color(0xFFFFE680), Color(0xFFFF9E2C)] : const [Color(0xFFB0B8C8), Color(0xFF6A7488)],
+                            colors: plus ? const [Color(0xFFFFB3D6), Color(0xFFFF4F98)] : const [Color(0xFFB0B8C8), Color(0xFF6A7488)],
                           ),
                           borderRadius: BorderRadius.circular(22),
                           border: Border.all(color: C.ink, width: 3),
@@ -1291,7 +1430,12 @@ class _GameScreenState extends State<GameScreen> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(plus ? '+$shown' : '$shown', style: outlined(size, Colors.white, stroke: plus ? const Color(0xFFB4501A) : C.ink, width: 5)),
+                            if (plus)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 2),
+                                child: HeartIcon(size: size * 0.9),
+                              ),
+                            Text(plus ? '+$shown' : '$shown', style: outlined(size, Colors.white, stroke: plus ? const Color(0xFFB0306E) : C.ink, width: 5)),
                           ],
                         ),
                       ),
@@ -1334,7 +1478,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
             child: Column(
               children: [
-                Text('縁日レベル UP！', style: outlined(24, C.gold, width: 4)),
+                Text('推し活レベル UP！', style: outlined(24, C.gold, width: 4)),
                 Text('Lv$from → Lv$to', style: outlined(30, Colors.white, stroke: C.ink, width: 4)),
                 if (news.isNotEmpty) ...[
                   const SizedBox(height: 4),
@@ -1352,19 +1496,6 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
   }
-
-  Widget _tagChip(String t, Color bg, Color fg) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-    decoration: BoxDecoration(
-      color: bg,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: C.ink, width: 1.5),
-    ),
-    child: Text(
-      t,
-      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: fg),
-    ),
-  );
 
   /// The two buttons under a revealed capsule share one width.
   Widget _revealButton(Widget b) => SizedBox(width: 260, child: b);
@@ -1385,7 +1516,7 @@ class _GameScreenState extends State<GameScreen> {
     '上書きする',
     C.pink,
     () => g.tapCell(i),
-    rightNote: 'この駒は なくなります',
+    rightNote: 'このグッズは なくなります',
   );
 
   /// Two figures side by side with their effects, and a yes / no.
@@ -1408,7 +1539,7 @@ class _GameScreenState extends State<GameScreen> {
                 runSpacing: 3,
                 alignment: WrapAlignment.center,
                 crossAxisAlignment: WrapCrossAlignment.center,
-                children: [RarityStars(d.rarity, size: 15), for (final t in d.tags) _tagChip(t, C.cream, C.ink)],
+                children: [RarityStars(d.rarity, size: 15), for (final t in d.tags) TagChip(t, size: 11)],
               ),
             ),
           if (d != null)
@@ -1522,13 +1653,13 @@ class _GameScreenState extends State<GameScreen> {
             children: [
               Text('広告を見て どれかひとつ', style: outlined(22, C.mint, stroke: C.ink, width: 3)),
               const Text(
-                '取り立てごとに1回まで',
+                '1曲ごとに1回まで',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: C.ink),
               ),
               const SizedBox(height: 10),
-              option(AdReward.coins, Image.asset('assets/figures/koban.png'), '小判 +${g.adCoins}', 'すぐにもらえる'),
-              option(AdReward.remove, const Icon(Icons.confirmation_number_rounded, size: 44, color: C.pink), 'どける・いれかえ・もう一回ひく 復活', '取り立てを待たずに 満タンにもどる'),
-              option(AdReward.luck, FigureArt(figureById['garagara']!, size: 52), '運 +5%', 'レアが出やすくなる'),
+              option(AdReward.coins, const HeartIcon(size: 52), 'ハート +${g.adCoins}', 'すぐにもらえる'),
+              option(AdReward.remove, const Icon(Icons.confirmation_number_rounded, size: 44, color: C.pink), 'どける・いれかえ・もう一回ひく 復活', '曲の終わりを待たずに 満タンにもどる'),
+              option(AdReward.luck, FigureArt(figureById['gacha_charm']!, size: 52), '運 +5%', 'Rが出やすくなる'),
             ],
           ),
         ),
@@ -1571,6 +1702,16 @@ class _GameScreenState extends State<GameScreen> {
                     onTap: () {
                       m.toggleMusic();
                       Bgm.setEnabled(m.music);
+                      set(() {});
+                    },
+                  ),
+                  PopButton(
+                    m.voice ? 'ボイス ON' : 'ボイス OFF',
+                    fontSize: 18,
+                    color: const Color(0xFF8E7CC3),
+                    onTap: () {
+                      m.toggleVoice();
+                      Voice.setEnabled(m.voice);
                       set(() {});
                     },
                   ),
@@ -1666,7 +1807,7 @@ Future<void> showFigureInfo(BuildContext context, FigureDef d, [Fig? f, Run? run
                   if (f != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      '置いてから ${f.age} 回転${f.lastGain != 0 ? '・さっきのかせぎ ${f.lastGain}' : ''}',
+                      '置いてから ${f.age} 回転${f.lastGain != 0 ? '・さっきのハート ${f.lastGain}' : ''}',
                       style: const TextStyle(color: C.woodDark, fontWeight: FontWeight.w800),
                     ),
                   ],

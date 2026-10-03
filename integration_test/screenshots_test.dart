@@ -4,13 +4,15 @@
 //   tool/screenshots.sh <simulator id> <out dir>
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gacha_rogue/logic/figures.dart';
-import 'package:gacha_rogue/main.dart';
-import 'package:gacha_rogue/ui/controller.dart';
-import 'package:gacha_rogue/ui/game_screen.dart';
-import 'package:gacha_rogue/ui/meta.dart';
-import 'package:gacha_rogue/ui/rank.dart';
-import 'package:gacha_rogue/ui/sfx.dart';
+import 'package:oshi_saidan/logic/figures.dart';
+import 'package:oshi_saidan/main.dart';
+import 'package:oshi_saidan/ui/controller.dart';
+import 'package:oshi_saidan/ui/game_screen.dart';
+import 'package:oshi_saidan/ui/lines.dart';
+import 'package:oshi_saidan/ui/meta.dart';
+import 'package:oshi_saidan/ui/rank.dart';
+import 'package:oshi_saidan/ui/sfx.dart';
+import 'package:oshi_saidan/ui/voice.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -53,13 +55,15 @@ void main() {
     await t.tap(find.text('はじめる！'));
     await settle(t, 1200);
     final g = (t.state(find.byType(GameScreen)) as dynamic).g as GameController;
+    await settle(t, 1500);
+    await shot(t, 'h_start'); // the hall before any hearts
 
     // a shelf that is already doing well
     final r = g.run;
     const layout = {
-      0: 'kingyo', 1: 'kingyobachi', 2: 'kingyo', 3: 'koban',
-      4: 'takoyaki', 5: 'ringoame', 6: 'wataame', 7: 'maneki',
-      8: 'yakisoba', 9: 'hanabi', 10: 'kinchaku', 12: 'tanuki', 13: 'omikuji', 15: 'chochin',
+      0: 'shizumomo_strap', 1: 'shizuku_acsta', 2: 'shizumomo_strap', 3: 'coin',
+      4: 'koharu_keyholder', 5: 'koharu_acsta', 6: 'koharu_badge', 7: 'hinamomo_maneki',
+      8: 'koharu_cookie', 9: 'yoru_tape', 10: 'oshi_bank', 12: 'momo_badge', 13: 'hinata_photo', 15: 'yoru_badge',
     };
     for (final e in layout.entries) {
       if (r.cells[e.key] == null) r.place(figureById[e.value]!, e.key);
@@ -69,39 +73,89 @@ void main() {
     g.shown = List.of(r.cells);
     g.coinsShown = r.coins;
 
-    // a legend out of the capsule
-    g.options = [figureById['ryu']!];
+    // a ★4 capsule waiting to be opened
+    g.options = [figureById['hinamomo_dome']!];
     g.phase = Phase.capsule;
+    g.notifyListeners();
+    await settle(t, 800);
+    await shot(t, 'h_capsule');
+    // opened: the idol cuts in first
     g.openCapsule();
+    await settle(t, 900);
+    await shot(t, '2_cutin');
+    g.skipCutin();
     await settle(t, 1600);
-    await shot(t, '2_reveal');
+    await shot(t, '3_reveal');
 
     // place it and catch the coins mid-count
     g.choose(g.options.single);
     await settle(t, 300);
     g.tapCell(11);
     await settle(t, 2600);
-    await shot(t, '3_scoring');
+    await shot(t, '4_scoring');
     for (var k = 0; k < 80 && g.phase == Phase.scoring; k++) {
       await settle(t, 200);
     }
     await settle(t, 600);
-    await shot(t, '4_shelf');
+    await shot(t, 'h_spin');
 
-    // the boss's stall
-    r.paydaysPaid = 1;
-    r.coins = 140;
-    g.keepGoing();
+    // a normal pull: she says hello in a bubble
+    g.options = [figureById['yoru_penlight']!];
+    g.phase = Phase.capsule;
+    g.openCapsule();
+    await settle(t, 1400);
+    await shot(t, '5_pull');
+    g.choose(g.options.single);
+    await settle(t, 300);
+    g.tapCell(14);
+    for (var k = 0; k < 80 && g.phase != Phase.ready; k++) {
+      await settle(t, 200);
+    }
+
+    // the end of a song: つむぎ checks the quota
+    r.turn = 5;
+    r.coins = 160;
+    g.coinsShown = 160;
+    g.phase = Phase.payday;
+    g.payday = null;
+    g.say(0, linePayday.first);
     await settle(t, 1200);
-    await shot(t, '5_shop');
+    await shot(t, '6_payday');
 
-    // back out to the figure book
+    // quota met: the curtain call, then the merch booth
+    g.pay();
+    await settle(t, 1600);
+    await shot(t, '7_songclear');
+    g.toShop();
+    await settle(t, 1400);
+    await shot(t, '8_shop');
+
+    // back out to the members and the goods book
     g.leaveShop();
     await settle(t, 600);
+    g.giveUp();
+    await settle(t, 2500);
+    await shot(t, 'h_result');
     Navigator.of(t.element(find.byType(GameScreen))).pop();
     await settle(t, 1200);
+    await t.tap(find.text('メンバー'));
+    await settle(t, 1200);
+    await t.tap(find.byKey(const ValueKey('member-よる')));
+    await settle(t, 1200);
+    await shot(t, '9_members');
+    await t.pageBack();
+    await settle(t, 1000);
     await t.tap(find.textContaining('図鑑'));
     await settle(t, 1200);
-    await shot(t, '6_book');
+    await shot(t, '10_book');
+    await t.pageBack();
+    await settle(t, 1000);
+    await t.tap(find.text('実績'));
+    await settle(t, 1200);
+    await shot(t, '11_achievements');
+    // let the last voice line go quiet before the tree is torn down
+    Voice.stop();
+    await t.runAsync(() => Future.delayed(const Duration(milliseconds: 500)));
+    await t.pump();
   });
 }

@@ -1,0 +1,418 @@
+[
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/hinata_m1.wav",
+  "text": "ひなたー！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/hinata_m2.wav",
+  "text": "ひなたー！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/hinata_m3.wav",
+  "text": "ひなたー！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/hinata_f1.wav",
+  "text": "ひなたー！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/shizuku_m1.wav",
+  "text": "しずくちゃーん！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/shizuku_m2.wav",
+  "text": "しずくちゃーん！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/shizuku_m3.wav",
+  "text": "しずくちゃーん！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/shizuku_f1.wav",
+  "text": "しずくちゃーん！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/koharu_m1.wav",
+  "text": "こはるー！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/koharu_m2.wav",
+  "text": "こはるー！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/koharu_m3.wav",
+  "text": "こはるー！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/koharu_f1.wav",
+  "text": "こはるー！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/yoru_m1.wav",
+  "text": "よるー！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/yoru_m2.wav",
+  "text": "よるー！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/yoru_m3.wav",
+  "text": "よるー！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/yoru_f1.wav",
+  "text": "よるー！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/momo_m1.wav",
+  "text": "ももちゃーん！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/momo_m2.wav",
+  "text": "ももちゃーん！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/momo_m3.wav",
+  "text": "ももちゃーん！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/momo_f1.wav",
+  "text": "ももちゃーん！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/kawaii_m1.wav",
+  "text": "かわいいー！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/kawaii_m2.wav",
+  "text": "かわいいー！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/kawaii_m3.wav",
+  "text": "かわいいー！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/kawaii_f1.wav",
+  "text": "かわいいー！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/saikou_m1.wav",
+  "text": "最高ー！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/saikou_m2.wav",
+  "text": "最高ー！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/saikou_m3.wav",
+  "text": "最高ー！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/saikou_f1.wav",
+  "text": "最高ー！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/wa_m1.wav",
+  "text": "わーっ！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/wa_m2.wav",
+  "text": "わーっ！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/wa_m3.wav",
+  "text": "わーっ！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/wa_f1.wav",
+  "text": "わーっ！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/kya_m1.wav",
+  "text": "きゃーっ！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/kya_m2.wav",
+  "text": "きゃーっ！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/kya_m3.wav",
+  "text": "きゃーっ！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/kya_f1.wav",
+  "text": "きゃーっ！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/fu_m1.wav",
+  "text": "フゥー！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/fu_m2.wav",
+  "text": "フゥー！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/fu_m3.wav",
+  "text": "フゥー！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/fu_f1.wav",
+  "text": "フゥー！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/iei_m1.wav",
+  "text": "いえーい！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/iei_m2.wav",
+  "text": "いえーい！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/iei_m3.wav",
+  "text": "いえーい！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/iei_f1.wav",
+  "text": "いえーい！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/pripare_m1.wav",
+  "text": "ぷりパレー！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/pripare_m2.wav",
+  "text": "ぷりパレー！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/pripare_m3.wav",
+  "text": "ぷりパレー！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/pripare_f1.wav",
+  "text": "ぷりパレー！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/oi_m1.wav",
+  "text": "はい！はい！",
+  "caption": "ライブ会場で叫ぶ、二十代の男性ファンの声。大声で熱狂的に、思いきり叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/oi_m2.wav",
+  "text": "はい！はい！",
+  "caption": "少し低めの、三十代の男性ファンの声。ライブで全力で声援を送る。大声で叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/oi_m3.wav",
+  "text": "はい！はい！",
+  "caption": "若い男性ファンの声。テンションが高く、裏返り気味に叫ぶ。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/crowd/oi_f1.wav",
+  "text": "はい！はい！",
+  "caption": "ライブ会場で叫ぶ、二十代の女性ファンの声。高い声で黄色い歓声をあげる。",
+  "seed": 3,
+  "duration_scale": 1.0,
+  "check": false
+ }
+]

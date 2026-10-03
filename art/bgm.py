@@ -2,28 +2,40 @@
 
   python3 art/bgm.py
 
-bgm_title    : calm, 84 BPM — koto arpeggios and a soft flute
-bgm_select   : choosing a machine, 104 BPM — bouncy marimba, koto bass, shaker
-bgm_ennichi  : 縁日ガチャ, matsuri-bayashi, 112 BPM — shinobue, shamisen, taiko, chanchiki
-bgm_mizu     : 水まつりガチャ, 92 BPM — flowing koto, water drops, wind chime, soft flute
-bgm_kuishinbo: 食いしん坊ガチャ, 128 BPM — chindon-ya: oom-pah tuba, clarinet, sizzling hats
-bgm_engi     : 縁起ガチャ, 80 BPM — shrine gagaku: sho drone, hichiriki, tsuzumi, suzu bells
-bgm_ayashii  : 妖しいガチャ, 70 BPM — "in" scale, low drone, bending flute, hyoshigi, temple bell
-bgm_kinpika  : 金ぴかガチャ, 138 BPM — brassy lead, glockenspiel sparkle, driving taiko
+All tracks are bright J-pop / anime-idol style: four-on-the-floor kick, claps on
+2 and 4, offbeat open hats, side-chain-pumped pads, plucky arps, octave bass,
+a soft singable lead and a little "kirakira" chime at phrase ends.
 
-They use Japanese pentatonics (yo: D E G A B; in: D Eb G A Bb) and are rendered
-as exact seamless loops: the reverb tail past the loop point is folded back onto
-the start. WAV keeps the loop gapless on every platform.
+bgm_title     : title screen, 120 BPM, D major, 16 bars — IV-V-iii-vi hook, soft lead, pluck arp, glock in the B half
+bgm_select    : choosing a machine, 110 BPM, G major, 8 bars — sparse marimba + bell tune, light kick/snap, low density
+bgm_pripare   : ぷりパレガチャ, 128 BPM, E major, 16 bars — the unit's theme song: verse + chorus, 16th arps, chant claps
+bgm_shizumomo : しずももガチャ, 118 BPM, A major, 12 bars — maj7/m7 chords, electric piano comping, glassy bell lead, airy reverb
+bgm_koharu    : こはる推しガチャ, 100 BPM, F major, 12 bars — swung shuffle, toy piano lead, marimba offbeats, oom-pah bass
+bgm_hinata    : ひなた推しガチャ, 140 BPM, C major, 16 bars — full drive: 16th hats, brass stabs, "hai! hai!" claps, snare fills
+bgm_yoru      : よるの真夜中ガチャ, 112 BPM, D minor, 12 bars — harmonic minor (E7), harpsichord arps, staccato lead, celesta
+bgm_premium   : プレミアムガチャ, 132 BPM, Bb major, 16 bars — brassy stabs, big 16th glockenspiel, fanfare lead, crash + rolls
+
+Everything is written in C major / A minor and transposed by the song's `key`.
+Each loop is an exact number of bars: the reverb/release tail past the loop point
+is folded back onto the start, so the WAV loops gaplessly. Levels are
+RMS-normalized with a gentle soft limiter, so all tracks sit at a similar
+loudness under the voice lines. Partials above TOP Hz are dropped to keep the
+highs soft.
 """
+import re
+import time
 import wave
 from pathlib import Path
 
 import numpy as np
 
 SR = 22050
+TOP = 7000  # no partials above this: keeps the highs soft under voice lines
+TARGET_RMS = 0.11
+FADE = int(SR * 0.0015)  # every onset gets a 1.5 ms fade-in
 OUT = Path(__file__).resolve().parent.parent / 'assets' / 'bgm'
 OUT.mkdir(parents=True, exist_ok=True)
-rng = np.random.default_rng(3)
+rng = np.random.default_rng(7)
 
 
 def hz(n):
@@ -31,449 +43,613 @@ def hz(n):
 
 
 def add(buf, at, sig):
-    i = int(at * SR)
+    i = int(round(at * SR))
+    if i >= len(buf):
+        return
     end = min(len(buf), i + len(sig))
-    buf[i:end] += sig[:end - i]
+    sig = sig[:end - i].copy()
+    k = min(len(sig), FADE)
+    sig[:k] *= np.linspace(0, 1, k, endpoint=False)  # no hard onsets (keeps the loop seam click-free too)
+    buf[i:end] += sig
 
 
-def flute(n, dur, vol=0.32):
-    """Shinobue-ish: breathy sine with a delayed vibrato."""
-    d = dur + 0.08
-    t = np.arange(int(SR * d)) / SR
-    vib = 1 + 0.006 * np.sin(2 * np.pi * 5.6 * t) * np.clip((t - 0.12) / 0.15, 0, 1)
-    ph = 2 * np.pi * np.cumsum(hz(n) * vib) / SR
-    s = np.sin(ph) + 0.18 * np.sin(2 * ph) + 0.06 * np.sin(3 * ph)
-    breath = rng.standard_normal(len(t)) * 0.05 * np.exp(-t * 18)
-    env = np.clip(t / 0.025, 0, 1) * np.clip((d - t) / 0.07, 0, 1)
-    return (s + breath) * env * vol
-
-
-def pluck(n, dur, vol=0.5, bright=0.5, decay=0.996):
-    """Karplus-Strong string: shamisen (bright, short) or koto (softer, long)."""
-    f = hz(n)
-    p = max(2, int(SR / f))
-    total = int(SR * dur)
-    buf = rng.uniform(-1, 1, p)
-    out = np.zeros(total)
-    for i in range(total):
-        j = i % p
-        nxt = buf[(j + 1) % p]
-        out[i] = buf[j]
-        buf[j] = decay * (bright * buf[j] + (1 - bright) * nxt) if bright < 1 else decay * buf[j]
-    env = np.clip((dur - np.arange(total) / SR) / 0.05, 0, 1)
-    return out * env * vol
-
-
-def taiko(vol=0.9):
-    t = np.arange(int(SR * 0.45)) / SR
-    f = 95 * np.exp(-t * 6) + 55
-    s = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 9)
-    s += rng.standard_normal(len(t)) * np.exp(-t * 60) * 0.25
-    return s * vol
-
-
-def rim(vol=0.35):
-    t = np.arange(int(SR * 0.05)) / SR
-    s = rng.standard_normal(len(t)) * np.exp(-t * 120)
-    s = np.append(s[0], s[1:] - 0.85 * s[:-1])  # high-pass: a dry "ka"
-    return s * vol
-
-
-def kane(vol=0.12):
-    """Chanchiki: a tiny bright metal bell."""
-    t = np.arange(int(SR * 0.25)) / SR
-    s = sum(np.sin(2 * np.pi * f * t) * a for f, a in ((2630, 1), (3970, 0.6), (5410, 0.35)))
-    return s * np.exp(-t * 22) * vol
-
-
-def reverb(x, taps=((0.083, 0.28), (0.131, 0.2), (0.197, 0.14), (0.271, 0.09))):
-    y = x.copy()
-    for d, g in taps:
-        i = int(SR * d)
-        y[i:] += x[:-i] * g
-    return y
-
-
-def finish(name, buf, loop_len, vol=0.7):
-    buf = reverb(buf)
-    n = int(SR * loop_len)
-    loop = buf[:n].copy()
-    tail = buf[n:]
-    loop[:len(tail)] += tail  # fold the tail onto the start → seamless
-    loop = loop / (np.abs(loop).max() + 1e-9) * vol
-    data = (loop * 32767).astype(np.int16)
-    with wave.open(str(OUT / f'{name}.wav'), 'wb') as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(SR)
-        w.writeframes(data.tobytes())
-    print(name, f'{loop_len:.1f}s', (OUT / f'{name}.wav').stat().st_size // 1024, 'KB')
-
-
-def melody(text):
-    """'74:2 76:1 r:1 ...' → [(note|None, eighths)]"""
-    out = []
-    for tok in text.split():
-        n, d = tok.split(':')
-        out.append((None if n == 'r' else int(n), int(d)))
+def mix(*sigs):
+    """Sum signals of different lengths."""
+    out = np.zeros(max(len(x) for x in sigs))
+    for x in sigs:
+        out[:len(x)] += x
     return out
 
 
-# ── game: matsuri ──
-BPM = 112
-E8 = 60 / BPM / 2  # one eighth note
-BARS = 16
-L = BARS * 8 * E8
-buf = np.zeros(int(SR * (L + 2)))
-
-tune = melody('''
-74:2 76:1 79:1 81:2 79:2   76:1 74:1 76:2 71:4
-69:2 71:1 74:1 76:2 74:1 71:1   69:6 r:2
-74:2 76:1 79:1 81:2 83:2   81:1 79:1 81:2 76:4
-79:2 76:1 74:1 71:2 69:1 71:1   74:6 r:2
-86:1 83:1 81:2 83:1 81:1 79:2   81:1 79:1 76:2 79:4
-76:1 79:1 81:1 83:1 86:2 83:2   81:6 r:2
-79:2 81:1 79:1 76:2 74:2   71:1 74:1 76:2 74:4
-69:2 71:1 74:1 76:1 74:1 71:1 69:1   74:6 r:2
-''')
-pos = 0
-for n, d in tune:
-    if n is not None:
-        add(buf, pos * E8, flute(n, d * E8 * 0.95))
-    pos += d
-assert pos == BARS * 8, pos
-
-roots = [50, 50, 55, 57, 50, 50, 55, 50, 55, 55, 57, 57, 55, 50, 57, 50]  # D G A in octave 3
-for b, r in enumerate(roots):
-    for q, iv in enumerate((0, 7, 12, 7)):  # root, fifth, octave, fifth
-        add(buf, (b * 8 + q * 2) * E8, pluck(r + iv - 12, E8 * 1.8, 0.42, 0.5, 0.993))
-
-for b in range(BARS):
-    fill = b % 4 == 3
-    pat = 'DDkDDkDD' if fill else 'D.kkD.k.'
-    for e, c in enumerate(pat):
-        at = (b * 8 + e) * E8
-        if c == 'D':
-            add(buf, at, taiko(0.8 if e else 1.0))
-        elif c == 'k':
-            add(buf, at, rim())
-    for e in (1, 3, 5, 7):  # chan-chiki on the off-beats
-        add(buf, (b * 8 + e) * E8, kane())
-
-finish('bgm_ennichi', buf, L)
-
-# ── title: calm koto ──
-BPM = 84
-E8 = 60 / BPM / 2
-BARS = 8
-L = BARS * 8 * E8
-buf = np.zeros(int(SR * (L + 3)))
-chords = [  # yo-scale arpeggios, 8 eighths per bar
-    [62, 69, 74, 76, 79, 76, 74, 69],
-    [55, 62, 67, 71, 74, 71, 67, 62],
-    [57, 64, 69, 71, 76, 71, 69, 64],
-    [62, 69, 74, 79, 81, 79, 74, 69],
-    [59, 66, 71, 74, 78, 74, 71, 66],
-    [55, 62, 67, 71, 74, 71, 67, 62],
-    [57, 64, 69, 74, 76, 74, 69, 64],
-    [62, 69, 74, 76, 81, 76, 74, 69],
-]
-for b, ns in enumerate(chords):
-    for e, n in enumerate(ns):
-        add(buf, (b * 8 + e) * E8, pluck(n, 1.6, 0.30, 0.65, 0.9985))
-calm = melody('''
-r:4 81:4   79:6 76:2   76:4 74:4   r:8
-r:4 86:2 83:2   81:6 79:2   76:4 79:2 76:2   74:8
-''')
-pos = 0
-for n, d in calm:
-    if n is not None:
-        add(buf, pos * E8, flute(n, d * E8 * 0.97, 0.22))
-    pos += d
-assert pos == BARS * 8, pos
-finish('bgm_title', buf, L, 0.6)
+def _t(dur):
+    return np.arange(max(1, int(SR * dur))) / SR
 
 
-# ════ more instruments ════
-def tone(f, dur, harm=((1, 1),), att=0.01, rel=0.08, vib=0.0, vib_hz=5.5, bend=0.0):
-    """A note from a list of (harmonic, amplitude). [bend] glides in from that many semitones."""
-    t = np.arange(int(SR * dur)) / SR
-    glide = 2 ** (bend * np.exp(-t * 14) / 12) if bend else 1
-    fr = f * glide * (1 + vib * np.sin(2 * np.pi * vib_hz * t) * np.clip((t - 0.1) / 0.2, 0, 1))
-    ph = 2 * np.pi * np.cumsum(fr) / SR
-    s = sum(a * np.sin(k * ph) for k, a in harm)
-    env = np.clip(t / att, 0, 1) * np.clip((dur - t) / rel, 0, 1)
-    return s * env
+def gate(t, dur, att, rel):
+    return np.clip(t / att, 0, 1) * np.clip((dur - t) / rel, 0, 1)
 
 
-def marimba(n, vol=0.35):
-    t = np.arange(int(SR * 0.6)) / SR
-    f = hz(n)
-    s = np.sin(2 * np.pi * f * t) * np.exp(-t * 7) + 0.3 * np.sin(2 * np.pi * f * 4 * t) * np.exp(-t * 30)
+def osc(f, t, partials, vib=0.0, vib_hz=5.5, vib_delay=0.15, bend=0.0, phase=0.0):
+    """Sum of partials (ratio, amp, decay/s). Partials above TOP are skipped."""
+    fr = np.full(len(t), f)
+    if bend:
+        fr = fr * 2 ** (bend * np.exp(-t * 25) / 12)
+    if vib:
+        fr = fr * (1 + vib * np.sin(2 * np.pi * vib_hz * t) * np.clip((t - vib_delay) / 0.2, 0, 1))
+    ph = 2 * np.pi * np.cumsum(fr) / SR + phase
+    s = np.zeros(len(t))
+    for k, a, d in partials:
+        if k * f >= TOP:
+            continue
+        s += a * np.sin(k * ph) * (np.exp(-t * d) if d else 1)
+    return s
+
+
+def noise(n):
+    return rng.standard_normal(n)
+
+
+def highpass(x, a=0.9):
+    return np.append(x[0], x[1:] - a * x[:-1])
+
+
+def smooth(x):
+    return np.convolve(x, [0.25, 0.5, 0.25], 'same')
+
+
+# ════ instruments (n = MIDI note, dur = seconds) ════
+def lead(n, dur, vol=0.17, bright=0.3):
+    """Soft square-ish synth lead with a little detuned double and delayed vibrato."""
+    dur = max(dur, 0.06)
+    t = _t(dur)
+    p = [(1, 1, 0), (2, 0.16, 0), (3, 0.28, 0), (4, 0.06, 0), (5, 0.12, 0), (7, 0.05, 0),
+         (3, bright * 0.25, 7), (5, bright * 0.2, 9), (6, bright * 0.12, 12)]
+    s = osc(hz(n), t, p, vib=0.005) + 0.5 * osc(hz(n) * 1.0035, t, p[:4], vib=0.005, phase=1.3)
+    return s * gate(t, dur, 0.012, 0.05) * (1 + 0.35 * np.exp(-t * 18)) * vol
+
+
+def bell(n, vol=0.12, length=1.3):
+    t = _t(length)
+    s = osc(hz(n), t, [(1, 1, 2.2), (2, 0.3, 4), (3, 0.08, 6), (4.2, 0.16, 8), (5.4, 0.07, 13)])
+    return s * np.clip(t / 0.002, 0, 1) * vol
+
+
+def glock(n, vol=0.1, length=1.0):
+    t = _t(length)
+    s = osc(hz(n), t, [(1, 1, 4.5), (2.76, 0.3, 10), (5.4, 0.1, 20)])
+    return s * np.clip(t / 0.002, 0, 1) * vol
+
+
+def chime(n, vol=0.08):
+    """Pure, glassy kirakira tone."""
+    t = _t(0.9)
+    s = osc(hz(n), t, [(1, 1, 5), (2, 0.15, 9)])
+    return s * np.clip(t / 0.002, 0, 1) * vol
+
+
+def pluck(n, vol=0.12, length=0.34):
+    """Synth pluck: saw whose upper partials die quickly (a closing filter)."""
+    t = _t(length)
+    s = osc(hz(n), t, [(k, 1 / k, 5 + 6 * k) for k in range(1, 11)])
+    return s * np.clip(t / 0.002, 0, 1) * np.clip((length - t) / 0.04, 0, 1) * vol
+
+
+def epiano(n, dur, vol=0.1):
+    """FM electric piano with a slow tremolo."""
+    t = _t(dur + 0.25)
+    ph = 2 * np.pi * hz(n) * t
+    idx = 1.1 * np.exp(-t * 3) + 0.15
+    s = np.sin(ph + idx * np.sin(ph)) + 0.12 * np.sin(2 * ph) * np.exp(-t * 6)
+    env = np.exp(-t * 1.3) * gate(t, dur + 0.25, 0.003, 0.25)
+    return s * env * (1 + 0.12 * np.sin(2 * np.pi * 4.8 * t)) * vol
+
+
+def toy(n, vol=0.14):
+    """Toy piano: struck metal rods, slightly odd partials."""
+    t = _t(0.9)
+    s = osc(hz(n), t, [(1, 1, 4), (3.01, 0.22, 10), (5.98, 0.08, 22), (2.0, 0.12, 14)])
+    return (s + highpass(noise(len(t))) * np.exp(-t * 400) * 0.08) * np.clip(t / 0.001, 0, 1) * vol
+
+
+def marimba(n, vol=0.2):
+    t = _t(0.6)
+    s = osc(hz(n), t, [(1, 1, 7), (4, 0.25, 30), (10, 0.05, 60)])
     return s * np.clip(t / 0.003, 0, 1) * vol
 
 
-def glock(n, vol=0.18):
-    t = np.arange(int(SR * 0.9)) / SR
+def harpsi(n, dur, vol=0.1):
+    """Harpsichord-ish: bright plucked partials, damped at note end."""
+    length = dur + 0.08
+    t = _t(length)
+    s = osc(hz(n), t, [(k, abs(np.sin(np.pi * k * 0.18)) / k, 1.5 + 0.8 * k) for k in range(1, 15)])
+    return s * np.clip(t / 0.0015, 0, 1) * np.clip((length - t) / 0.06, 0, 1) * vol
+
+
+def brass(n, dur, vol=0.1):
+    """Brassy synth stab: bright blat that mellows, a tiny scoop up."""
+    dur = max(dur, 0.06)
+    t = _t(dur)
     f = hz(n)
-    s = np.sin(2 * np.pi * f * t) + 0.4 * np.sin(2 * np.pi * f * 2.76 * t) * np.exp(-t * 6)
-    return s * np.exp(-t * 4.5) * np.clip(t / 0.002, 0, 1) * vol
-
-
-def furin(vol=0.10):
-    """Wind chime: a glassy, slightly inharmonic ring."""
-    t = np.arange(int(SR * 2.2)) / SR
-    s = sum(a * np.sin(2 * np.pi * f * t) for f, a in ((2093, 1), (3215, 0.5), (4410, 0.3), (5980, 0.15)))
-    return s * np.exp(-t * 2.2) * vol
-
-
-def drop(n, vol=0.22):
-    """A water drop: a short upward pitch blip."""
-    t = np.arange(int(SR * 0.16)) / SR
-    f = hz(n) * (1 + 1.2 * t / 0.16)
-    return np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 28) * vol
-
-
-def tuba(n, dur, vol=0.5):
-    return tone(hz(n), dur, ((1, 1), (2, 0.45), (3, 0.15)), att=0.012, rel=0.05) * vol
-
-
-def clarinet(n, dur, vol=0.22, bend=0.0):
-    return tone(hz(n), dur, ((1, 1), (3, 0.45), (5, 0.25), (7, 0.12)), att=0.02, rel=0.05, vib=0.004, bend=bend) * vol
-
-
-def brass(n, dur, vol=0.2):
-    return tone(hz(n), dur, tuple((k, 1 / k) for k in range(1, 9)), att=0.025, rel=0.06, vib=0.003) * vol
-
-
-def hichiriki(n, dur, vol=0.2, bend=-1.5):
-    """Nasal double reed that slides up into each note."""
-    return tone(hz(n), dur, ((1, 1), (2, 0.7), (3, 0.6), (4, 0.35), (5, 0.25)), att=0.05, rel=0.1, vib=0.008, vib_hz=4.5, bend=bend) * vol
-
-
-def sho(ns, dur, vol=0.07):
-    """Mouth-organ cluster: slow swell, holds, fades."""
-    t = np.arange(int(SR * dur)) / SR
-    s = sum(np.sin(2 * np.pi * hz(n) * (1 + 0.0015 * k) * t) + 0.3 * np.sin(4 * np.pi * hz(n) * t) for k, n in enumerate(ns))
-    env = np.clip(t / 0.8, 0, 1) * np.clip((dur - t) / 0.6, 0, 1)
-    return s * env * vol
-
-
-def drone(n, dur, vol=0.18):
-    t = np.arange(int(SR * dur)) / SR
-    s = np.sin(2 * np.pi * hz(n) * t) + 0.6 * np.sin(2 * np.pi * hz(n) * 1.004 * t) + 0.2 * np.sin(2 * np.pi * hz(n + 12) * t)
-    env = np.clip(t / 1.5, 0, 1) * np.clip((dur - t) / 1.5, 0, 1)
-    return s * env * vol
-
-
-def eerie(n, dur, vol=0.2):
-    """A flute that sags and wavers."""
-    t = np.arange(int(SR * dur)) / SR
-    fr = hz(n) * (1 + 0.012 * np.sin(2 * np.pi * 3.2 * t)) * (1 - 0.02 * np.clip((t - dur * 0.6) / (dur * 0.4), 0, 1))
+    fr = f * 2 ** (-0.4 * np.exp(-t * 30) / 12)
     ph = 2 * np.pi * np.cumsum(fr) / SR
-    s = np.sin(ph) + 0.12 * np.sin(2 * ph) + rng.standard_normal(len(t)) * 0.04
-    env = np.clip(t / 0.15, 0, 1) * np.clip((dur - t) / 0.3, 0, 1)
-    return s * env * vol
+    bright = 0.35 + 0.65 * np.exp(-t * 6)
+    s = np.zeros(len(t))
+    for k in range(1, 11):
+        if k * f >= TOP:
+            break
+        s += np.sin(k * ph) / k * (1 if k < 3 else bright)
+    return s * gate(t, dur, 0.018, 0.06) * vol
 
 
-def temple(vol=0.25):
-    """Distant temple bell (bonsho)."""
-    t = np.arange(int(SR * 4.0)) / SR
-    s = sum(a * np.sin(2 * np.pi * f * t) for f, a in ((98, 1), (196.7, 0.6), (267, 0.45), (393, 0.25), (530, 0.15)))
-    s *= 1 + 0.25 * np.sin(2 * np.pi * 1.3 * t)  # the slow beating "wow"
-    return s * np.exp(-t * 0.9) * np.clip(t / 0.01, 0, 1) * vol
+def pad(ns, dur, vol=0.05):
+    """Detuned saw-stack chord (supersaw-lite)."""
+    t = _t(dur)
+    s = np.zeros(len(t))
+    for n in ns:
+        for det in (-0.08, 0.0, 0.08):
+            s += osc(hz(n + det), t, [(k, 1 / k ** 1.5, 0) for k in range(1, 13)], phase=rng.uniform(0, 6.28))
+    return s * gate(t, dur, 0.06, 0.3) * vol
 
 
-def hyoshigi(vol=0.5):
-    """Two wooden clappers: a hard, high clack."""
-    t = np.arange(int(SR * 0.12)) / SR
-    s = (np.sin(2 * np.pi * 1850 * t) + 0.5 * np.sin(2 * np.pi * 2790 * t)) * np.exp(-t * 55)
-    return (s + rng.standard_normal(len(t)) * np.exp(-t * 200) * 0.4) * vol
+def bass(n, dur, vol=0.3):
+    dur = max(dur, 0.05)
+    t = _t(dur)
+    s = osc(hz(n), t, [(1, 1, 0), (2, 0.5, 6), (3, 0.3, 10), (4, 0.18, 14), (5, 0.1, 18)])
+    return s * np.exp(-t * 2) * gate(t, dur, 0.003, 0.03) * vol
 
 
-def tsuzumi(vol=0.45):
-    """Kotsuzumi "pon": a hand drum whose pitch drops."""
-    t = np.arange(int(SR * 0.35)) / SR
-    f = 420 * np.exp(-t * 9) + 260
-    return np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 11) * vol
+def kick(vol=0.8):
+    t = _t(0.32)
+    f = 48 + 120 * np.exp(-t * 32)
+    s = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 9)
+    s += highpass(noise(len(t))) * np.exp(-t * 300) * 0.12
+    return np.tanh(1.4 * s) * vol
 
 
-def suzu(vol=0.08):
-    """A shake of shrine bells."""
-    out = np.zeros(int(SR * 0.6))
-    for k in range(7):
-        b = kane(1)[: int(SR * 0.2)]
-        i = int(SR * (k * 0.045 + rng.uniform(0, 0.015)))
-        out[i:i + len(b)] += b * (1 - k / 9)
-    return out * vol
+def snare(vol=0.3):
+    t = _t(0.2)
+    s = np.sin(2 * np.pi * 190 * t) * np.exp(-t * 22) * 0.6
+    s += smooth(highpass(noise(len(t)), 0.7)) * np.exp(-t * 20)
+    return s * vol
 
 
-def shaker(vol=0.08):
-    t = np.arange(int(SR * 0.07)) / SR
-    s = rng.standard_normal(len(t))
-    s = np.append(s[0], s[1:] - 0.95 * s[:-1])
+def clap(vol=0.3):
+    t = _t(0.25)
+    n = smooth(highpass(noise(len(t)), 0.8))
+    env = sum(np.exp(-np.clip(t - o, 0, None) * 180) * (t >= o) for o in (0, 0.011, 0.022))
+    env = env + 0.6 * np.exp(-np.clip(t - 0.03, 0, None) * 20) * (t >= 0.03)
+    return n * env * vol * 0.6
+
+
+def snap(vol=0.25):
+    t = _t(0.08)
+    s = smooth(highpass(noise(len(t)), 0.6)) * np.exp(-t * 90) + np.sin(2 * np.pi * 1600 * t) * np.exp(-t * 70) * 0.4
+    return s * vol
+
+
+def hat(vol=0.06, open_=False):
+    t = _t(0.28 if open_ else 0.05)
+    s = smooth(highpass(highpass(noise(len(t)), 0.95), 0.95))
+    return s * np.exp(-t * (13 if open_ else 75)) * vol
+
+
+def shaker(vol=0.04):
+    t = _t(0.07)
+    s = smooth(highpass(noise(len(t)), 0.95))
     return s * np.clip(t / 0.01, 0, 1) * np.exp(-t * 60) * vol
 
 
-def sizzle(vol=0.07):
-    t = np.arange(int(SR * 0.09)) / SR
-    s = rng.standard_normal(len(t))
-    s = np.append(s[0], s[1:] - 0.97 * s[:-1])
-    return s * np.exp(-t * 45) * vol
+def crash(vol=0.07):
+    t = _t(2.2)
+    s = smooth(highpass(highpass(noise(len(t)), 0.9), 0.9))
+    return s * np.exp(-t * 2.3) * np.clip(t / 0.003, 0, 1) * vol
 
 
-def wood(vol=0.3):
-    t = np.arange(int(SR * 0.08)) / SR
+def wood(vol=0.12):
+    t = _t(0.08)
     return np.sin(2 * np.pi * 1200 * t) * np.exp(-t * 70) * vol
 
 
-def play_line(buf, text, e8, inst):
-    pos = 0
-    for n, d in melody(text):
-        if n is not None:
-            add(buf, pos * e8, inst(n, d * e8))
-        pos += d
-    return pos
+def reverb(x, taps=((0.029, 0.30), (0.047, 0.25), (0.071, 0.22), (0.097, 0.18), (0.131, 0.15),
+                    (0.173, 0.11), (0.229, 0.08), (0.293, 0.06), (0.37, 0.04), (0.46, 0.025))):
+    y = np.zeros_like(x)
+    for d, g in taps:
+        i = int(SR * d)
+        y[i:] += x[:-i] * g
+    return smooth(smooth(y))  # darker tail
 
 
-def loop_buf(bpm, bars, tail=3):
-    e8 = 60 / bpm / 2
-    length = bars * 8 * e8
-    return e8, length, np.zeros(int(SR * (length + tail)))
+# ════ notation ════
+PC = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11}
+QUAL = {'': (0, 4, 7), 'm': (0, 3, 7), '7': (0, 4, 7, 10), 'maj7': (0, 4, 7, 11), 'm7': (0, 3, 7, 10),
+        'sus4': (0, 5, 7), 'add9': (0, 4, 7, 14), 'dim': (0, 3, 6), '6': (0, 4, 7, 9)}
 
 
-# ── select: picking a machine ──
-E8, L, buf = loop_buf(104, 8)
-n = play_line(buf, '''
-74:1 r:1 76:1 79:1 r:1 76:1 74:2   71:1 r:1 74:1 76:2 r:2 r:1
-79:1 r:1 81:1 83:1 r:1 81:1 79:2   76:2 74:2 76:4
-74:1 r:1 76:1 79:1 r:1 81:1 83:2   86:1 r:1 83:1 81:2 r:3
-79:1 81:1 79:1 76:1 74:1 76:1 71:2   74:6 r:2
-''', E8, lambda n, d: marimba(n, 0.34) + marimba(n + 12, 0.06))
-assert n == 64, n
-for b, r in enumerate([50, 55, 57, 50, 50, 55, 57, 50]):
-    for q, iv in enumerate((0, 7, 12, 7)):
-        add(buf, (b * 8 + q * 2) * E8, pluck(r + iv - 12, E8 * 1.6, 0.30, 0.55, 0.994))
-    for e in range(8):
-        add(buf, (b * 8 + e) * E8, shaker(0.07 if e % 2 else 0.1))
-    add(buf, (b * 8 + 3) * E8, wood(0.18))
-    add(buf, (b * 8 + 7) * E8, wood(0.14))
-finish('bgm_select', buf, L, 0.6)
+def pitch_class(name):
+    return (PC[name[0]] + name[1:].count('#') - name[1:].count('b')) % 12
 
-# ── 水まつり: water and wind chimes ──
-E8, L, buf = loop_buf(92, 16, 5)
-arp = [[62, 69, 74, 76], [59, 66, 71, 74], [55, 62, 67, 71], [57, 64, 69, 76]]
-for b in range(16):
-    ch = arp[(b // 2) % 4]
-    for e in range(8):
-        add(buf, (b * 8 + e) * E8, pluck(ch[(e if e < 4 else 7 - e)] , 1.4, 0.2, 0.7, 0.9985))
-n = play_line(buf, '''
-r:8   81:4 79:2 76:2   74:6 76:2   r:8
-r:8   83:4 81:2 79:2   81:6 76:2   r:8
-r:4 86:4   83:4 81:4   79:4 81:2 79:2   76:8
-r:4 79:4   81:2 79:2 76:4   74:8   r:8
-''', E8, lambda n, d: flute(n, d * 0.97, 0.18))
-assert n == 128, n
-drops = [74, 79, 81, 83, 86, 88, 91]
-for b in range(16):
-    for k in range(2):
-        add(buf, (b * 8 + rng.choice([1, 3, 5, 6, 7]) + rng.uniform(0, 0.4)) * E8, drop(rng.choice(drops), 0.2))
-    if b % 2 == 0:
-        add(buf, (b * 8 + 4.5) * E8, furin(0.09))
-    add(buf, b * 8 * E8, taiko(0.35))
-finish('bgm_mizu', reverb(buf, ((0.11, 0.3), (0.23, 0.2), (0.37, 0.12))), L, 0.6)
 
-# ── 食いしん坊: chindon-ya street band ──
-E8, L, buf = loop_buf(128, 16)
-n = play_line(buf, '''
-74:1 74:1 76:1 79:1 81:2 79:2   76:1 74:1 76:1 79:1 74:4
-71:1 71:1 74:1 76:1 79:2 76:2   74:1 71:1 69:2 r:4
-74:1 74:1 76:1 79:1 81:2 83:2   86:1 83:1 81:1 79:1 81:4
-79:1 81:1 79:1 76:1 74:2 71:2   74:6 r:2
-83:1 r:1 83:1 81:1 79:2 81:2   83:1 86:1 83:1 81:1 79:4
-76:1 r:1 76:1 79:1 81:2 79:2   76:1 74:1 76:1 79:1 76:4
-83:1 r:1 83:1 81:1 79:2 81:2   83:1 86:1 88:1 86:1 83:4
-81:1 79:1 76:1 79:1 74:2 76:1 74:1   74:6 r:2
-''', E8, lambda n, d: clarinet(n, d * 0.8, 0.24))
-assert n == 128, n
-for b, r in enumerate([50, 50, 55, 57, 50, 50, 55, 50, 55, 55, 50, 50, 55, 55, 57, 50]):
-    for e, iv in ((0, 0), (4, 7)):
-        add(buf, (b * 8 + e) * E8, tuba(r - 12 + iv, E8 * 1.5, 0.5))
-    for e in (2, 6):  # the "pah"
-        add(buf, (b * 8 + e) * E8, pluck(r + 12, E8 * 0.9, 0.22, 0.4, 0.99) + pluck(r + 16 if r == 50 else r + 14, E8 * 0.9, 0.15, 0.4, 0.99))
-    for e in range(8):
-        add(buf, (b * 8 + e) * E8, sizzle(0.08 if e % 2 else 0.05))
-    add(buf, (b * 8 + 0) * E8, taiko(0.6))
-    add(buf, (b * 8 + 4) * E8, rim(0.3))
-    for e in (1, 5):
-        add(buf, (b * 8 + e) * E8, kane(0.1))
-finish('bgm_kuishinbo', buf, L)
+def note(tok):
+    """'C5' / 'F#4' / 'Bb5' / '74' → MIDI number."""
+    if tok.lstrip('-').isdigit():
+        return int(tok)
+    m = re.fullmatch(r'([A-G][#b]?)(-?\d)', tok)
+    return 12 * (int(m.group(2)) + 1) + pitch_class(m.group(1))
 
-# ── 縁起: the shrine on a festival morning ──
-E8, L, buf = loop_buf(80, 16, 4)
-for b in range(0, 16, 2):
-    ch = [[62, 69, 76, 81], [67, 74, 79, 83], [69, 76, 81, 86], [62, 69, 74, 79]][(b // 2) % 4]
-    add(buf, b * 8 * E8, sho(ch, 16 * E8 + 0.6))
-n = play_line(buf, '''
-74:4 76:4   79:6 76:2   74:4 71:4   74:8
-76:4 79:4   81:6 79:2   76:4 74:2 76:2   71:8
-79:4 81:4   83:6 81:2   79:4 76:4   81:8
-79:4 76:2 74:2   71:4 74:4   76:6 74:2   74:8
-''', E8, lambda n, d: hichiriki(n - 12, d * 0.96, 0.19))
-assert n == 128, n
-for b in range(16):
-    add(buf, (b * 8 + 0) * E8, tsuzumi(0.4))
-    add(buf, (b * 8 + 3) * E8, rim(0.22))
-    if b % 2:
-        add(buf, (b * 8 + 5) * E8, tsuzumi(0.3))
-    if b % 4 == 3:
-        add(buf, (b * 8 + 6) * E8, suzu(0.12))
-finish('bgm_engi', buf, L, 0.62)
 
-# ── 妖しい: something in the woods behind the stalls ──
-E8, L, buf = loop_buf(70, 16, 5)
-for b in range(0, 16, 4):
-    add(buf, b * 8 * E8, drone(38, 32 * E8 + 1.5, 0.2))
-    add(buf, (b * 8 + 1) * E8, temple(0.22))
-n = play_line(buf, '''
-r:8   74:6 75:2   74:4 70:4   69:8
-r:8   69:4 70:4   74:6 70:2   69:8
-r:4 79:4   75:6 74:2   70:4 69:4   67:8
-r:4 70:2 69:2   67:4 63:4   62:8   r:8
-''', E8, lambda n, d: eerie(n, d * 0.98, 0.2))
-assert n == 128, n
-for b in range(16):
-    if b % 2 == 1:
-        add(buf, (b * 8 + 6) * E8, hyoshigi(0.35))
-        add(buf, (b * 8 + 6.5) * E8, hyoshigi(0.25))
-    for e in (0, 3, 5):
-        add(buf, (b * 8 + e) * E8, pluck([50, 51, 55, 57, 58][(b + e) % 5] - 12, 1.0, 0.18, 0.45, 0.993))
-finish('bgm_ayashii', reverb(buf, ((0.15, 0.32), (0.29, 0.22), (0.43, 0.14), (0.61, 0.08))), L, 0.62)
+def melody(text):
+    """'E5:2 G5:1 r:1 | ...' → [(note|None, eighths)]; each '|'-bar must be 8 eighths."""
+    out = []
+    for b, bar in enumerate(text.split('|')):
+        tot = 0
+        for tok in bar.split():
+            n, d = tok.split(':')
+            out.append((None if n == 'r' else note(n), float(d)))
+            tot += float(d)
+        assert tot == 8, f'bar {b + 1} has {tot} eighths: {bar}'
+    return out
 
-# ── 金ぴか: everything is gold ──
-E8, L, buf = loop_buf(138, 16)
-n = play_line(buf, '''
-74:2 79:1 81:1 83:2 86:2   83:1 81:1 79:1 81:1 83:4
-81:2 79:1 76:1 74:2 76:2   79:6 r:2
-74:2 79:1 81:1 83:2 86:2   88:1 86:1 83:1 86:1 88:4
-86:2 83:1 81:1 79:2 81:2   79:6 r:2
-91:2 88:1 86:1 88:2 86:2   83:1 81:1 83:2 86:4
-88:2 86:1 83:1 81:2 83:2   86:6 r:2
-91:2 88:1 86:1 88:2 91:2   93:1 91:1 88:1 86:1 88:4
-86:2 83:1 81:1 79:2 81:1 83:1   79:6 r:2
-''', E8, lambda n, d: brass(n - 12, d * 0.92, 0.2))
-assert n == 128, n
-roots = [55, 55, 52, 50, 55, 55, 57, 55, 55, 52, 57, 57, 55, 52, 50, 55]
-for b, r in enumerate(roots):
-    for e in range(8):
-        add(buf, (b * 8 + e) * E8, glock([r + 24, r + 28, r + 31, r + 36][e % 4] if r != 50 else [74, 78, 81, 86][e % 4], 0.08))
-    for q, iv in enumerate((0, 12, 7, 12)):
-        add(buf, (b * 8 + q * 2) * E8, pluck(r - 12 + iv, E8 * 1.8, 0.38, 0.55, 0.993))
-    for e, c in enumerate('DkDkDkDD' if b % 4 == 3 else 'D.k.Dkk.'):
-        if c == 'D':
-            add(buf, (b * 8 + e) * E8, taiko(0.75))
-        elif c == 'k':
-            add(buf, (b * 8 + e) * E8, rim(0.3))
-    for e in range(8):
-        add(buf, (b * 8 + e) * E8, kane(0.07 if e % 2 else 0.04))
-finish('bgm_kinpika', buf, L)
+
+def voice(pcs, lo):
+    return sorted(lo + (pc - lo) % 12 for pc in pcs)
+
+
+class Song:
+    def __init__(self, bpm, bars, key=0, swing=0.0, tail=3.0):
+        self.e8 = 60 / bpm / 2
+        self.bars = bars
+        self.L = bars * 8 * self.e8
+        self.key = key
+        self.swing = swing
+        n = int(SR * (self.L + tail))
+        self.music = np.zeros(n)  # gets reverb
+        self.pad = np.zeros(n)  # gets side-chain pump + reverb
+        self.dry = np.zeros(n)  # kick and bass: no reverb
+
+    def at(self, pos):
+        """Position in eighths → seconds (with swing on the off-eighths)."""
+        beat, u = divmod(pos, 2.0)
+        s = self.swing
+        if s:
+            u = u * (1 + s) if u < 1 else (1 + s) + (u - 1) * (1 - s)
+        return (beat * 2 + u) * self.e8
+
+    def put(self, pos, sig, bus='music'):
+        add(getattr(self, bus), self.at(pos), sig)
+
+    def prog(self, text):
+        """'F | G | Em7 Am7 | ...' → [(pos, eighths, pcs, bass_pc)], transposed by key."""
+        out = []
+        bars = text.split('|')
+        assert len(bars) == self.bars, (len(bars), self.bars)
+        for b, bar in enumerate(bars):
+            syms = bar.split()
+            ln = 8 / len(syms)
+            for i, sym in enumerate(syms):
+                sym, _, slash = sym.partition('/')
+                m = re.fullmatch(r'([A-G][#b]?)(.*)', sym)
+                root = (pitch_class(m.group(1)) + self.key) % 12
+                pcs = [(root + iv) % 12 for iv in QUAL[m.group(2)]]
+                bpc = (pitch_class(slash) + self.key) % 12 if slash else root
+                out.append((b * 8 + i * ln, ln, pcs, bpc))
+        return out
+
+    def line(self, text, inst, shift=0, bus='music'):
+        pos = 0
+        for n, d in melody(text):
+            if n is not None:
+                self.put(pos, inst(n + self.key + shift, self.at(pos + d) - self.at(pos)), bus)
+            pos += d
+        assert pos == self.bars * 8, (pos, self.bars * 8)
+
+    def pads(self, chords, vol=0.045, lo=55):
+        for pos, ln, pcs, _ in chords:
+            self.put(pos, pad(voice(pcs, lo), ln * self.e8 + 0.3, vol), 'pad')
+
+    def arp(self, chords, inst, step=1.0, order=(0, 1, 2, 3, 4, 3, 2, 1), lo=64, bus='pad', vol=1.0):
+        for pos, ln, pcs, _ in chords:
+            tones = voice(pcs[:3], lo) + [x + 12 for x in voice(pcs[:3], lo)]
+            k = 0
+            p = pos
+            while p < pos + ln - 1e-9:
+                self.put(p, inst(tones[order[k % len(order)] % len(tones)]) * vol, bus)
+                p += step
+                k += 1
+
+    def bassline(self, chords, vol=0.3, pattern='octave', lo=33):
+        for pos, ln, _, bpc in chords:
+            r = lo + (bpc - lo) % 12
+            if pattern == 'octave':  # bouncy root / octave eighths
+                for e in range(int(ln)):
+                    self.put(pos + e, bass(r + (12 if e % 2 else 0), self.e8 * 0.85, vol * (0.8 if e % 2 else 1)), 'dry')
+            elif pattern == 'offbeat':  # root on the beat, octave pops on the &
+                for e in range(int(ln)):
+                    self.put(pos + e, bass(r + (12 if e % 2 else 0), self.e8 * (1.6 if e % 2 == 0 else 0.6), vol * (1 if e % 2 == 0 else 0.6)), 'dry')
+            elif pattern == 'oompah':  # root and fifth on beats 1 and 3
+                for e in range(0, int(ln), 4):
+                    self.put(pos + e, bass(r, self.e8 * 1.6, vol), 'dry')
+                    self.put(pos + e + 2, bass(r + 7, self.e8 * 1.4, vol * 0.8), 'dry')
+            elif pattern == 'staccato':
+                for e in range(int(ln)):
+                    if e in (0, 3, 4, 6):
+                        self.put(pos + e, bass(r + (12 if e in (3, 6) else 0), self.e8 * 0.5, vol), 'dry')
+
+    def drum(self, bar, steps, sound, bus='music'):
+        """steps: 16 chars per bar (16ths); 'x' full, 'o' soft."""
+        for i, c in enumerate(steps):
+            if c in 'xo':
+                sig = sound() * (1 if c == 'x' else 0.55)
+                self.put(bar * 8 + i * 0.5, sig, bus)
+
+    def kira(self, pos, vol=0.07, ivs=(0, 2, 4, 7, 9, 12, 14, 16), gap=0.045):
+        """The little sparkle at a phrase end: a fast rising chime run."""
+        pc = self.key % 12
+        base = 84 + pc if pc < 6 else 72 + pc
+        t0 = self.at(pos)
+        for i, iv in enumerate(ivs):
+            add(self.music, t0 + i * gap, chime(base + iv, vol * (1 - 0.05 * i)))
+
+    def finish(self, name, pump=0.45, wet=0.3, rms=TARGET_RMS):
+        t = np.arange(len(self.pad)) / SR
+        tb = t % (2 * self.e8)
+        g = 1 - pump * np.exp(-tb / 0.09) * np.clip(tb / 0.006, 0, 1)
+        bus = self.music + self.pad * g
+        mix = self.dry + bus + wet * reverb(bus)
+        n = int(round(SR * self.L))
+        loop = mix[:n].copy()
+        tail = mix[n:]
+        while len(tail):  # fold everything past the loop point back onto the start → seamless
+            k = min(n, len(tail))
+            loop[:k] += tail[:k]
+            tail = tail[k:]
+        loop *= rms / np.sqrt(np.mean(loop ** 2))
+        loop = 0.95 * np.tanh(loop / 0.95)  # gentle soft limit for the drum peaks
+        data = np.round(loop * 32767).astype(np.int16)
+        with wave.open(str(OUT / f'{name}.wav'), 'wb') as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(SR)
+            w.writeframes(data.tobytes())
+        print(f'{name:14s} {self.L:5.1f}s {(OUT / f"{name}.wav").stat().st_size // 1024:5d} KB')
+
+
+FOUR = 'x...x...x...x...'
+TWO_FOUR = '....x.......x...'
+OFFHAT = '..x...x...x...x.'
+ROLL = '............xxxx'
+
+
+def title():
+    s = Song(120, 16, key=2)
+    ch = s.prog('F | G | Em | Am | F | G | C | C | F | G | Em | Am | Dm | Em | F | G')
+    tune = '''
+    A4:1 C5:1 F5:1 E5:1 F5:2 G5:2 | G5:3 A5:1 G5:1 F5:1 E5:1 D5:1 | E5:2 B4:1 E5:1 G5:2 A5:1 G5:1 | E5:4 r:2 C5:1 D5:1 |
+    E5:1 F5:1 A5:2 A5:1 G5:1 F5:1 G5:1 | G5:2 D5:1 G5:1 B5:2 A5:1 G5:1 | C6:2 B5:1 G5:1 A5:1 G5:1 E5:1 D5:1 | C5:4 r:4 |
+    C6:2 A5:1 G5:1 A5:2 C6:2 | B5:2 G5:1 D5:1 G5:2 A5:1 B5:1 | B5:1 C6:1 B5:1 G5:1 E5:2 G5:1 A5:1 | A5:4 r:2 E5:1 G5:1 |
+    A5:2 F5:1 E5:1 D5:2 F5:1 A5:1 | G5:2 E5:1 D5:1 B4:2 E5:1 G5:1 | A5:1 G5:1 F5:1 E5:1 F5:2 A5:2 | B4:1 D5:1 G5:4 r:2'''
+    s.line(tune, lambda n, d: lead(n, d * 0.92, 0.16))
+    b_half = tune.split('|')
+    s.line('|'.join(['r:8'] * 8 + b_half[8:]), lambda n, d: glock(n, 0.05))
+    s.pads(ch, 0.04)
+    s.arp(ch[:8], lambda n: pluck(n, 0.09), step=1.0)
+    s.arp(ch[8:], lambda n: pluck(n, 0.08), step=0.5)
+    s.bassline(ch, 0.28)
+    for b in range(16):
+        s.drum(b, FOUR, lambda: kick(0.8), 'dry')
+        s.drum(b, TWO_FOUR, lambda: clap(0.3))
+        s.drum(b, OFFHAT, lambda: hat(0.05, True))
+        if b >= 8:
+            s.drum(b, 'o.o.o.o.o.o.o.o.', lambda: hat(0.035))
+    s.put(0, crash(0.05))
+    s.put(64, crash(0.06))
+    for pos in (28, 60, 92, 124):
+        s.kira(pos + 4, 0.06 if pos in (60, 124) else 0.04)
+    s.finish('bgm_title', pump=0.4)
+
+
+def select():
+    s = Song(110, 8, key=-5)
+    ch = s.prog('C | G | Am | F | C | G | F | G')
+    tune = '''
+    E5:2 G5:1 E5:1 r:2 D5:1 C5:1 | D5:2 G4:2 r:4 | C5:2 E5:1 C5:1 r:2 B4:1 A4:1 | C5:4 r:4 |
+    E5:2 G5:1 A5:1 G5:2 E5:1 G5:1 | B5:2 G5:1 D5:1 r:4 | A5:2 G5:1 F5:1 E5:2 D5:1 C5:1 | D5:4 r:4'''
+    s.line(tune, lambda n, d: mix(marimba(n, 0.2), bell(n + 12, 0.025, 0.8)))
+    s.pads(ch, 0.025)
+    s.arp(ch, lambda n: pluck(n, 0.06), step=2.0, order=(0, 2, 1, 2))
+    s.bassline(ch, 0.24, 'offbeat')
+    for b in range(8):
+        s.drum(b, 'x.......x.......', lambda: kick(0.6), 'dry')
+        s.drum(b, TWO_FOUR, lambda: snap(0.16))
+        s.drum(b, OFFHAT, lambda: hat(0.03, True))
+        s.drum(b, 'oooooooooooooooo', lambda: shaker(0.025))
+        s.drum(b, '......x.......x.', lambda: wood(0.05))
+    s.kira(28 + 4, 0.04)
+    s.kira(60 + 4, 0.05)
+    s.finish('bgm_select', pump=0.25, rms=0.10)
+
+
+def pripare():
+    s = Song(128, 16, key=4)
+    ch = s.prog('C | G | Am | Em | F | C | F | G | F | G | Em | Am | F | G | C | G')
+    tune = '''
+    G4:1 C5:1 E5:1 G5:2 E5:1 D5:1 C5:1 | D5:2 B4:1 D5:2 G5:2 r:1 | A4:1 C5:1 E5:1 A5:2 G5:1 E5:1 C5:1 | B4:3 G4:1 B4:2 r:2 |
+    A4:1 C5:1 F5:1 A5:2 G5:1 F5:1 E5:1 | E5:2 G5:1 E5:2 C5:2 r:1 | F5:1 E5:1 F5:1 G5:2 A5:1 G5:1 F5:1 | G5:4 r:2 G5:1 A5:1 |
+    C6:2 A5:1 G5:2 F5:1 G5:1 A5:1 | G5:2 D5:1 G5:2 A5:1 B5:2 | B5:1 C6:1 B5:1 A5:1 G5:2 E5:1 G5:1 | A5:3 E5:1 A5:2 B5:1 C6:1 |
+    C6:2 A5:1 C6:2 A5:1 G5:1 F5:1 | G5:2 F5:1 E5:1 D5:2 E5:1 F5:1 | E5:1 G5:1 C6:3 B5:1 A5:1 G5:1 | G5:4 r:4'''
+    s.line(tune, lambda n, d: lead(n, d * 0.85, 0.15, bright=0.4))
+    s.line('|'.join(['r:8'] * 8 + tune.split('|')[8:]), lambda n, d: bell(n, 0.04, 0.7))
+    s.pads(ch, 0.042)
+    s.arp(ch[:8], lambda n: pluck(n, 0.085), step=1.0, order=(0, 2, 1, 3, 2, 4, 3, 1))
+    s.arp(ch[8:], lambda n: pluck(n, 0.075), step=0.5)
+    s.bassline(ch, 0.3)
+    for b in range(16):
+        chorus = b >= 8
+        s.drum(b, FOUR, lambda: kick(0.85), 'dry')
+        s.drum(b, '....x.......x.o.' if chorus else TWO_FOUR, lambda: clap(0.32))
+        s.drum(b, OFFHAT, lambda: hat(0.05, True))
+        if chorus:
+            s.drum(b, 'o.o.o.o.o.o.o.o.', lambda: hat(0.035))
+        if b in (7, 15):
+            s.drum(b, ROLL, lambda: snare(0.2))
+    s.put(0, crash(0.05))
+    s.put(64, crash(0.07))
+    s.kira(28 + 4, 0.04)
+    s.kira(60 + 4, 0.06)
+    s.kira(124 + 4, 0.06)
+    s.finish('bgm_pripare', pump=0.5)
+
+
+def shizumomo():
+    s = Song(118, 12, key=-3, tail=4)
+    ch = s.prog('Fmaj7 | G | Em7 | Am7 | Fmaj7 | G | Em7 A7 | Dm7 | Fmaj7 | G | Em7 Am7 | Dm7 G')
+    tune = '''
+    A5:3 G5:1 E5:2 C5:2 | D5:3 E5:1 G5:4 | G5:2 B5:2 A5:1 G5:1 E5:1 D5:1 | E5:6 r:2 |
+    A5:3 G5:1 E5:2 A5:1 C6:1 | B5:3 A5:1 G5:2 D5:2 | G5:2 B5:2 A5:3 G5:1 | A5:4 F5:2 E5:1 D5:1 |
+    E5:2 F5:2 A5:2 C6:2 | B5:3 D6:1 B5:2 G5:2 | G5:2 B5:2 C6:3 B5:1 | A5:2 F5:2 G5:4'''
+    s.line(tune, lambda n, d: bell(n, 0.13, 1.4))
+    s.line(tune, lambda n, d: lead(n, d * 0.95, 0.05, bright=0.0))
+    s.pads(ch, 0.032, lo=57)
+    for pos, ln, pcs, _ in ch:  # syncopated e-piano comping
+        v = voice(pcs, 60)
+        for off, d in ((0, 1.5), (3, 1.0), (6, 1.5)):
+            if off < ln:
+                for k, n in enumerate(v):
+                    s.put(pos + off, epiano(n, d * s.e8, 0.05), 'music')
+    s.arp(ch, lambda n: pluck(n + 12, 0.035, 0.25), step=0.5, order=(0, 1, 2, 4, 3, 2, 1, 2))
+    s.bassline(ch, 0.26, 'offbeat')
+    for b in range(12):
+        s.drum(b, FOUR, lambda: kick(0.65), 'dry')
+        s.drum(b, TWO_FOUR, lambda: clap(0.22))
+        s.drum(b, OFFHAT, lambda: hat(0.035, True))
+        s.drum(b, 'oooooooooooooooo', lambda: shaker(0.02))
+    s.put(0, crash(0.04))
+    for pos in (28, 60, 92):
+        s.kira(pos + 4, 0.05)
+    s.finish('bgm_shizumomo', pump=0.35, wet=0.45)
+
+
+def koharu():
+    s = Song(100, 12, key=-7, swing=1 / 3)
+    ch = s.prog('C | Am | F | G | C | Am | Dm | G | F | G | Em A7 | Dm G')
+    tune = '''
+    E5:1 G5:1 E5:1 C5:1 D5:2 E5:2 | C5:1 E5:1 A5:2 G5:2 E5:2 | F5:1 A5:1 G5:1 F5:1 E5:2 D5:2 | D5:2 G4:2 B4:2 D5:2 |
+    E5:1 G5:1 E5:1 C5:1 D5:2 E5:2 | C5:1 E5:1 A5:2 B5:2 C6:2 | A5:1 G5:1 F5:1 E5:1 D5:2 F5:2 | G5:4 r:4 |
+    A5:2 C6:2 A5:1 G5:1 F5:2 | G5:2 B5:2 G5:1 F5:1 D5:2 | E5:1 G5:1 B5:2 A5:2 G5:2 | F5:2 A5:1 F5:1 D5:2 B4:1 D5:1'''
+    s.line(tune, lambda n, d: mix(toy(n + 12, 0.13), marimba(n, 0.07)))
+    s.pads(ch, 0.018, lo=57)
+    for pos, ln, pcs, _ in ch:  # marimba chords on the swung offbeats
+        v = voice(pcs[:3], 62)
+        for off in (1, 3, 5, 7):
+            if off < ln:
+                for n in v:
+                    s.put(pos + off, marimba(n, 0.055))
+    s.bassline(ch, 0.3, 'oompah', lo=36)
+    for b in range(12):
+        s.drum(b, 'x.......x.......', lambda: kick(0.55), 'dry')
+        s.drum(b, TWO_FOUR, lambda: snap(0.18))
+        for e in range(8):  # swung shaker
+            s.put(b * 8 + e, shaker(0.04 if e % 2 else 0.025))
+        s.put(b * 8 + 7, wood(0.06))
+    for pos in (28, 60, 92):
+        s.kira(pos + 4, 0.05)
+    s.finish('bgm_koharu', pump=0.15, wet=0.3)
+
+
+def hinata():
+    s = Song(140, 16, key=0)
+    ch = s.prog('C | G | Am | F | C | G | F | G | F | G | Em | Am | Dm | Em | F | G')
+    tune = '''
+    C5:1 E5:1 G5:1 C6:1 r:1 G5:1 A5:1 G5:1 | D5:1 G5:1 B5:2 A5:1 G5:1 D5:2 | C5:1 E5:1 A5:1 C6:1 r:1 B5:1 A5:1 G5:1 | A5:2 F5:1 C5:1 F5:2 G5:2 |
+    E5:1 G5:1 C6:2 B5:1 C6:1 D6:2 | D6:2 B5:1 G5:1 B5:2 D6:2 | C6:1 A5:1 F5:1 A5:1 G5:1 F5:1 E5:1 F5:1 | G5:4 r:2 G5:1 G5:1 |
+    A5:2 C6:2 A5:1 G5:1 A5:1 C6:1 | D6:2 B5:2 G5:2 A5:1 B5:1 | B5:2 G5:1 E5:1 B4:2 E5:1 G5:1 | A5:3 B5:1 C6:2 E5:2 |
+    F5:1 A5:1 D6:2 C6:1 A5:1 F5:2 | E5:1 G5:1 B5:2 A5:1 G5:1 E5:2 | F5:1 A5:1 C6:2 D6:1 C6:1 A5:2 | D5:1 G5:1 B5:1 D6:3 r:2'''
+    s.line(tune, lambda n, d: lead(n, d * 0.85, 0.15, bright=0.5))
+    s.pads(ch, 0.045)
+    s.arp(ch, lambda n: pluck(n, 0.075), step=0.5, order=(0, 1, 2, 3, 4, 3, 2, 1))
+    s.bassline(ch, 0.3)
+    for pos, ln, pcs, _ in ch[8:]:  # brass stabs in the chorus: da — da-da
+        v = voice(pcs[:3], 60)
+        for off, d in ((0, 1.2), (3, 0.8), (6, 0.8)):
+            for n in v:
+                s.put(pos + off, brass(n, d * s.e8, 0.035))
+    for b in range(16):
+        s.drum(b, FOUR, lambda: kick(0.9), 'dry')
+        s.drum(b, TWO_FOUR, lambda: clap(0.3))
+        s.drum(b, TWO_FOUR, lambda: snare(0.18))
+        s.drum(b, OFFHAT, lambda: hat(0.05, True))
+        s.drum(b, 'o.o.o.o.o.o.o.o.'.replace('.', 'o') if b >= 8 else 'o.o.o.o.o.o.o.o.', lambda: hat(0.03))
+        if b in (7, 15):  # "hai! hai!" chant claps
+            s.drum(b, '........x.x.x.x.', lambda: clap(0.3))
+        if b == 15:
+            s.drum(b, '........oooxxxxx', lambda: snare(0.2))
+    s.put(0, crash(0.06))
+    s.put(64, crash(0.07))
+    s.kira(60 + 4, 0.06)
+    s.kira(124 + 4, 0.06)
+    s.finish('bgm_hinata', pump=0.55)
+
+
+def yoru():
+    s = Song(112, 12, key=-7, tail=4)
+    ch = s.prog('Am | F | Dm | E7 | Am | F | Dm | E7 | F | G | E7 Am | Dm E7')
+    tune = '''
+    E5:1 r:1 E5:1 F5:1 E5:1 r:1 C5:1 A4:1 | F5:1 r:1 F5:1 G5:1 A5:2 F5:2 | D5:1 F5:1 A5:1 G#5:1 A5:2 F5:1 D5:1 | E5:2 G#5:2 B5:2 r:2 |
+    C6:1 r:1 B5:1 A5:1 G#5:1 A5:1 E5:2 | F5:1 A5:1 C6:1 A5:1 F5:2 r:2 | D5:1 E5:1 F5:1 G#5:1 A5:2 D6:2 | B5:3 A5:1 G#5:4 |
+    A5:1 r:1 C6:1 r:1 A5:1 G5:1 F5:2 | G5:1 r:1 B5:1 r:1 G5:1 F5:1 D5:2 | E5:1 G#5:1 B5:1 D6:1 C6:2 A5:2 | F5:1 A5:1 G#5:1 F5:1 E5:4'''
+    s.line(tune, lambda n, d: lead(n, min(d, 0.25 + d * 0.5), 0.14, bright=0.2))
+    s.line(tune, lambda n, d: glock(n + 12, 0.03, 0.6))
+    s.pads(ch, 0.028, lo=50)
+    s.arp(ch, lambda n: harpsi(n, s.e8 * 0.9, 0.07), step=1.0, order=(0, 2, 1, 2, 0, 2, 1, 2), lo=57, bus='music')
+    s.bassline(ch, 0.3, 'staccato')
+    for b in range(12):
+        s.drum(b, 'x.......x.x.....', lambda: kick(0.7), 'dry')
+        s.drum(b, TWO_FOUR, lambda: snap(0.2))
+        s.drum(b, 'o.o.o.o.o.o.o.o.', lambda: hat(0.03))
+        s.drum(b, '..............x.', lambda: hat(0.04, True))
+        s.drum(b, '...x.......x....' if b % 2 else '', lambda: wood(0.06))
+    minor_run = (0, 3, 7, 10, 12, 15, 19, 22)  # spooky-cute: a minor-seventh sparkle
+    for pos in (28, 60, 92):
+        s.kira(pos + 4, 0.045, ivs=minor_run)
+    s.finish('bgm_yoru', pump=0.3, wet=0.4)
+
+
+def premium():
+    s = Song(132, 16, key=-2)
+    ch = s.prog('C | G/B | Am | Em/G | F | C/E | Dm | G | F | G | Em | Am | Dm | G | C | G')
+    tune = '''
+    G4:1 C5:1 E5:1 G5:3 E5:1 G5:1 | B5:3 A5:1 G5:2 D5:2 | E5:1 A5:1 C6:3 B5:1 A5:2 | G5:3 E5:1 B4:2 r:2 |
+    A4:1 C5:1 F5:1 A5:3 G5:1 F5:1 | G5:3 E5:1 C5:2 E5:2 | F5:1 E5:1 D5:1 F5:1 A5:2 C6:2 | B5:4 r:4 |
+    C6:3 A5:1 F5:2 A5:2 | B5:3 G5:1 D5:2 G5:2 | B5:2 C6:1 B5:1 G5:2 E5:2 | A5:4 E5:2 A5:1 B5:1 |
+    C6:3 A5:1 F5:2 D6:2 | D6:3 B5:1 G5:2 B5:2 | C6:4 B5:1 C6:1 D6:2 | G5:4 r:4'''
+    s.line(tune, lambda n, d: lead(n, d * 0.9, 0.14, bright=0.4))
+    s.line('|'.join(['r:8'] * 8 + tune.split('|')[8:]), lambda n, d: brass(n - 12, d * 0.9, 0.06))
+    s.pads(ch, 0.042)
+    for pos, ln, pcs, _ in ch:  # brass stabs: daan — da-dan
+        v = voice(pcs[:3], 58)
+        for off, d in ((0, 1.5), (3, 1.0), (6, 1.0)):
+            for n in v:
+                s.put(pos + off, brass(n, d * s.e8, 0.03))
+    s.arp(ch, lambda n: glock(n + 12, 0.045, 0.7), step=0.5, order=(0, 1, 2, 3, 4, 5, 4, 3), lo=60, bus='music')
+    s.bassline(ch, 0.3)
+    for b in range(16):
+        s.drum(b, FOUR, lambda: kick(0.9), 'dry')
+        s.drum(b, TWO_FOUR, lambda: clap(0.3))
+        s.drum(b, TWO_FOUR, lambda: snare(0.16))
+        s.drum(b, OFFHAT, lambda: hat(0.05, True))
+        s.drum(b, 'o.o.o.o.o.o.o.o.', lambda: hat(0.03))
+        if b in (7, 15):
+            s.drum(b, '........ooooxxxx', lambda: snare(0.2))
+    s.put(0, crash(0.07))
+    s.put(64, crash(0.07))
+    s.kira(28 + 4, 0.05)
+    s.kira(60 + 4, 0.07, gap=0.035)
+    s.kira(92 + 4, 0.05)
+    s.kira(124 + 4, 0.07, gap=0.035)
+    s.finish('bgm_premium', pump=0.45)
+
+
+if __name__ == '__main__':
+    t0 = time.time()
+    for fn in (title, select, pripare, shizumomo, koharu, hinata, yoru, premium):
+        fn()
+    print(f'done in {time.time() - t0:.1f}s')

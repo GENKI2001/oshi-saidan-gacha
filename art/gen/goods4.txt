@@ -1,0 +1,15 @@
+Create one image 1536x1024: a sprite sheet laid out as an exact grid of 4 columns x 3 rows (12 cells of equal size). Collectible goods of an original anime idol unit, one per cell, in this order left-to-right, top-to-bottom:
+1 a keychain with a gold bell, a red ribbon and a small star charm
+2 a tall stack of PARENYAN cat-mascot plushies piled on top of each other
+3 an acrylic stand of SHIZUKU surrounded by water bubbles, on a clear base
+4 a cute envelope with a red heart seal and a star sticker, a letter peeking out (no readable text)
+5 a decorated fan-service request board with hearts and stars and chibi HINATA and YORU stickers (no letters)
+6 a squishy PARENYAN cat-mascot squeeze toy, round and soft
+7 a shiny GOLD can badge printed with HINATA, sparkling
+8 a miniature concert stage diorama with HINATA singing under spotlights and a crowd of red penlights
+9 a tall gothic purple display shelf with lace, candles and YORU goods
+10 HINATA and KOHARU cooking pancakes together in a livestream kitchen set with a small camera
+11 a glass candy jar full of colorful sweets with a yellow lid and a flower
+12 a round fluffy yellow cushion with chibi KOHARU’s sleepy face
+The characters are from the attached reference sheet — draw them with exactly these designs (hair, colors, accessories): HINATA (red-orange theme, orange-brown high side ponytail with a big red ribbon and a gold star clip), SHIZUKU (sky-blue theme, long straight navy hair with hime cut, water-drop earrings), KOHARU (yellow theme, wavy honey-blonde bob with a white flower clip, sleepy eyes), YORU (purple theme, black twin tails with purple tips, bat-wing hair clip, small fang), MOMO (pink theme, fluffy pastel-pink hair with a pink cat-ear headband), TSUMUGI (green theme, short chestnut bob with a green hairpin, deadpan half-lidded eyes). PARENYAN is the idol unit's mascot: a round chubby white cat with a tiny rainbow star on its forehead.
+Style: kawaii flat 2D sticker illustrations of anime idol merchandise (goods), chunky rounded shapes, chibi characters with big sparkling anime eyes, soft pastel colors with each idol's theme color as accent, clean dark-brown outlines, each object has a thick white die-cut sticker border. Every object is centered in its own cell, same scale, fully inside the cell with generous margin, no overlap between cells. The whole background is ONE flat solid pure magenta color (#FF00FF) everywhere, no gradients, no shadows on the background, no grid lines, no text, no letters, no numbers, no watermark.

@@ -5,12 +5,17 @@ import 'package:flutter/material.dart';
 
 import '../logic/figures.dart';
 import '../logic/modes.dart';
+import 'achievement_screen.dart';
 import 'game_screen.dart';
 import 'howto_screen.dart';
+import 'idol_widgets.dart';
 import 'level_card.dart';
+import 'lines.dart';
 import 'meta.dart';
 import 'rank_screen.dart';
+import 'member_screen.dart';
 import 'sfx.dart';
+import 'voice.dart';
 import 'widgets.dart';
 
 const _bg = BoxDecoration(
@@ -21,13 +26,13 @@ const _bg = BoxDecoration(
   ),
 );
 
-/// The festival evening picture with drifting lights, behind [child].
+/// The live hall, warming up, with drifting lights behind [child].
 Widget _festival(Widget child) => Container(
   decoration: _bg,
   child: Stack(
     fit: StackFit.expand,
     children: [
-      Image.asset('assets/ui/title_bg.jpg', fit: BoxFit.cover),
+      Image.asset('assets/ui/venue_1.jpg', fit: BoxFit.cover),
       const _Twinkles(),
       child,
     ],
@@ -56,6 +61,10 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
   void initState() {
     super.initState();
     Bgm.play('bgm_title');
+    // the title call, once the screen is up
+    Future.delayed(const Duration(milliseconds: 900), () {
+      if (mounted && _who == null) _talk();
+    });
   }
 
   @override
@@ -92,9 +101,28 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
   }
 
   Future<void> _go(Widget page) async {
+    Voice.stop();
     await Navigator.of(context).push(_fade(page));
     Bgm.play('bgm_title');
     setState(() {});
+  }
+
+  /// Someone on the key visual says something (the first time: the title call).
+  String? _who;
+  String _line = '';
+  int _token = 0;
+  int _taps = 0;
+
+  void _talk() {
+    final who = members[math.Random().nextInt(members.length)];
+    final l = idolLines[who]!;
+    final line = _taps++ == 0 ? pick(l.title) : pick([...l.title, ...l.talk, ...l.pull]);
+    Voice.say(who, line, delayMs: 120);
+    setState(() {
+      _who = who;
+      _line = line;
+      _token++;
+    });
   }
 
   @override
@@ -106,7 +134,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset('assets/ui/title_bg.jpg', fit: BoxFit.cover),
+            Image.asset('assets/ui/title_bg.jpg', fit: BoxFit.cover, alignment: Alignment.bottomCenter),
             const _Twinkles(),
             SafeArea(
               child: Center(
@@ -116,34 +144,40 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                     children: [
                       Column(
                         children: [
-                          const SizedBox(height: 60),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 28),
-                            child: Image.asset('assets/ui/title.png', semanticLabel: 'ぽんぽこガチャ縁日'),
+                          const SizedBox(height: 58),
+                          AnimatedBuilder(
+                            animation: _c,
+                            builder: (_, c) => Transform.translate(offset: Offset(0, -5 * Curves.easeInOut.transform(_c.value)), child: c),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 30),
+                              child: Image.asset('assets/ui/title.png', semanticLabel: '推し祭壇ガチャ'),
+                            ),
                           ),
-                          // the machine and the buttons sit a bit above the bottom edge, not on it
+                          // the idols on the key visual: tap them and someone talks
                           Expanded(
-                            flex: 6,
-                            child: AnimatedBuilder(
-                              animation: _c,
-                              builder: (_, _) => Stack(
-                                alignment: Alignment.center,
+                            child: GestureDetector(
+                              key: const ValueKey('idols'),
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _talk,
+                              child: Stack(
                                 children: [
-                                  const IgnorePointer(
-                                    child: Opacity(opacity: 0.35, child: Sunburst(color: Color(0xFFFFE08A), size: 380)),
-                                  ),
-                                  Transform.translate(
-                                    offset: Offset(0, -8 * Curves.easeInOut.transform(_c.value)),
-                                    child: MachineArt(hue: machineById[m.lastMachine]?.hue ?? 0, height: 260),
-                                  ),
-                                  Positioned(
-                                    right: 24,
-                                    bottom: 4,
-                                    child: Transform.rotate(
-                                      angle: 0.08 * math.sin(_c.value * math.pi),
-                                      child: Image.asset('assets/ui/boss_0.png', height: 110),
+                                  if (_who != null)
+                                    Positioned(
+                                      left: 14,
+                                      right: 14,
+                                      bottom: 10,
+                                      child: IgnorePointer(child: IdolToast(who: _who!, line: _line, token: _token)),
                                     ),
-                                  ),
+                                  if (_who == null)
+                                    Positioned(
+                                      right: 18,
+                                      bottom: 12,
+                                      child: AnimatedBuilder(
+                                        animation: _c,
+                                        builder: (_, c) => Opacity(opacity: 0.55 + 0.45 * _c.value, child: c),
+                                        child: Text('タップすると しゃべるよ', style: outlined(13, Colors.white, stroke: C.pink, width: 3)),
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -151,25 +185,33 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                           // the very first time it is the tutorial; afterwards it just plays
                           PopButton(m.tutorialDone ? 'あそぶ' : 'チュートリアル', fontSize: m.tutorialDone ? 32 : 26, onTap: _play),
                           const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              PopButton(
-                                '図鑑  ${m.seen.length} / ${figures.length}',
-                                color: const Color(0xFF8E7CC3),
-                                fontSize: 18,
-                                onTap: () => _go(BookScreen(meta: m)),
-                              ),
-                              const SizedBox(width: 10),
-                              PopButton(
-                                'ランキング',
-                                color: C.gold,
-                                fontSize: 18,
-                                onTap: () => _go(RankScreen(meta: m)),
-                              ),
-                            ],
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Row(
+                              children: [
+                                for (final (label, color, page) in [
+                                  ('図鑑 ${m.seen.length}/${figures.length}', const Color(0xFF8E7CC3), BookScreen(meta: m) as Widget),
+                                  ('メンバー', C.pink, const MemberScreen()),
+                                  ('実績', const Color(0xFF52C7B8), AchievementScreen(meta: m) as Widget),
+                                  ('ランキング', C.gold, RankScreen(meta: m)),
+                                ])
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                                      child: PopButton(
+                                        label,
+                                        color: color,
+                                        fontSize: 13,
+                                        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
+                                        onTap: () => _go(page),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
-                          const Spacer(),
+                          // the buttons sit well above the bottom edge, over the idols' skirts, not their feet
+                          SizedBox(height: math.max(40, MediaQuery.sizeOf(context).height * 0.09)),
                         ],
                       ),
                       Positioned(
@@ -213,7 +255,12 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                               m.toggleMusic();
                               Bgm.setEnabled(m.music);
                             }),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
+                            _toggle(m.voice ? Icons.record_voice_over_rounded : Icons.voice_over_off_rounded, () {
+                              m.toggleVoice();
+                              Voice.setEnabled(m.voice);
+                            }),
+                            const SizedBox(width: 6),
                             _toggle(m.sound ? Icons.volume_up_rounded : Icons.volume_off_rounded, () {
                               m.toggleSound();
                               Sfx.enabled = m.sound;
@@ -469,7 +516,7 @@ class BookScreen extends StatelessWidget {
   );
 }
 
-/// Soft festival lights that drift up and twinkle behind the title.
+/// Soft lights that drift up and twinkle behind the title.
 class _Twinkles extends StatefulWidget {
   const _Twinkles();
   @override

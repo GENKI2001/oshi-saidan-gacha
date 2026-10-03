@@ -1,5 +1,0 @@
-Create one image 1536x1024: a game title logo that reads exactly 「ぽんぽこガチャ縁日」 in Japanese, two lines: small upper line 「ぽんぽこ」 and big lower line 「ガチャ縁日」. Spell the characters exactly like that, correct Japanese glyphs, no extra characters, no subtitle.
-STYLE: match the attached game art exactly (a pink gashapon machine sticker and a tanuki sticker): same dark-brown outline weight, same flat matte colors with a soft cel shade, same cream white sticker border. It should look like one more sticker from the same sheet.
-Lettering in the style of a Japanese festival stall sign (yatai noren / hand-painted shop sign): bold rounded hand-painted letters, simple and warm. 「ぽんぽこ」 small in brown on a cream rounded label, 「ガチャ縁日」 large in soft pink with brown outline. Flat colors only.
-NOT glossy, NOT jelly, NOT 3D, no bevel, no glossy highlight streaks, no gradients, no glow, no sparkles, no fireworks.
-The whole background is ONE flat solid pure magenta color (#FF00FF) everywhere, no shadows on the background, no other text, no watermark.

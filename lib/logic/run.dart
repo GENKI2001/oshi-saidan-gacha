@@ -74,22 +74,22 @@ class Offer {
 
   String get title => switch (kind) {
     OfferKind.figure => fig!.name,
-    OfferKind.luck => 'ガラガラ油',
+    OfferKind.luck => 'つむぎのおまじない',
     OfferKind.removeTickets => 'どける 回数+1',
     OfferKind.swapTicket => 'いれかえ 回数+1',
     OfferKind.repullTicket => 'もう一回ひく 回数+1',
     OfferKind.rerollTicket => '品がえ 回数+1',
-    OfferKind.expand => '棚を広げる',
+    OfferKind.expand => '祭壇を広げる',
   };
 
   String get text => switch (kind) {
     OfferKind.figure => fig!.description,
-    OfferKind.luck => 'レア以上が出やすくなる（+8%）',
+    OfferKind.luck => 'R以上が出やすくなる（+8%）',
     OfferKind.removeTickets => '「どける」が1回ふえる（最大3回）',
     OfferKind.swapTicket => '「いれかえ」が1回ふえる（最大3回）',
     OfferKind.repullTicket => '「もう一回ひく」が1回ふえる（最大5回）',
     OfferKind.rerollTicket => '「品がえ」が1回ふえる（最大3回）',
-    OfferKind.expand => '棚のマスが増える',
+    OfferKind.expand => '祭壇のマスが増える',
   };
 }
 

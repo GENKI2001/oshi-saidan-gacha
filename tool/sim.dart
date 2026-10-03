@@ -6,10 +6,10 @@
 
 import 'dart:math' as math;
 
-import 'package:gacha_rogue/logic/defs.dart';
-import 'package:gacha_rogue/logic/figures.dart';
-import 'package:gacha_rogue/logic/modes.dart';
-import 'package:gacha_rogue/logic/run.dart';
+import 'package:oshi_saidan/logic/defs.dart';
+import 'package:oshi_saidan/logic/figures.dart';
+import 'package:oshi_saidan/logic/modes.dart';
+import 'package:oshi_saidan/logic/run.dart';
 
 typedef Bot = ({String name, bool smart, bool shop});
 
@@ -101,9 +101,9 @@ void main(List<String> args) {
   for (final mc in machines) {
     print('   ${mc.name.padRight(10)} ${[for (final b in bots) pct(rate(m, b, () => rulesFor(mc, 0)))].join(' ')}');
   }
-  print('── festival level on 縁日マシン (greedy+shop): which figures can drop');
+  print('── 推し活レベル on ぷりパレガチャ (greedy+shop): which figures can drop');
   print('   ${[for (final l in [1, 3, 5, 7, 9, 11, 13, 15]) 'Lv$l ${pct(rate(m, bots[2], () => rulesFor(machines.first, 0)..level = l))}'].join('  ')}');
-  print('── ascension on 縁日マシン (greedy+shop)');
+  print('── ascension on ぷりパレガチャ (greedy+shop)');
   print('   ${[for (var a = 0; a <= maxAscension; a += 2) 'A$a ${pct(rate(m, bots[2], () => rulesFor(machines.first, a)))}'].join('  ')}');
   for (final bot in bots) {
     var wins = 0;

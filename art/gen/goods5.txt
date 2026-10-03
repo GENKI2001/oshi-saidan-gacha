@@ -1,0 +1,15 @@
+Create one image 1536x1024: a sprite sheet laid out as an exact grid of 4 columns x 3 rows (12 cells of equal size). Collectible goods of an original anime idol unit, one per cell, in this order left-to-right, top-to-bottom:
+1 a holographic trading card of PARENYAN the cat mascot
+2 two matching hoodies, one sky blue and one pink, with cat ears on the hoods, folded side by side
+3 a shiny concert lottery ticket with stars and a tear-off stub (no readable text)
+4 a mannequin wearing a split red-and-purple idol stage costume with frills
+5 a yellow tote bag printed with chibi KOHARU, a bento box peeking out
+6 a pastel music box with a tiny PARENYAN cat mascot on top
+7 a tiny plush doll of MOMO with cat ears
+8 an open black and purple lace parasol
+9 an acrylic stand of KOHARU eating three-colored dango, on a clear base
+10 a hanging fabric tapestry of a starry night sky with HINATA and YORU
+11 a candle shaped like a honey jar with a little bee
+12 a white idol penlight glowing softly
+The characters are from the attached reference sheet — draw them with exactly these designs (hair, colors, accessories): HINATA (red-orange theme, orange-brown high side ponytail with a big red ribbon and a gold star clip), SHIZUKU (sky-blue theme, long straight navy hair with hime cut, water-drop earrings), KOHARU (yellow theme, wavy honey-blonde bob with a white flower clip, sleepy eyes), YORU (purple theme, black twin tails with purple tips, bat-wing hair clip, small fang), MOMO (pink theme, fluffy pastel-pink hair with a pink cat-ear headband), TSUMUGI (green theme, short chestnut bob with a green hairpin, deadpan half-lidded eyes). PARENYAN is the idol unit's mascot: a round chubby white cat with a tiny rainbow star on its forehead.
+Style: kawaii flat 2D sticker illustrations of anime idol merchandise (goods), chunky rounded shapes, chibi characters with big sparkling anime eyes, soft pastel colors with each idol's theme color as accent, clean dark-brown outlines, each object has a thick white die-cut sticker border. Every object is centered in its own cell, same scale, fully inside the cell with generous margin, no overlap between cells. The whole background is ONE flat solid pure magenta color (#FF00FF) everywhere, no gradients, no shadows on the background, no grid lines, no text, no letters, no numbers, no watermark.

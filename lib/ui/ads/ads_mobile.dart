@@ -7,6 +7,8 @@ import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../voice.dart';
+
 class Ads {
   static final instance = Ads._();
   Ads._();
@@ -76,6 +78,7 @@ class Ads {
       return false;
     }
     _ad = null;
+    Voice.stop(); // nobody talks over the ad
     var earned = false;
     final closed = Completer<void>();
     ad.fullScreenContentCallback = FullScreenContentCallback(

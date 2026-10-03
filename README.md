@@ -1,94 +1,85 @@
-# ぽんぽこガチャ縁日（ガチャ収集ローグ・型02の最初の版）
+# 推し祭壇ガチャ（ガチャ収集ローグ・型02の派生／男性向け・フルボイス）
 
+『ぽんぽこガチャ縁日』（`../gacha_rogue`）と同じエンジンで、テーマを「アイドルの推し活」にした派生版。
+ルール（`lib/logic/run.dart`）は同じで、駒（グッズ）・マシン・絵・声・BGM を差し替えている。
 仕様：`../../specs/02_ガチャ収集ローグ.md`
+
+- コンセプトは「推しのライブを成功させる」。通貨はハート。5回まわすごとに1曲で、曲ごとのハートのノルマを4曲ぶん届ければライブ大成功、そのあとはアンコール（ロジック上は縁日版の取り立て・完済・延長戦と同じ）
+- 会場はハートが集まるほど盛り上がる：背景の会場が4段階（`assets/ui/venue_0..3.jpg`、同じ構図の編集）でクロスフェードし、ペンライト・ハート・光線・紙吹雪が増える（`lib/ui/venue.dart`）。盛り上がり度は `GameController.hype`
+- 歓声：ループはなし。ハートを数えている間に短い歓声が重なって大きくなり（盛り上がり度で大きさが変わる）、大きく稼ぐと歓声、曲の成功で大歓声、推しのグッズを置くと客席から名前コール（`lib/ui/crowd.dart`、音は `art/crowd.py` が TTS のファンの叫び声とノイズから合成）
+- アイドルユニット「ぷりずむ☆パレット」5人（ひなた・しずく・こはる・よる・もも）＋マネージャーのつむぎ（ノルマ係）。全員20歳の架空の人物
+- グッズのタグ＝推しの名前。同じ推しを並べる・推し同士のコンビで稼ぐ
+- **フルボイス**：つむぎの台詞（取り立て・売店・チュートリアル・結果）と、メンバーのガチャ時の台詞・応援・タイトルコールをすべて音声で再生
+- レア度は星1〜4。★3 / ★4 を引くと推しのカットイン（`lib/ui/idol_widgets.dart`）。カプセルはレア度ごとの絵（`assets/ui/capsule_<n>_top/bot.png`、`art/slice.py` が継ぎ目で上下に切る）
+- 実績（`lib/logic/achievements.dart`）：達成すると ささやきボイス（ASMR、18本）が聞ける。`art/asmr.py` が台詞を本物のささやき声に変換して左右の耳に振り分けた1本の音声にする（`assets/asmr/`、字幕のタイミングは `lib/ui/asmr_timing.dart`）
+- タイトルのメンバーをタップ／メンバー紹介でボイスが聞ける
+
+## Web 版（GitHub Pages）
+https://genki2001.github.io/oshi-saidan-gacha/ — main に push すると `.github/workflows/pages.yml` が Web 版をビルドして公開する（広告・ランキングは Web では無効）
 
 ## 動かす
 ```
 flutter run                 # iOS シミュレーター／実機
-flutter run -d chrome       # ブラウザ
 flutter test                # ルールのテスト＋最後まで自動で遊ぶテスト
-dart run tool/sim.dart 2000 # バランス調整（ボット3種のクリア率・駒ごとの貢献）
+dart run tool/sim.dart 2000 # バランス調整（ボット3種のクリア率・グッズごとの貢献）
+flutter test integration_test/app_test.dart -d <シミュレーターID> --dart-define=RANK_DEMO=true  # 実機相当で通し確認
 ```
 
-## シミュレーターで確認
-```
-open -a Simulator
-flutter run -d <シミュレーターID> --dart-define=RANK_DEMO=true     # デモのランキングで画面確認
-flutter test integration_test -d <シミュレーターID> --dart-define=RANK_DEMO=true  # 自動で通し確認
-```
-`RANK_DEMO=true` を外すと本物の Game Center につなぐ（下の設定が必要）。
-
-## ランキング（サーバーなし）の設定
-ID は `lib/ui/rank.dart` の `boards` に書く。
-
-**iOS（Game Center）**
-1. Apple Developer で Bundle ID（`com.sonson.ponpoko`）を登録し、Game Center を有効にする
-2. App Store Connect でアプリを作成 →「Game Center」→ リーダーボードを3つ作る
-   - `gacha.best_turn`：クラシック、大きい方が上
-   - `gacha.ascension`：クラシック、大きい方が上
-   - `gacha.paydays`：クラシック、大きい方が上（延長戦も含めて払えた取り立ての回数）
-3. シミュレーター／実機の「設定」→「Game Center」で Apple ID（サンドボックスでも可）にログイン
-4. `RANK_DEMO` なしで起動すると、ログインのシートが出てスコアが送られる
-
-**Android（Google Play ゲーム サービス）**
-1. Play Console → Play ゲーム サービス → 設定で、ゲームを作成してアプリとリンク
-2. リーダーボードを3つ作り、出てきた ID（`CgkI…`）を `rank.dart` の android 側に書く
-3. プロジェクト ID を `android/app/src/main/res/values/games-ids.xml` に書く
-
-送れなかったスコアは端末に残り、次にログインした時に送られる。
-
-## 構成
+## 構成（縁日版との差分）
 | 場所 | 中身 |
 |---|---|
-| `lib/logic/defs.dart` | 効果の文法（DSL）。説明文は効果から自動生成 |
-| `lib/logic/figures.dart` | テーマ「縁日」の駒 96 種（データだけ） |
-| `lib/logic/levels.dart` | 縁日レベル（累計の稼ぎ → レベル → 解禁される駒） |
-| `lib/logic/run.dart` | 1ランのルール（ガチャ・棚・集計・取り立て・店）。Flutter 非依存 |
-| `lib/ui/controller.dart` | 画面の進行と演出のタイミング |
-| `lib/ui/game_screen.dart` | ゲーム画面・各オーバーレイ |
-| `lib/logic/modes.dart` | マシン6種・段位0〜10（どちらも `Rules` の差分） |
-| `lib/ui/lines.dart` | ぽん親分の台詞 |
-| `lib/ui/rank.dart` / `rank_screen.dart` | ランキング（Game Center / Play ゲーム）。サーバー不要 |
-| `integration_test/app_test.dart` | シミュレーター上で1ラン最後まで遊び、駒の詳細表示とランキング表示まで確認 |
-| `lib/ui/sfx.dart` | 効果音の再生（音ごとに小さなプールで重ね鳴らし） |
-| `art/bgm.py` | BGM 2曲（祭り囃子・琴）を合成して `assets/bgm/` に書き出す（継ぎ目なしループ） |
-| `art/sfx.py` | 効果音54種を合成して `assets/sfx/` に書き出す（素材なし・ライセンスフリー）。`candidates` を付けるとガチャ音の候補と試聴ページを `art/sfx_candidates/` に出す。使う候補は先頭の `HANDLE` / `DROP` |
-| `tool/sim.dart` | ヘッドレスのシミュレーター |
-| `art/gen/` | Codex の画像プロンプトと生成元 |
-| `art/slice.py` | マゼンタ背景のシートを透過 PNG に切り出す |
-| `art/howto.py` | `art/howto/` のゲーム画面スクショを切り抜き、印を付けて あそびかた の絵（`assets/howto/`）にする |
+| `art/goods.py` | グッズ96種の表（縁日版の駒 → 新ID・名前・絵文字・タグ・絵の説明）。`figures` で `lib/logic/figures.dart` を、`prompts` で画像プロンプトを生成。効果の数字は縁日版と同じ |
+| `lib/logic/modes.dart` | ガチャ台6種（ぷりパレ・しずもも・こはる推し・ひなた推し・よるの真夜中・プレミアム）と段位 |
+| `lib/ui/lines.dart` | 声の出る台詞すべて（つむぎ／5人／チュートリアル）。数字の変わる文は入れない（声は文ごとに1回録るため） |
+| `lib/ui/voice.dart` | ボイス再生。1度に1人、話している間は BGM を下げる。設定で ON/OFF |
+| `lib/ui/voice_ids.dart` | 「話者\|台詞」→ `assets/voice/<id>.m4a`（生成物） |
+| `lib/ui/idol_widgets.dart` | カットイン・吹き出し・顔アイコン・メンバーの色 |
+| `lib/ui/member_screen.dart` | メンバー紹介 |
+| `art/songs/` | 歌入り BGM 8曲（ACE-Step 1.5、歌詞は `docs/lyrics.md`）。手順と採用テイクは `art/songs/README.md`。`art/bgm.py` は以前の歌なし版（今は未使用） |
+| `art/slice.py` | Codex の生成画像（マゼンタ／グリーン背景）を透過 PNG に。背景は端から続く部分だけ抜くので紫・ピンクの絵が欠けない |
+| `art/launch.py` | 起動画面（iOS はキービジュアル全面、Android はロゴ） |
+| `art/crowd.py` | 歓声・コール（`voice/crowd/` の叫び声 → `assets/sfx/crowd_*.wav` など） |
+| `lib/ui/venue.dart` / `lib/ui/crowd.dart` | 盛り上がる会場の背景／客席の音 |
 
-## 縁日レベル
-- これまで稼いだ小判の合計（端末に保存）でレベルが上がる。必要枚数は `lib/logic/levels.dart` の `levelNeed`
-- 駒の `level` がそのレベルになるとガチャに出る（ランの途中で上がっても、出るのは次のランから）
+## ボイスを作り直す
+台詞を変えたら（Irodori-TTS：`~/Desktop/escape-games/tadaima-hiyori/tools/Irodori-TTS` を使用）
+```
+dart run tool/voice_lines.dart > voice/lines.json
+python3 voice/make_voice_jobs.py          # voice/jobs.json と lib/ui/voice_ids.dart（変わった台詞だけ新しいID）
+cd ~/Desktop/escape-games/tadaima-hiyori/tools/Irodori-TTS && PYTHONPATH=. .venv/bin/python <このフォルダ>/voice/voice_batch.py <このフォルダ>/voice/jobs.json
+python3 voice/convert_voice.py            # assets/voice/*.m4a（使われなくなったものは消す）
+```
+- 歓声の元の叫び声：`voice/crowd_jobs.json`（`check: false` で ASR チェックなし）→ `python3 art/crowd.py`
+- 声の元：`voice/candidates/<話者>_<A-C>.wav` から1つを参照音声にしている（`make_voice_jobs.py` の `VOICES`）。つむぎは A だと声が高くなりすぎたので B
+- 読みの直し：`READINGS`（×2→2倍、SSR→エスエスアール、推し祭壇→おしさいだん…）。言い間違いの撮り直しは `SEED` に台詞と別のシードを書く
+- 自動チェック：頭の30msが無音か、Whisper の聞き取りが台本と近いか（`voice_batch.py`）。**最後は耳で確認すること**
 
-## 駒を足す
-1. `figures.dart` に `FigureDef` を足す（効果は `defs.dart` の部品だけで書く。`level:` で解禁レベル）
-2. `dart run tool/sim.dart` で強すぎ・弱すぎを確認（lift が +15 を超えたら強すぎ）
-3. 画像は `art/gen/*.txt` と同じ書式でシートを生成 → `art/slice.py` に ID を足して切り出し
+## 絵を作り直す
+`art/gen/*.txt` がプロンプト、`*.refs` が参照画像（`chars_ref.png` = キャラ設定画）。
+```
+cd art/gen && ./codex_image.sh goods3      # out_goods3.png（5〜10分）
+python3 art/slice.py && python3 art/icon.py && python3 art/launch.py
+```
 
-## マシン・段位を足す
-- マシン：`modes.dart` の `machines` に1つ足す（出やすいタグ・棚の形・初期駒・取り立て倍率・解放条件）
-- 足したら `dart run tool/sim.dart` でクリア率を確認（店も使うボットで 20〜55% が目安）
+## 推し活レベル
+- これまで稼いだコインの合計でレベルが上がる。必要枚数は `lib/logic/levels.dart` の `levelNeed`
+- グッズの `level` がそのレベルになるとガチャに出る
 
-## まだ入っていないもの
-- 広告（「広告を見て待ってもらう」は今は無料でコンティニュー）
-- ストア側のランキング登録（上の手順。登録するまでは `RANK_DEMO=true` で画面確認）
+## ランキング（サーバーなし）の設定
+ID は `lib/ui/rank.dart` の `boards`（`oshi.best_turn` / `oshi.paydays` / `oshi.ascension`）。手順は縁日版の README と同じ。
+Android は Play Console で作った ID を `rank.dart` と `android/app/src/main/res/values/games-ids.xml` に書く。
 
 ## リリースビルド
 ```
-flutter build ipa --release          # iOS（App Store Connect へアップロード）
-flutter build appbundle --release    # Android（Google Play へアップロードする .aab）
+flutter build ipa --release          # iOS
+flutter build appbundle --release    # Android
 ```
-- アプリID：`com.sonson.ponpoko`（iOS・Android 共通。リリース後は変更不可）
-- Android の署名：`android/key.properties`（git 管理外）が `~/.android-keys/ponpoko-upload.jks` を指す。
-  鍵とパスワード（`~/.android-keys/ponpoko-key.properties`）は必ずバックアップすること。
-  `key.properties` がないとデバッグ鍵で署名される。
-- 広告：iOS だけ AdMob のリワード広告（今は Google のテスト用ID）。本番前に `lib/ui/ads/ads_mobile.dart` の広告ユニットIDと
-  `ios/Runner/Info.plist` の `GADApplicationIdentifier` を自分のものに差し替える。Android は広告なし（`--dart-define=ADS=true` で表示して確認できる）。
-- iPhone 専用（iPad 対応なし）。
+- アプリID：`com.sonson.oshisaidan`（iOS・Android 共通。リリース後は変更不可）
+- Android の署名：`android/key.properties`（git 管理外）を作って新しいアップロード鍵を指す（縁日版の鍵は使い回さない）。ないとデバッグ鍵で署名される
+- 広告：縁日版と同じく Google のテスト用ID。本番前に `lib/ui/ads/ads_mobile.dart` の広告ユニットIDと `ios/Runner/Info.plist` の `GADApplicationIdentifier` を差し替える
+- iPhone 専用（iPad 対応なし）
 
 ## ストア用の素材
 - 掲載文・キーワード：`docs/store_listing.md`／プライバシーポリシー：`docs/privacy_policy.md`
-- スクリーンショット：`tool/screenshots.sh <シミュレーターID> store/ios_6.9`（iPhone 17 Pro Max で撮ると 6.9インチ用の 1320×2868）
-- `store/android_phone/`（縦横比 2:1 以内にした版）、`store/android/feature_graphic_1024x500.png`、`store/android/icon_512.png`
+- スクリーンショット：`tool/screenshots.sh <iPhone 17 Pro Max のID> store/ios_6.9`（1320×2868）→ `python3 art/store.py`（Android 用の比率・フィーチャーグラフィック・512アイコン）
+- あそびかたの絵：`tool/screenshots.sh <iPhone 17 Pro のID> art/howto/shots` → `python3 art/howto.py`

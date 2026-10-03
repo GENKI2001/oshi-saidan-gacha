@@ -1,4 +1,4 @@
-// The festival level (縁日レベル) and how far it is to the next unlock,
+// The 推し活 level and how far it is to the next unlock,
 // with the Codex-made badge and gauge (assets/ui/lv_badge.png, lv_gauge.png, lv_fill.png).
 import 'package:flutter/material.dart';
 
@@ -39,7 +39,7 @@ class LevelCard extends StatelessWidget {
                     Row(
                       children: [
                         const Text(
-                          '縁日レベル',
+                          '推し活レベル',
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: C.ink),
                         ),
                         const SizedBox(width: 8),
@@ -49,10 +49,10 @@ class LevelCard extends StatelessWidget {
                             alignment: Alignment.centerRight,
                             child: Text(
                               allOut
-                                  ? '全部の駒が出るよ！'
+                                  ? '全部のグッズが出るよ！'
                                   : left <= 0
                                   ? '次のプレイ終了で Lv${level + 1}！'
-                                  : 'あと $left 枚で Lv${level + 1}${count > 0 ? '（新しい駒 $count 種）' : ''}',
+                                  : 'あと ♥$left で Lv${level + 1}${count > 0 ? '（新グッズ $count 種）' : ''}',
                               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: C.woodDark),
                             ),
                           ),

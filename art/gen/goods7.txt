@@ -1,0 +1,15 @@
+Create one image 1536x1024: a sprite sheet laid out as an exact grid of 4 columns x 3 rows (12 cells of equal size). Collectible goods of an original anime idol unit, one per cell, in this order left-to-right, top-to-bottom:
+1 a light-blue water bottle printed with PARENYAN the cat mascot
+2 an open capsule-toy ball with a tiny MOMO figure popping out
+3 two overlapping can badges, one of SHIZUKU (blue rim) and one of MOMO (pink rim)
+4 a handmade felt charm with a gold star and a red ribbon
+5 a sparkling red and gold idol stage microphone with ribbons
+6 a strawberry crepe with whipped cream and a tiny blank yellow flag
+7 three tiny PARENYAN cat-mascot plushies sitting together
+8 a big pink ribbon hair accessory with a heart charm
+9 a glass lantern glowing blue and purple like a night city
+10 a chibi male fan in a red happi coat holding a heart uchiwa fan, cute and comedic
+11 a rare rainbow holographic can badge of HINATA with sparkles
+12 a clear cookie gift bag tied with a yellow ribbon
+The characters are from the attached reference sheet — draw them with exactly these designs (hair, colors, accessories): HINATA (red-orange theme, orange-brown high side ponytail with a big red ribbon and a gold star clip), SHIZUKU (sky-blue theme, long straight navy hair with hime cut, water-drop earrings), KOHARU (yellow theme, wavy honey-blonde bob with a white flower clip, sleepy eyes), YORU (purple theme, black twin tails with purple tips, bat-wing hair clip, small fang), MOMO (pink theme, fluffy pastel-pink hair with a pink cat-ear headband), TSUMUGI (green theme, short chestnut bob with a green hairpin, deadpan half-lidded eyes). PARENYAN is the idol unit's mascot: a round chubby white cat with a tiny rainbow star on its forehead.
+Style: kawaii flat 2D sticker illustrations of anime idol merchandise (goods), chunky rounded shapes, chibi characters with big sparkling anime eyes, soft pastel colors with each idol's theme color as accent, clean dark-brown outlines, each object has a thick white die-cut sticker border. Every object is centered in its own cell, same scale, fully inside the cell with generous margin, no overlap between cells. The whole background is ONE flat solid pure magenta color (#FF00FF) everywhere, no gradients, no shadows on the background, no grid lines, no text, no letters, no numbers, no watermark.

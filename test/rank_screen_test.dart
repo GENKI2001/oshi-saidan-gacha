@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gacha_rogue/ui/rank.dart';
-import 'package:gacha_rogue/ui/rank_screen.dart';
+import 'package:oshi_saidan/ui/rank.dart';
+import 'package:oshi_saidan/ui/rank_screen.dart';
 
 void main() {
   testWidgets('ranking screen opens and switches boards without errors', (t) async {

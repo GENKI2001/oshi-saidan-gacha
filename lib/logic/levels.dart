@@ -1,4 +1,4 @@
-// The festival level (縁日レベル): grows with every coin the player has ever
+// The 推し活 level: grows with every coin the player has ever
 // earned, across all runs, and unlocks more figures in the gacha.
 import 'dart:math' as math;
 

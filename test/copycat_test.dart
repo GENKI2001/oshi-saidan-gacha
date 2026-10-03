@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gacha_rogue/logic/defs.dart';
-import 'package:gacha_rogue/logic/figures.dart';
-import 'package:gacha_rogue/logic/run.dart';
+import 'package:oshi_saidan/logic/defs.dart';
+import 'package:oshi_saidan/logic/figures.dart';
+import 'package:oshi_saidan/logic/run.dart';
 
 void main() {
   test('fox masks copy the final value and pass it along the chain', () {
@@ -10,10 +10,10 @@ void main() {
     for (var i = 0; i < r.size; i++) {
       r.cells[i] = null;
     }
-    r.place(figureById['maneki']!, 0);
-    r.place(figureById['koban']!, 1);
-    r.place(figureById['kitsune']!, 2);
-    r.place(figureById['kitsune']!, 3);
+    r.place(figureById['hinamomo_maneki']!, 0);
+    r.place(figureById['coin']!, 1);
+    r.place(figureById['hinata_mirror']!, 2);
+    r.place(figureById['hinata_mirror']!, 3);
     final res = r.endTurn();
     final koban = res.gains[1]!;
     expect(koban, 2, reason: 'koban 1, doubled by the lucky cat');

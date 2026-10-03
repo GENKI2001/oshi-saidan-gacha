@@ -8,7 +8,7 @@ class Sfx {
   static bool enabled = true;
   static final Map<String, Future<AudioPool>> _pools = {};
 
-  static const _names = [
+  static final _names = [
     'tap',
     'toggle',
     'handle',
@@ -36,10 +36,6 @@ class Sfx {
     'payday',
     'pay_ok',
     'pay_fail',
-    'boss_0',
-    'boss_1',
-    'boss_2',
-    'boss_3',
     'shop',
     'buy',
     'reroll',
@@ -48,6 +44,12 @@ class Sfx {
     'clear',
     'over',
     'jingle',
+    'cheer_big',
+    'cheer_song',
+    for (var n = 0; n < 3; n++)
+      for (var v = 0; v < 3; v++) 'cheer_s${n}_$v',
+    for (final i in ['hinata', 'shizuku', 'koharu', 'yoru', 'momo'])
+      for (var n = 0; n < 4; n++) 'call_${i}_$n',
   ];
   static const ticks = 15;
 
@@ -85,16 +87,32 @@ class Sfx {
   static void tick(int step) => play(_tick(step), volume: 0.8);
 }
 
-/// Background music: one looping track at a time (assets/bgm, made by art/bgm.py).
+/// Background music: one looping idol song at a time (assets/bgm, made by art/songs).
 class Bgm {
+
   static bool enabled = true;
   static const volume = 0.32;
   static AudioPlayer? _player;
   static String? _want; // track that should be playing
   static String? _playing;
   static bool _paused = false;
+  static bool _ducked = false;
 
-  static AudioPlayer get _p => _player ??= AudioPlayer()..setReleaseMode(ReleaseMode.loop);
+  static AudioPlayer get _p => _player ??= AudioPlayer()
+    ..positionUpdater = null // nothing reads the position
+    ..setReleaseMode(ReleaseMode.loop);
+
+  /// Quieter while a character is talking.
+  static void duck(bool on) {
+    if (_ducked == on) return;
+    _ducked = on;
+    if (_playing == null) return;
+    unawaited(() async {
+      try {
+        await _p.setVolume(on ? volume * 0.45 : volume);
+      } catch (_) {}
+    }());
+  }
 
   /// Switches to [track] (`bgm_title`, `bgm_select`, or `bgm_` + a machine id); no-op if already on it.
   static void play(String track) {
@@ -129,8 +147,9 @@ class Bgm {
           return;
         }
         await _p.stop();
-        await _p.setVolume(volume);
-        await _p.play(AssetSource('bgm/$target.wav'));
+        await _p.setVolume(_ducked ? volume * 0.45 : volume);
+        // sung idol songs (art/songs, ACE-Step 1.5)
+        await _p.play(AssetSource('bgm/$target.m4a'));
         _playing = target;
       } catch (_) {
         _playing = null; // blocked (web autoplay) or missing plugin: try again later

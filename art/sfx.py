@@ -604,11 +604,7 @@ def build():
     save('pay_fail', reverb(mix([(0, taiko(70, 1.0) * 0.8)] + [(0.1 + i * 0.3, koto(note(n), 0.9 if i < 3 else 1.6, 0.4, 0.993))
                                                              for i, n in enumerate([67, 66, 65, 62])]), 0.9, 0.3), 0.7)
 
-    # boss babble per mood (neutral / pleased / delighted / angry)
-    save('boss_0', vowel_babble(190, 6, 3, 0.075, 10), 0.5)
-    save('boss_1', vowel_babble(240, 7, 4, 0.065, 11), 0.5)
-    save('boss_2', vowel_babble(300, 6, 6, 0.06, 12), 0.5)
-    save('boss_3', vowel_babble(140, 6, 2, 0.09, 13), 0.55)
+    # (no boss babble: つむぎ and the idols are fully voiced, see voice/)
 
     # shop / meta
     rng = np.random.default_rng(8)

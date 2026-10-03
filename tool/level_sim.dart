@@ -3,8 +3,8 @@
 //   dart run tool/level_sim.dart [players]
 // Each simulated player plays runs back to back on 縁日ガチャ; a run is played at
 // the current level, the coins fill the gauge, and a full gauge gives one level.
-import 'package:gacha_rogue/logic/levels.dart';
-import 'package:gacha_rogue/logic/modes.dart';
+import 'package:oshi_saidan/logic/levels.dart';
+import 'package:oshi_saidan/logic/modes.dart';
 
 import 'sim.dart';
 

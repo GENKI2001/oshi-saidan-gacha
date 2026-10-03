@@ -1,4 +1,4 @@
-// Machines and ascension (段位) (spec 02 §5).
+// Machines (推し別のガチャ) and ascension (段位) (spec 02 §5).
 // Both only change the numbers in [Rules]; run.dart reads Rules and
 // never knows which mode produced them, so tool/sim.dart can balance any mix.
 
@@ -12,16 +12,16 @@ class Rules {
   List<String> start;
   int luck;
   double dueMult;
-  double curseRate; // chance a pull is the boss's card instead
+  double curseRate; // chance a pull is つむぎの注意書き instead
   int choose;
   int coins;
   int removeTickets;
   bool cardEveryPayday;
   double priceMult;
   bool canExpand;
-  int curseExtra; // extra minus on the boss's card
+  int curseExtra; // extra minus on つむぎの注意書き
   bool noContinue;
-  int level; // the player's festival level: only figures unlocked by it drop
+  int level; // the player's 推し活 level: only figures unlocked by it drop
 
   Rules({
     Map<String, double>? tagWeight,
@@ -82,81 +82,82 @@ class MachineDef {
   String get unlockText => switch (unlock) {
     UnlockKind.none => '',
     UnlockKind.seen => '図鑑を$unlockN種あつめる',
-    UnlockKind.bestTurn => '1回転で$unlockNコイン以上かせぐ',
-    UnlockKind.paydays => '1回のプレイで取り立てを$unlockN回払う',
+    UnlockKind.bestTurn => '1回転でハートを$unlockN以上集める',
+    UnlockKind.paydays => '1回のライブで$unlockN曲成功する',
     UnlockKind.clears => '$unlockN回 完済する',
-    UnlockKind.level => '縁日レベル $unlockN で解放',
+    UnlockKind.level => '推し活レベル $unlockN で解放',
   };
 }
 
 final machines = <MachineDef>[
-  MachineDef(id: 'ennichi', name: '縁日ガチャ', blurb: 'いつものガチャ。なんでも出る', hue: 0, perks: const ['ぜんぶの駒が同じくらい出る'], apply: (r) {}),
+  MachineDef(id: 'pripare', name: 'ぷりパレガチャ', blurb: '会場のロビーにある いつものガチャ', hue: 0, perks: const ['5人のグッズが 同じくらい出る'], apply: (r) {}),
   MachineDef(
-    id: 'mizu',
-    name: '水まつりガチャ',
-    blurb: '金魚すくいの屋台の横にあるやつ',
-    hue: 180,
+    id: 'shizumomo',
+    name: 'しずももガチャ',
+    blurb: 'しずくとももの コンビ推し向け',
+    hue: 200,
     unlock: UnlockKind.level,
     unlockN: 3,
-    perks: const ['「水」「動物」がすごく出る', '棚が横長（5×3）', '金魚からスタート', '取り立て +50%'],
+    perks: const ['「しずく」「もも」がすごく出る', '祭壇が横長（5×3）', 'ラバストからスタート', 'ノルマ +50%'],
     apply: (r) {
-      r.tagWeight = {'水': 10, '動物': 6}; // about 2 in 3 pulls (縁日ガチャ: 1 in 5)
-      r.dueMult = 1.5; // the water combos pay well, so the boss asks for more
+      r.tagWeight = {'しずく': 10, 'もも': 6}; // about 2 in 3 pulls (ぷりパレガチャ: 1 in 5)
+      r.dueMult = 1.5; // the pair combos pay well, so the rent goes up
       r.cols = 5;
       r.rows = 3;
-      r.start = ['kingyo'];
+      r.start = ['shizumomo_strap'];
     },
   ),
   MachineDef(
-    id: 'kuishinbo',
-    name: '食いしん坊ガチャ',
-    blurb: 'ソースのにおいがする',
-    hue: 35,
+    id: 'koharu',
+    name: 'こはる推しガチャ',
+    blurb: 'ほんのり あまいにおいがする',
+    hue: 40,
     unlock: UnlockKind.level,
     unlockN: 5,
-    perks: const ['「食べ物」がよく出る', 'たこ焼きからスタート', '取り立て +30%'],
+    perks: const ['「こはる」がよく出る', 'アクキーからスタート', 'ノルマ +30%'],
     apply: (r) {
-      r.tagWeight = {'食べ物': 3};
-      r.start = ['takoyaki'];
+      r.tagWeight = {'こはる': 3};
+      r.start = ['koharu_keyholder'];
       r.dueMult *= 1.3;
     },
   ),
   MachineDef(
-    id: 'engi',
-    name: '縁起ガチャ',
-    blurb: '神社の境内に置いてある',
-    hue: 320,
+    id: 'hinata',
+    name: 'ひなた推しガチャ',
+    blurb: 'センターの笑顔で 運が上がる',
+    hue: 330,
     unlock: UnlockKind.level,
     unlockN: 7,
-    perks: const ['「縁起」がよく出る', '運 +10%', '取り立て +30%'],
+    perks: const ['「ひなた」がよく出る', '運 +10%', 'ノルマ +30%'],
     apply: (r) {
-      r.tagWeight = {'縁起': 3};
+      r.tagWeight = {'ひなた': 3};
       r.luck += 10;
       r.dueMult *= 1.3;
     },
   ),
   MachineDef(
-    id: 'ayashii',
-    name: '妖しいガチャ',
-    blurb: '夜にだけ出る。親分も近寄らない',
-    hue: 260,
+    id: 'yoru',
+    name: 'よるの真夜中ガチャ',
+    blurb: 'ライブ後の真夜中だけ動く',
+    hue: 270,
     unlock: UnlockKind.level,
     unlockN: 10,
-    perks: const ['ガチャから名刺が出る（7%）', '「道具」がよく出る', 'コイン25でスタート'],
+    perks: const ['ガチャから注意書きが出る（7%）', '「よる」がよく出る', 'ハート25でスタート', 'ノルマ +10%'],
     apply: (r) {
       r.curseRate = 0.07;
-      r.tagWeight = {'道具': 2.5};
+      r.tagWeight = {'よる': 2.5}; // よる's goods combo better than the 縁日 tools did, so the rent goes up
       r.coins = 25;
+      r.dueMult *= 1.1;
     },
   ),
   MachineDef(
-    id: 'kinpika',
-    name: '金ぴかガチャ',
-    blurb: '全部金色。目がチカチカする',
+    id: 'premium',
+    name: 'プレミアムガチャ',
+    blurb: '全部キラキラ。目がチカチカする',
     hue: 50,
     unlock: UnlockKind.level,
     unlockN: 13,
-    perks: const ['運 +25%', '取り立て +35%'],
+    perks: const ['運 +25%', 'ノルマ +35%'],
     apply: (r) {
       r.luck += 25;
       r.dueMult *= 1.35;
@@ -172,15 +173,15 @@ const maxAscension = 10;
 
 const ascensionText = [
   'ふつう',
-  '取り立て +10%',
-  '親分が取り立てのたびに名刺を置いていく',
-  'どける券なしでスタート',
-  '夜店の値段 +25%',
-  '取り立て +25%（合計）',
-  'レアが出にくい（運 -6%）',
-  '棚を広げられない',
-  '名刺が もっと痛い（毎回 -4）',
-  '取り立て +45%（合計）',
+  'ノルマ +10%',
+  'つむぎが 1曲ごとに注意書きを置いていく',
+  'どける なしでスタート',
+  '物販の値段 +25%',
+  'ノルマ +25%（合計）',
+  'Rが出にくい（運 -6%）',
+  '祭壇を広げられない',
+  '注意書きが もっと痛い（毎回 -4）',
+  'ノルマ +45%（合計）',
   '待ってもらえない（コンティニューなし）',
 ];
 

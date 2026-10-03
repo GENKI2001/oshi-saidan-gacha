@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gacha_rogue/ui/game_screen.dart';
-import 'package:gacha_rogue/ui/meta.dart';
+import 'package:oshi_saidan/ui/game_screen.dart';
+import 'package:oshi_saidan/ui/meta.dart';
 
 void main() {
   testWidgets('game screen lays out on a phone', (t) async {

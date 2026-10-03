@@ -5,7 +5,7 @@
 enum Rarity { normal, rare, epic, legend, curse }
 
 extension RarityInfo on Rarity {
-  String get label => const ['ノーマル', 'レア', 'エピック', 'レジェンド', 'のろい'][index];
+  String get label => const ['★1', '★2', '★3', '★4', '注意'][index];
 }
 
 sealed class Effect {
@@ -43,7 +43,7 @@ class AddPerShelfTag extends Effect {
   final int v;
   const AddPerShelfTag(this.tag, this.v);
   @override
-  String describe() => '棚の「$tag」1体につき +$v';
+  String describe() => '祭壇の「$tag」1つにつき +$v';
 }
 
 /// 棚に [tag] が n体以上なら +v
@@ -52,7 +52,7 @@ class AddIfShelfTag extends Effect {
   final int n, v;
   const AddIfShelfTag(this.tag, this.n, this.v);
   @override
-  String describe() => '棚に「$tag」が$n体以上なら さらに +$v';
+  String describe() => '祭壇に「$tag」が$n個以上なら さらに +$v';
 }
 
 /// 隣に [id] がいれば +v
@@ -85,14 +85,14 @@ class BuffRow extends Effect {
   final int v;
   const BuffRow(this.v);
   @override
-  String describe() => '同じ段のほかの駒 すべて +$v';
+  String describe() => '同じ段のほかのグッズ すべて +$v';
 }
 
 /// 隣でいちばん稼いだ駒と同じだけ稼ぐ
 class CopyBestAdjacent extends Effect {
   const CopyBestAdjacent();
   @override
-  String describe() => 'となりで一番かせいだ駒と同じだけかせぐ';
+  String describe() => 'となりで一番かせいだグッズと同じだけかせぐ';
 }
 
 /// 隣の [tag] を ×f
@@ -109,7 +109,7 @@ class MultAll extends Effect {
   final int f;
   const MultAll(this.f);
   @override
-  String describe() => '棚の全部の駒を ×$f';
+  String describe() => '祭壇の全部のグッズを ×$f';
 }
 
 /// n回転目に棚の全駒を ×f して消える
@@ -117,7 +117,7 @@ class Fuse extends Effect {
   final int n, f;
   const Fuse(this.n, this.f);
   @override
-  String describe() => '$n回転目に打ち上がり、棚の全部を ×$f（消える）';
+  String describe() => '$n回転目に 盛り上がりMAX！ 祭壇の全部を ×$f（消える）';
 }
 
 /// n回転で消える
@@ -125,7 +125,7 @@ class Lifetime extends Effect {
   final int n;
   const Lifetime(this.n);
   @override
-  String describe() => '$n回転で割れて消える';
+  String describe() => '$n回転で 消える（期間限定）';
 }
 
 /// 毎回となりの駒を1体撃ち落とし、その稼ぎの ×m をもらう（のろいを優先）
@@ -133,7 +133,7 @@ class ShootAdjacent extends Effect {
   final int m;
   const ShootAdjacent(this.m);
   @override
-  String describe() => '毎回 右どなりの駒を撃ち落とし、その稼ぎの×$mをもらう';
+  String describe() => '毎回 右どなりのグッズを売って、その稼ぎの×$mをもらう';
 }
 
 /// n回転ごとに空きマスへ駒を生む
@@ -141,7 +141,7 @@ class SpawnEveryN extends Effect {
   final int n;
   const SpawnEveryN(this.n);
   @override
-  String describe() => '$n回転ごとに 空きマスへ駒をひとつ生む';
+  String describe() => '$n回転ごとに 空きマスへグッズをひとつ出す';
 }
 
 /// 置いた時、隣の [tag] を全部すくって1体につき +v
@@ -150,7 +150,7 @@ class OnPlacedEatAdjacentTag extends Effect {
   final int v;
   const OnPlacedEatAdjacentTag(this.tag, this.v);
   @override
-  String describe() => '置いた時、となりの「$tag」を全部すくって 1体につき +$v';
+  String describe() => tag == 'のろい' ? '置いた時、となりの注意書きを全部はがして 1枚につき +$v' : '置いた時、となりの「$tag」を全部 交換に出して 1つにつき +$v';
 }
 
 /// 置いた時、レア以上の駒を n体生んで割れる
@@ -158,23 +158,23 @@ class OnPlacedSpawnRare extends Effect {
   final int n;
   const OnPlacedSpawnRare(this.n);
   @override
-  String describe() => '置いた時、レア以上の駒を$n体生んで割れる';
+  String describe() => '置いた時、R以上のグッズを$n個出して消える';
 }
 
-/// 取り立ての時 +v
+/// 曲の終わり（ノルマの時）に +v
 class OnPaydayGain extends Effect {
   final int v;
   const OnPaydayGain(this.v);
   @override
-  String describe() => '取り立ての時 +$v';
+  String describe() => '曲の終わりに +$v';
 }
 
-/// 取り立て額を pct% 減らす
+/// ノルマを pct% 減らす
 class PaydayDiscount extends Effect {
   final int pct;
   const PaydayDiscount(this.pct);
   @override
-  String describe() => '取り立て額を $pct% へらす';
+  String describe() => 'ノルマを $pct% へらす';
 }
 
 /// 棚にいる間、レアの出やすさ +v%
@@ -182,7 +182,7 @@ class Luck extends Effect {
   final int v;
   const Luck(this.v);
   @override
-  String describe() => '棚にいる間 レア以上が出やすい（+$v%）';
+  String describe() => '祭壇にある間 R以上が出やすい（+$v%）';
 }
 
 /// どけた時 +v
@@ -199,7 +199,7 @@ class AddPerAdjacentTag extends Effect {
   final int v;
   const AddPerAdjacentTag(this.tag, this.v);
   @override
-  String describe() => 'となりの「$tag」1体につき +$v';
+  String describe() => 'となりの「$tag」1つにつき +$v';
 }
 
 /// となりに駒がいないと +v
@@ -207,7 +207,7 @@ class AddIfAlone extends Effect {
   final int v;
   const AddIfAlone(this.v);
   @override
-  String describe() => 'となりに誰もいないと さらに +$v';
+  String describe() => 'となりに何もないと さらに +$v';
 }
 
 /// 棚の駒 n体につき +v
@@ -215,7 +215,7 @@ class AddPerShelfFigures extends Effect {
   final int n, v;
   const AddPerShelfFigures(this.n, this.v);
   @override
-  String describe() => '棚の駒$n体につき +$v';
+  String describe() => '祭壇のグッズ$n個につき +$v';
 }
 
 /// 置いた時 +v（1回だけ）
@@ -239,7 +239,7 @@ class BuffColumn extends Effect {
   final int v;
   const BuffColumn(this.v);
   @override
-  String describe() => '同じ列のほかの駒 すべて +$v';
+  String describe() => '同じ列のほかのグッズ すべて +$v';
 }
 
 /// 毎回 lo〜hi のどれか
@@ -256,7 +256,7 @@ class MultShelfTag extends Effect {
   final int f;
   const MultShelfTag(this.tag, this.f);
   @override
-  String describe() => '棚の「$tag」を全部 ×$f';
+  String describe() => '祭壇の「$tag」を全部 ×$f';
 }
 
 class FigureDef {
@@ -265,8 +265,11 @@ class FigureDef {
   final List<String> tags;
   final List<Effect> effects;
 
-  /// 縁日レベルがこの値になるとガチャから出るようになる
+  /// 推し活レベルがこの値になるとガチャから出るようになる
   final int level;
+
+  /// The idols who appear (and speak) when this comes out of a capsule.
+  final List<String> cast;
   const FigureDef({
     required this.id,
     required this.name,
@@ -275,6 +278,7 @@ class FigureDef {
     required this.tags,
     required this.effects,
     this.level = 1,
+    this.cast = const [],
   });
 
   T? effect<T extends Effect>() {

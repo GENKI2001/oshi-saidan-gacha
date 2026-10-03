@@ -1,22 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gacha_rogue/logic/figures.dart';
-import 'package:gacha_rogue/logic/modes.dart';
-import 'package:gacha_rogue/logic/run.dart';
-import 'package:gacha_rogue/ui/meta.dart';
+import 'package:oshi_saidan/logic/figures.dart';
+import 'package:oshi_saidan/logic/modes.dart';
+import 'package:oshi_saidan/logic/run.dart';
+import 'package:oshi_saidan/ui/meta.dart';
 
 void main() {
   test('machines change the shelf, start and odds', () {
-    final r = Run(seed: 9, rules: rulesFor(machineById['mizu']!, 0));
+    final r = Run(seed: 9, rules: rulesFor(machineById['shizumomo']!, 0));
     expect([r.cols, r.rows], [5, 3]);
-    expect(r.figs.single.def.id, 'kingyo');
+    expect(r.figs.single.def.id, 'shizumomo_strap');
     var water = 0;
     for (var i = 0; i < 400; i++) {
-      if (r.pullOne().tags.contains('水')) water++;
+      if (r.pullOne().tags.contains('しずく')) water++;
     }
     var plain = 0;
     final p = Run(seed: 9);
     for (var i = 0; i < 400; i++) {
-      if (p.pullOne().tags.contains('水')) plain++;
+      if (p.pullOne().tags.contains('しずく')) plain++;
     }
     expect(water, greaterThan(plain * 1.2)); // softened when many water figures were added
   });
@@ -33,11 +33,11 @@ void main() {
 
   test('machines unlock with the festival level', () {
     final m = Meta();
-    expect(m.unlocked(machineById['mizu']!), isFalse);
+    expect(m.unlocked(machineById['shizumomo']!), isFalse);
     m.level = 3;
-    expect(m.unlocked(machineById['mizu']!), isTrue);
-    expect(m.unlocked(machineById['kuishinbo']!), isFalse);
-    expect(m.takeNewMachines().map((x) => x.id), ['mizu']);
+    expect(m.unlocked(machineById['shizumomo']!), isTrue);
+    expect(m.unlocked(machineById['koharu']!), isFalse);
+    expect(m.takeNewMachines().map((x) => x.id), ['shizumomo']);
     expect(m.takeNewMachines(), isEmpty);
     expect(m.recordClear(0), 1);
     expect(m.recordClear(0), isNull);

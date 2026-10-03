@@ -1,11 +1,11 @@
 // Walks the guided first game through every step, the way the highlighted
 // controls would be tapped, and checks each one leads to the next.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gacha_rogue/logic/figures.dart';
-import 'package:gacha_rogue/logic/run.dart';
-import 'package:gacha_rogue/ui/controller.dart';
-import 'package:gacha_rogue/ui/meta.dart';
-import 'package:gacha_rogue/ui/sfx.dart';
+import 'package:oshi_saidan/logic/figures.dart';
+import 'package:oshi_saidan/logic/run.dart';
+import 'package:oshi_saidan/ui/controller.dart';
+import 'package:oshi_saidan/ui/meta.dart';
+import 'package:oshi_saidan/ui/sfx.dart';
 
 void main() {
   testWidgets('the tutorial goes from the first spin to the end', (t) async {
@@ -22,7 +22,7 @@ void main() {
     expect(g.coach, Coach.spin1);
     g.turnHandle();
     await settle(Coach.place1);
-    expect(g.options.single.id, 'takoyaki');
+    expect(g.options.single.id, 'koharu_keyholder');
     g.choose(g.options.single);
     expect(g.coach, Coach.cell1);
     await g.tapCell(0); // not the highlighted cell: ignored
@@ -36,10 +36,10 @@ void main() {
 
     g.turnHandle();
     await settle(Coach.repull);
-    expect(g.options.single.id, 'tanuki');
+    expect(g.options.single.id, 'momo_badge');
     g.repull();
     await settle(Coach.item);
-    expect(g.options.single.id, 'ringoame');
+    expect(g.options.single.id, 'koharu_acsta');
     g.coachNext();
     g.coachNext();
     g.coachNext();
@@ -55,7 +55,7 @@ void main() {
     // わたあめ goes far from the りんご飴, then 狸の置物 next to it
     g.turnHandle();
     await settle(Coach.place3);
-    expect(g.options.single.id, 'wataame');
+    expect(g.options.single.id, 'koharu_badge');
     g.choose(g.options.single);
     expect(g.coach, Coach.cell3);
     await g.tapCell(0); // not the highlighted cell: ignored
@@ -64,7 +64,7 @@ void main() {
     await settle(Coach.spin4);
     g.turnHandle();
     await settle(Coach.place4);
-    expect(g.options.single.id, 'tanuki');
+    expect(g.options.single.id, 'momo_badge');
     g.choose(g.options.single);
     g.tapCell(GameController.tutorialCell4);
     await settle(Coach.swap1);
@@ -80,8 +80,8 @@ void main() {
     expect(g.coach, Coach.swap3);
     await g.tapCell(GameController.tutorialCell4);
     expect(g.coach, Coach.swapped);
-    expect(g.run.cells[GameController.tutorialCell4]!.def.id, 'wataame');
-    expect(g.run.cells[GameController.tutorialCell3]!.def.id, 'tanuki');
+    expect(g.run.cells[GameController.tutorialCell4]!.def.id, 'koharu_badge');
+    expect(g.run.cells[GameController.tutorialCell3]!.def.id, 'momo_badge');
     g.coachNext();
     expect(g.coach, Coach.go);
     g.turnHandle();

@@ -1,5 +1,0 @@
-Create one image 1024x1024: a mobile game APP ICON, square, full-bleed.
-Background: one single flat solid color only (warm cream #FFF3DF), nothing else in the background — no scenery, no gradient, no lanterns, no fireworks, no sparkles, no bokeh, no light rays.
-Subject: just two things, big and centered: a simple capsule-toy (gashapon) vending machine — a round clear dome with a few colorful capsules on a pink box body with one round dial — and a chubby tanuki standing next to it, leaning on it with one paw, wearing a simple twisted headband.
-Style: very simple flat vector illustration, like a hand-made sticker or a children's picture book. Few shapes, flat fills, 5-6 colors total, thick even dark-brown outlines, no gradients, no glossy highlights, no glow, no shine, no 3D rendering, no texture, no tiny details. Strong readable silhouette at small sizes. Generous margin around the subjects.
-No text, no letters, no numbers, no watermark.

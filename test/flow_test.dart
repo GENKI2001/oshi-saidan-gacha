@@ -1,21 +1,21 @@
 // Plays whole runs through GameController (the same calls the buttons make)
 // and checks the phase machine never gets stuck.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gacha_rogue/logic/figures.dart';
-import 'package:gacha_rogue/logic/modes.dart';
-import 'package:gacha_rogue/ui/controller.dart';
-import 'package:gacha_rogue/ui/meta.dart';
-import 'package:gacha_rogue/ui/sfx.dart';
+import 'package:oshi_saidan/logic/figures.dart';
+import 'package:oshi_saidan/logic/modes.dart';
+import 'package:oshi_saidan/ui/controller.dart';
+import 'package:oshi_saidan/ui/meta.dart';
+import 'package:oshi_saidan/ui/sfx.dart';
 
 void main() {
   testWidgets('runs reach the end screen without getting stuck', (t) async {
     Sfx.enabled = false;
     final setups = <GameController Function()>[
       () => GameController(Meta()),
-      () => GameController(Meta(), machine: machineById['ayashii'], ascension: 10),
-      () => GameController(Meta(), machine: machineById['mizu'], ascension: 3),
-      () => GameController(Meta(), machine: machineById['kinpika'], ascension: 5),
-      () => GameController(Meta(), machine: machineById['kuishinbo']),
+      () => GameController(Meta(), machine: machineById['yoru'], ascension: 10),
+      () => GameController(Meta(), machine: machineById['shizumomo'], ascension: 3),
+      () => GameController(Meta(), machine: machineById['premium'], ascension: 5),
+      () => GameController(Meta(), machine: machineById['koharu']),
     ];
     for (var game = 0; game < setups.length; game++) {
       final g = setups[game]();
@@ -40,7 +40,7 @@ void main() {
               g.tapCell(empty.first);
             }
           case Phase.payday:
-            if (g.payday == null) g.pay();
+            g.payday == null ? g.pay() : g.toShop();
           case Phase.failed:
             if (!postponed && g.run.canPostpone) {
               postponed = true;
@@ -56,6 +56,8 @@ void main() {
             g.leaveShop();
           case Phase.cleared:
             g.keepGoing();
+          case Phase.cutin:
+            g.skipCutin();
           case Phase.dropping || Phase.scoring || Phase.over:
             break;
         }

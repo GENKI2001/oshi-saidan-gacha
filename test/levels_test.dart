@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gacha_rogue/logic/defs.dart';
-import 'package:gacha_rogue/logic/figures.dart';
-import 'package:gacha_rogue/logic/levels.dart';
-import 'package:gacha_rogue/logic/modes.dart';
-import 'package:gacha_rogue/logic/run.dart';
-import 'package:gacha_rogue/ui/meta.dart';
+import 'package:oshi_saidan/logic/defs.dart';
+import 'package:oshi_saidan/logic/figures.dart';
+import 'package:oshi_saidan/logic/levels.dart';
+import 'package:oshi_saidan/logic/modes.dart';
+import 'package:oshi_saidan/logic/run.dart';
+import 'package:oshi_saidan/ui/meta.dart';
 
 void main() {
   test('the level goes up by one at most, when a run ends', () {
@@ -35,7 +35,7 @@ void main() {
       expect(figures.any((f) => f.rarity == rar && f.level == 1), isTrue, reason: rar.name);
     }
     expect(figures.any((f) => f.rarity == Rarity.legend && f.level == 1), isFalse);
-    expect(figureById['daikoku']!.level, greaterThan(1), reason: '大黒さま is too strong for a first festival');
+    expect(figureById['unit_panel']!.level, greaterThan(1), reason: '大黒さま is too strong for a first festival');
   });
 
   test('a legend pull before any legend is unlocked gives an epic', () {

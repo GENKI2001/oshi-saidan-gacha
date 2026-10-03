@@ -9,21 +9,25 @@ import '../logic/defs.dart';
 import 'sfx.dart';
 
 class C {
-  static const night = Color(0xFF2A1B47);
-  static const night2 = Color(0xFF52305E);
-  static const cream = Color(0xFFFFF6E9);
-  static const wood = Color(0xFFF2D7B0);
-  static const woodDark = Color(0xFFC79A6B);
-  static const ink = Color(0xFF4A2E2A);
+  static const night = Color(0xFF241A4A);
+  static const night2 = Color(0xFF4A2E66);
+  static const cream = Color(0xFFFFF7FB);
+  // the altar (祭壇): pastel pink with a deeper rose edge
+  static const wood = Color(0xFFF9D7EA);
+  static const woodDark = Color(0xFFD993BC);
+  static const ink = Color(0xFF4A2A48);
   static const pink = Color(0xFFFF6FA3);
+  static const pinkSoft = Color(0xFFFFD6E8);
+  static const pinkLine = Color(0xFFF59AC3);
+  static const lilac = Color(0xFFB98BEA);
   static const gold = Color(0xFFFFC93C);
   static const mint = Color(0xFF52D6B4);
   static const red = Color(0xFFFF5A5A);
 
   static Color rarity(Rarity r) => switch (r) {
-    Rarity.normal => const Color(0xFF7FC8F8),
-    Rarity.rare => const Color(0xFF4F7CFF),
-    Rarity.epic => const Color(0xFFB65CFF),
+    Rarity.normal => const Color(0xFF9FB4C8),
+    Rarity.rare => const Color(0xFF4F9CFF),
+    Rarity.epic => const Color(0xFFC25CFF),
     Rarity.legend => gold,
     Rarity.curse => const Color(0xFF7A6A6A),
   };
@@ -51,7 +55,7 @@ class FigureArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Image.asset(
-    'assets/figures/${def.id}.png',
+    'assets/figures/${def.id}.webp',
     width: size,
     height: size,
     filterQuality: FilterQuality.medium,
@@ -263,11 +267,13 @@ class _SparklePainter extends CustomPainter {
   bool shouldRepaint(_SparklePainter o) => o.t != t;
 }
 
-/// Rarity as 1-4 stars (the boss's card shows a のろい chip instead).
+/// Rarity as 1-4 stars (★4 in rainbow gold); つむぎの注意書き shows a 注意 chip instead.
 class RarityStars extends StatelessWidget {
   final Rarity rarity;
   final double size;
   const RarityStars(this.rarity, {super.key, this.size = 20});
+
+  static const _fill = [Color(0xFF9FD8FF), Color(0xFFFF8FC0), Color(0xFFC79BFF), Color(0xFFFFD34D)];
 
   @override
   Widget build(BuildContext context) {
@@ -283,19 +289,26 @@ class RarityStars extends StatelessWidget {
       );
     }
     final n = rarity.index + 1;
+    final col = _fill[rarity.index];
     Widget star(bool on) => SizedBox(
       width: size,
       height: size,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Icon(Icons.star_rounded, size: size * 1.18, color: C.ink),
-          Icon(Icons.star_rounded, size: size * 0.86, color: on ? C.gold : const Color(0xFFD9CBB8)),
+          Icon(Icons.star_rounded, size: size * 1.22, color: on ? C.ink : const Color(0x664A2A48)),
+          on && n == 4
+              ? ShaderMask(
+                  shaderCallback: (r) => const LinearGradient(colors: [Color(0xFFFF8FC0), Color(0xFFFFD34D), Color(0xFF8FF0C8), Color(0xFF9FC8FF)]).createShader(r),
+                  child: Icon(Icons.star_rounded, size: size * 0.9, color: Colors.white),
+                )
+              : Icon(Icons.star_rounded, size: size * 0.9, color: on ? col : const Color(0xFFEDE3F0)),
+          if (on) Positioned(left: size * 0.33, top: size * 0.27, child: Container(width: size * 0.13, height: size * 0.13, decoration: const BoxDecoration(color: Colors.white70, shape: BoxShape.circle))),
         ],
       ),
     );
     return Semantics(
-      label: '${rarity.label}（星$n）',
+      label: '星$n',
       child: Row(mainAxisSize: MainAxisSize.min, children: [for (var k = 0; k < 4; k++) star(k < n)]),
     );
   }
@@ -374,7 +387,9 @@ class Capsule extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final col = C.rarity(rarity);
+    final k = rarity == Rarity.curse ? 4 : rarity.index;
     final glow = rarity != Rarity.curse && rarity.index >= Rarity.rare.index;
+    final w = size * 1.12;
     return SizedBox(
       width: size * 1.6,
       height: size * 1.8,
@@ -387,76 +402,33 @@ class Capsule extends StatelessWidget {
               height: size,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: col.withValues(alpha: 0.8),
-                    blurRadius: size * (rarity.index * 0.18),
-                    spreadRadius: size * 0.05 * rarity.index,
-                  ),
-                ],
+                boxShadow: [BoxShadow(color: col.withValues(alpha: 0.8), blurRadius: size * (rarity.index * 0.18), spreadRadius: size * 0.05 * rarity.index)],
               ),
             ),
-          Transform.translate(
-            offset: Offset(-size * 0.5 * split, -size * 0.7 * split),
-            child: Transform.rotate(
-              angle: -1.2 * split,
-              child: Opacity(
-                opacity: (1 - split).clamp(0, 1),
-                child: CustomPaint(size: Size.square(size), painter: _HalfPainter(col, top: true)),
+          // the two halves of the capsule art (art/slice.py cuts them at the seam)
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Transform.translate(
+                offset: Offset(-size * 0.5 * split, -size * 0.7 * split),
+                child: Transform.rotate(
+                  angle: -1.2 * split,
+                  child: Opacity(opacity: (1 - split).clamp(0, 1), child: Image.asset('assets/ui/capsule_${k}_top.png', width: w, fit: BoxFit.fitWidth)),
+                ),
               ),
-            ),
-          ),
-          Transform.translate(
-            offset: Offset(size * 0.4 * split, size * 0.6 * split),
-            child: Transform.rotate(
-              angle: 0.9 * split,
-              child: Opacity(
-                opacity: (1 - split).clamp(0, 1),
-                child: CustomPaint(size: Size.square(size), painter: _HalfPainter(col, top: false)),
+              Transform.translate(
+                offset: Offset(size * 0.4 * split, size * 0.6 * split),
+                child: Transform.rotate(
+                  angle: 0.9 * split,
+                  child: Opacity(opacity: (1 - split).clamp(0, 1), child: Image.asset('assets/ui/capsule_${k}_bot.png', width: w, fit: BoxFit.fitWidth)),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
     );
   }
-}
-
-class _HalfPainter extends CustomPainter {
-  final Color color;
-  final bool top;
-  _HalfPainter(this.color, {required this.top});
-  @override
-  void paint(Canvas canvas, Size size) {
-    final r = Rect.fromLTWH(0, 0, size.width, size.height);
-    final path = Path()..addArc(r, top ? math.pi : 0, math.pi);
-    path.close();
-    final fill = top
-        ? (Paint()
-            ..shader = LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color.lerp(color, Colors.white, 0.35)!, color],
-            ).createShader(r))
-        : (Paint()..color = Colors.white.withValues(alpha: 0.92));
-    canvas.drawPath(path, fill);
-    canvas.drawPath(
-      path,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * 0.045
-        ..color = C.ink,
-    );
-    if (top) {
-      canvas.drawOval(
-        Rect.fromLTWH(size.width * 0.22, size.height * 0.12, size.width * 0.22, size.height * 0.12),
-        Paint()..color = Colors.white.withValues(alpha: 0.75),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_HalfPainter o) => o.color != color;
 }
 
 /// Chunky candy button.
@@ -507,44 +479,120 @@ class _PopButtonState extends State<PopButton> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 70),
         transform: Matrix4.translationValues(0, _down ? 4 : 0, 0),
-        padding: widget.padding,
         decoration: BoxDecoration(
-          color: col,
           borderRadius: BorderRadius.circular(40),
           border: Border.all(color: C.ink, width: 3),
-          boxShadow: [if (!_down) const BoxShadow(color: C.ink, offset: Offset(0, 4))],
+          boxShadow: [if (!_down) BoxShadow(color: Color.lerp(col, C.ink, 0.55)!, offset: const Offset(0, 4))],
         ),
-        child: widget.trailing == null
-            ? Text(widget.label, textAlign: TextAlign.center, style: outlined(widget.fontSize, Colors.white, width: 3))
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(widget.label, style: outlined(widget.fontSize, Colors.white, width: 3)),
-                  widget.trailing!,
-                ],
-              ),
+        child: Container(
+          padding: widget.padding,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(37),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.75), width: 2),
+            // candy gloss: light on top, the color in the middle, a little deeper at the bottom
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color.lerp(col, Colors.white, 0.45)!, col, Color.lerp(col, C.ink, 0.12)!],
+              stops: const [0, 0.55, 1],
+            ),
+          ),
+          child: widget.trailing == null
+              ? Text(widget.label, textAlign: TextAlign.center, style: outlined(widget.fontSize, Colors.white, stroke: Color.lerp(col, C.ink, 0.6)!, width: 3))
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(widget.label, style: outlined(widget.fontSize, Colors.white, stroke: Color.lerp(col, C.ink, 0.6)!, width: 3)),
+                    widget.trailing!,
+                  ],
+                ),
+        ),
       ),
     );
   }
 }
 
+/// A soft pink card: plum outline, a pink lace rim inside, tiny hearts in the
+/// corners, and an optional ribbon with a title on top.
 class Panel extends StatelessWidget {
   final Widget child;
   final EdgeInsets padding;
   final Color color;
-  const Panel({super.key, required this.child, this.padding = const EdgeInsets.all(16), this.color = C.cream});
+  final String? ribbon;
+  const Panel({super.key, required this.child, this.padding = const EdgeInsets.all(16), this.color = C.cream, this.ribbon});
   @override
-  Widget build(BuildContext context) => Container(
-    padding: padding,
-    decoration: BoxDecoration(
-      color: color,
-      borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: C.ink, width: 3),
-      boxShadow: const [BoxShadow(color: Color(0x66000000), blurRadius: 18, offset: Offset(0, 8))],
+  Widget build(BuildContext context) {
+    final card = Container(
+      decoration: BoxDecoration(
+        color: color,
+        gradient: color == C.cream ? const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.white, Color(0xFFFFF0F7)]) : null,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: C.ink, width: 3),
+        boxShadow: const [BoxShadow(color: Color(0x66220A2A), blurRadius: 18, offset: Offset(0, 8))],
+      ),
+      child: Container(
+        margin: const EdgeInsets.all(4),
+        padding: padding + EdgeInsets.only(top: ribbon != null ? 34 : 0),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(21),
+          border: Border.all(color: C.pinkLine.withValues(alpha: 0.7), width: 2),
+        ),
+        child: child,
+      ),
+    );
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        card,
+        for (final (l, r) in const [(10.0, null), (null, 10.0)])
+          Positioned(left: l, right: r, top: 9, child: const IgnorePointer(child: Icon(Icons.favorite_rounded, size: 13, color: C.pinkLine))),
+        if (ribbon != null)
+          Positioned(
+            top: -48,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(child: Center(child: Ribbon(ribbon!, width: 220))),
+          ),
+      ],
+    );
+  }
+}
+
+/// The pink ribbon banner (assets/ui/ui_ribbon.png) with a title on it.
+class Ribbon extends StatelessWidget {
+  final String text;
+  final double width;
+  const Ribbon(this.text, {super.key, this.width = 250});
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: width,
+    height: width * 0.45,
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        Image.asset('assets/ui/ui_ribbon.png', width: width, fit: BoxFit.contain),
+        Padding(
+          padding: EdgeInsets.only(bottom: width * 0.06),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: width * 0.2),
+              child: Text(text, style: outlined(width * 0.085, Colors.white, stroke: const Color(0xFFD94E8A), width: 3.5)),
+            ),
+          ),
+        ),
+      ],
     ),
-    child: child,
   );
+}
+
+/// The glossy pink heart (the currency).
+class HeartIcon extends StatelessWidget {
+  final double size;
+  const HeartIcon({super.key, this.size = 28});
+  @override
+  Widget build(BuildContext context) => Image.asset('assets/ui/ui_heart.png', width: size, height: size);
 }
 
 /// The machine art, recolored for each machine kind.

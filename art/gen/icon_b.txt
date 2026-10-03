@@ -1,5 +1,0 @@
-Create one image 1024x1024: a mobile game APP ICON, square, full-bleed.
-Background: one single flat solid color only (soft pink #FF8FB1), nothing else — no scenery, no gradient, no pattern, no effects.
-Subject: a simple round gashapon capsule-toy machine centered, with a tanuki's face and ears peeking over the top of it, both drawn as bold simple geometric shapes.
-Style: minimal flat icon design, like a modern hand-drawn logo mark. Very few shapes, 4-5 flat colors, thick uniform dark outlines, absolutely no gradients, no shading, no highlights, no sparkles, no glow, no 3D. Clean and bold, reads clearly at 60px.
-No text, no letters, no numbers, no watermark.

@@ -1,0 +1,7 @@
+Create one image 1024x1536 (portrait, full-bleed, no border): the background of a kawaii anime idol mobile game — inside an idol CONCERT HALL, seen from the audience area looking toward the stage.
+Layout (important, game UI sits on top):
+- TOP 30%: the stage. A cute pastel stage set with a big heart-shaped arch, a large blank LED screen (plain soft glow, NO text), lighting trusses with spotlights. On the stage, five tiny idol girls seen from far away as small silhouettes with soft colored rim light (red, blue, yellow, purple, pink).
+- MIDDLE 40%: the dark arena air between stage and audience, mostly calm and simple with soft haze, so panels can sit on it.
+- BOTTOM 30%: the backs of the audience (rounded cute silhouettes of heads and raised arms) filling the floor.
+STATE: the very start of the live — QUIET. House lights dim and bluish-purple, only a few soft stage lights on, the crowd calm, just a handful of pink penlights glowing here and there. Calm and a little hushed, but cute, not gloomy.
+Style: kawaii flat 2D anime illustration, soft pastel colors with glowing accents, gentle bokeh, no hard detail, low contrast in the middle. No text, no letters, no numbers, no logo, no watermark.

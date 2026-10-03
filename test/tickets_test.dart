@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gacha_rogue/logic/figures.dart';
-import 'package:gacha_rogue/logic/run.dart';
+import 'package:oshi_saidan/logic/figures.dart';
+import 'package:oshi_saidan/logic/run.dart';
 
 void main() {
   test('いれかえ: free, refills every payday, the stall raises it up to 3', () {
     final r = Run(seed: 1);
-    r.place(figureById['koban']!, 0);
+    r.place(figureById['coin']!, 0);
     expect(r.swap(0, 5), isTrue);
     expect(r.cells[0], isNull);
-    expect(r.cells[5]!.def.id, 'koban');
+    expect(r.cells[5]!.def.id, 'coin');
     expect(r.swap(5, 0), isFalse, reason: 'only one use per payday');
     r.coins = 9999;
     for (var k = 0; k < 60; k++) {
@@ -28,28 +28,28 @@ void main() {
   test('a figure can be overwritten, but not the boss card', () {
     final r = Run(seed: 2);
     for (var i = 0; i < r.size; i++) {
-      if (r.cells[i] == null) r.place(figureById[i == 3 ? kCardId : 'koban']!, i);
+      if (r.cells[i] == null) r.place(figureById[i == 3 ? kCardId : 'coin']!, i);
     }
     expect(r.emptyCells, isEmpty);
     expect(r.canOverwrite(3), isFalse);
     expect(r.canOverwrite(0), isTrue);
-    r.overwrite(figureById['takoyaki']!, 0);
-    expect(r.cells[0]!.def.id, 'takoyaki');
+    r.overwrite(figureById['koharu_keyholder']!, 0);
+    expect(r.cells[0]!.def.id, 'koharu_keyholder');
   });
 
   test('a figure can be overwritten while the shelf still has room', () {
     final r = Run(seed: 2);
-    r.place(figureById['koban']!, 0);
+    r.place(figureById['coin']!, 0);
     expect(r.emptyCells, isNotEmpty);
     expect(r.canOverwrite(0), isTrue);
     expect(r.canOverwrite(1), isFalse);
-    r.overwrite(figureById['takoyaki']!, 0);
-    expect(r.cells[0]!.def.id, 'takoyaki');
+    r.overwrite(figureById['koharu_keyholder']!, 0);
+    expect(r.cells[0]!.def.id, 'koharu_keyholder');
   });
 
   test('どける starts at one use per payday; an upgrade adds one', () {
     final r = Run(seed: 3)..coins = 999;
-    r.place(figureById['koban']!, 0);
+    r.place(figureById['coin']!, 0);
     r.remove(0);
     expect(r.removeTickets, 0);
     r.buy(_find(r, OfferKind.removeTickets));

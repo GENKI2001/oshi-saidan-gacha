@@ -5,12 +5,14 @@
 // the ranking screen, and that tapping a shelf figure opens its details.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gacha_rogue/main.dart';
-import 'package:gacha_rogue/ui/controller.dart';
-import 'package:gacha_rogue/ui/game_screen.dart';
-import 'package:gacha_rogue/ui/meta.dart';
-import 'package:gacha_rogue/ui/rank.dart';
-import 'package:gacha_rogue/ui/sfx.dart';
+import 'package:oshi_saidan/logic/achievements.dart';
+import 'package:oshi_saidan/main.dart';
+import 'package:oshi_saidan/ui/controller.dart';
+import 'package:oshi_saidan/ui/game_screen.dart';
+import 'package:oshi_saidan/ui/meta.dart';
+import 'package:oshi_saidan/ui/rank.dart';
+import 'package:oshi_saidan/ui/sfx.dart';
+import 'package:oshi_saidan/ui/voice.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -31,6 +33,17 @@ void main() {
     await t.pumpWidget(GachaApp(meta: meta));
     await settle(t, 800);
     expect(find.text('ランキング'), findsOneWidget);
+
+    // the idols on the title talk when tapped; the member list opens and plays a voice
+    await t.tap(find.byKey(const ValueKey('idols')));
+    await settle(t, 600);
+    await t.tap(find.text('メンバー'));
+    await settle(t, 800);
+    await t.tap(find.byKey(const ValueKey('member-しずく')));
+    await settle(t, 1500);
+    expect(find.textContaining('水瀬'), findsOneWidget);
+    await t.pageBack();
+    await settle(t, 800);
 
     await t.tap(find.text('あそぶ'));
     await settle(t, 800);
@@ -58,6 +71,8 @@ void main() {
           g.turnHandle();
         case Phase.capsule:
           g.openCapsule();
+        case Phase.cutin:
+          g.skipCutin();
         case Phase.reveal:
           g.choose(g.options.last);
         case Phase.place:
@@ -65,7 +80,7 @@ void main() {
           final empty = g.run.emptyCells;
           empty.isEmpty ? g.discardPending() : g.tapCell(empty.first);
         case Phase.payday:
-          if (g.payday == null) g.pay();
+          g.payday == null ? g.pay() : g.toShop();
         case Phase.failed:
           g.giveUp();
         case Phase.shop:
@@ -86,13 +101,16 @@ void main() {
     // a first run always sets a best turn: sent and ranked
     expect(g.turnRecord, isTrue);
     expect(g.turnRank, isNotNull);
-    expect(find.textContaining('最高かせぎ 全国'), findsOneWidget);
+    expect(find.textContaining('最高ハート 全国'), findsOneWidget);
     // ignore: avoid_print
     print('best turn ${g.run.bestTurn}, rank ${g.turnRank}');
 
     // open the ranking from the result screen and find our row
     await t.tap(find.text('ランキング').last);
-    await settle(t, 1000);
+    // the board loads asynchronously: wait for our row (up to ~6 s)
+    for (var k = 0; k < 30 && find.textContaining('（あなた）').evaluate().isEmpty; k++) {
+      await settle(t, 200);
+    }
     expect(find.textContaining('（あなた）'), findsOneWidget);
     expect(find.text('${g.run.bestTurn}'), findsWidgets);
 
@@ -104,5 +122,30 @@ void main() {
     await t.tap(find.text('フレンド'));
     await settle(t, 500);
     expect(t.takeException(), isNull);
+    // let the last voice line go quiet before the tree is torn down
+    Voice.stop();
+    await t.runAsync(() => Future.delayed(const Duration(milliseconds: 500)));
+    await t.pump();
+  });
+
+  testWidgets('an achievement opens a whisper track that plays with subtitles', (t) async {
+    SharedPreferences.setMockInitialValues({});
+    final meta = Meta();
+    await meta.load();
+    meta
+      ..tutorialDone = true
+      ..runs = 1; // はじめてのライブ → つむぎのささやきボイス
+    await t.pumpWidget(GachaApp(meta: meta));
+    await settle(t, 800);
+    await t.tap(find.text('実績'));
+    await settle(t, 1000);
+    expect(find.byKey(const ValueKey('listen-tsumugi_1')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('listen-tsumugi_1')));
+    // the first line starts at 0.6 s; give the player time to start and report its position
+    await t.runAsync(() => Future.delayed(const Duration(seconds: 3)));
+    await settle(t, 500);
+    expect(find.text(asmrById['tsumugi_1']!.lines.first), findsOneWidget, reason: 'the subtitle follows the audio');
+    await t.pageBack();
+    await settle(t, 800);
   });
 }

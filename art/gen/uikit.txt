@@ -1,0 +1,10 @@
+Create one image 1536x1024: a sprite sheet laid out as an exact grid of 4 columns x 2 rows (8 cells of equal size), cute UI parts for a kawaii anime idol live mobile game, one per cell, in this order left-to-right, top-to-bottom:
+1 a glossy candy-pink heart icon with a white shine highlight and a tiny sparkle (the game's currency)
+2 an EMPTY pastel pink ribbon banner with folded wavy ends and a thin white stitched line (for a title, plain empty center, no text)
+3 a round cute badge with a white music note on a pink-to-lavender circle with a scalloped white edge
+4 a cute pink idol stage microphone with a ribbon bow and a small heart
+5 two crossed glowing penlights, one pink and one sky blue, with little sparkles
+6 a big golden heart medal with small white angel wings and a pink ribbon (live success trophy)
+7 a cute pink megaphone with hearts and sound lines bursting out (cheering)
+8 a bunch of three floating pastel heart balloons (pink, lavender, peach) tied with a ribbon
+Style: kawaii flat 2D sticker illustrations, chunky rounded shapes, glossy pastel colors with soft cel shading, clean dark-plum outlines, each object has a thick white die-cut sticker border. Every object is centered in its own cell, same scale, fully inside the cell with generous margin, no overlap. The whole background is ONE flat solid pure green color (#00FF00) everywhere, no gradients, no shadows on the background, no grid lines, no text, no letters, no numbers, no watermark.

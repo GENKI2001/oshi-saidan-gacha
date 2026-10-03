@@ -24,9 +24,9 @@ class BoardInfo {
 
 /// Edit these to the IDs you create in the stores.
 const boards = {
-  Board.bestTurn: BoardInfo('一回の最高かせぎ', 'コイン', 'gacha.best_turn', 'CgkI_REPLACE_best_turn', TimeScope.allTime),
-  Board.paydays: BoardInfo('取り立て回数', '回', 'gacha.paydays', 'CgkI_REPLACE_paydays', TimeScope.allTime),
-  Board.ascension: BoardInfo('最高段位', '段', 'gacha.ascension', 'CgkI_REPLACE_ascension', TimeScope.allTime),
+  Board.bestTurn: BoardInfo('1回の最高ハート', 'ハート', 'oshi.best_turn', 'CgkI_REPLACE_best_turn', TimeScope.allTime),
+  Board.paydays: BoardInfo('成功した曲の数', '曲', 'oshi.paydays', 'CgkI_REPLACE_paydays', TimeScope.allTime),
+  Board.ascension: BoardInfo('最高段位', '段', 'oshi.ascension', 'CgkI_REPLACE_ascension', TimeScope.allTime),
 };
 
 class RankEntry {
