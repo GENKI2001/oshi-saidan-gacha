@@ -1,5 +1,5 @@
-// The run screen: HUD, gacha stage with the boss, the shelf, and overlays
-// for capsules, payday, shop and the end of a run.
+// The run screen: HUD, gacha stage with the boss, the altar and the overlays. The altar, the
+// capsule, the cards (song end, stall, result) and the sheets are in game_screen/.
 
 import 'dart:math' as math;
 
@@ -11,6 +11,7 @@ import '../logic/modes.dart';
 import '../logic/run.dart';
 import 'controller.dart';
 import 'crowd.dart';
+import 'figure_info.dart';
 import 'howto_screen.dart';
 import 'achievement_screen.dart';
 import 'idol_widgets.dart';
@@ -25,6 +26,11 @@ import 'sound_toggles.dart';
 import 'title_screen.dart';
 import 'venue.dart';
 import 'widgets.dart';
+
+part 'game_screen/capsule.dart';
+part 'game_screen/cards.dart';
+part 'game_screen/sheets.dart';
+part 'game_screen/shelf.dart';
 
 class GameScreen extends StatefulWidget {
   final Meta meta;
@@ -348,7 +354,7 @@ class _GameScreenState extends State<GameScreen> {
                           maintainState: true,
                           child: KeyedSubtree(
                             key: _kSpin,
-                            child: _Pulse(child: PopButton('回す！', onTap: ready ? g.turnHandle : null, fontSize: 26)),
+                            child: Pulse(child: PopButton('回す！', onTap: ready ? g.turnHandle : null, fontSize: 26)),
                           ),
                         ),
                         if (!ready) Positioned.fill(child: _hand()),
@@ -453,7 +459,7 @@ class _GameScreenState extends State<GameScreen> {
               Sfx.play('tap');
               _info(d);
             },
-            child: _Pulse(child: FigureArt(d, size: 50)),
+            child: Pulse(child: FigureArt(d, size: 50)),
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -480,272 +486,6 @@ class _GameScreenState extends State<GameScreen> {
       );
     }
     return const SizedBox();
-  }
-
-  // ── shelf ──
-  Widget _shelf() {
-    final r = g.run;
-    final cols = r.cols, rows = g.shown.length ~/ cols;
-    const c0 = defaultSide, r0 = defaultSide;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFFFE1EF), Color(0xFFF0E2FF)]),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: C.ink, width: 3),
-            boxShadow: const [
-              BoxShadow(color: Color(0xFFC77BAA), offset: Offset(0, 6)),
-              BoxShadow(color: Color(0x66FF6FA3), blurRadius: 22),
-            ],
-          ),
-          foregroundDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(19),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2),
-          ),
-          // the frame's inside keeps the starting shape; the cells shrink to fit as the altar grows
-          child: LayoutBuilder(
-            builder: (_, bc) {
-              final w = bc.maxWidth, h = w * r0 / c0;
-              final cell = math.min(w / cols, h / rows);
-              return SizedBox(
-                width: w,
-                height: h,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (var y = 0; y < rows; y++)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            for (var x = 0; x < cols; x++)
-                              SizedBox(
-                                width: cell,
-                                height: cell,
-                                // numbers in the corner scale with the cell (shelves grow up to 5x5)
-                                child: KeyedSubtree(
-                                  key: _cellKey(y * cols + x),
-                                  child: RepaintBoundary(child: _cell(y * cols + x, cell)),
-                                ),
-                              ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        // the altar's name tab
-        Positioned(
-          top: -13,
-          left: 0,
-          right: 0,
-          child: IgnorePointer(
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(12, 1, 12, 2),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFFFF8FBF), Color(0xFFC99BFF)]),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: C.ink, width: 2),
-                ),
-                child: Text('♡ 推し祭壇 ♡', style: outlined(12, Colors.white, stroke: C.ink, width: 2.5)),
-              ),
-            ),
-          ),
-        ),
-        // the floating +N go on top of everything on the altar, the name tab included
-        Positioned.fill(child: IgnorePointer(child: _floatLayer(cols, rows, c0, r0))),
-      ],
-    );
-  }
-
-  /// The floating +N / ×2 of every cell, laid over the whole altar (so the name tab can't cover them).
-  /// Mirrors the grid's layout: 3 border + 8 padding, the cells centred in the fixed frame.
-  Widget _floatLayer(int cols, int rows, int c0, int r0) => LayoutBuilder(
-    builder: (_, bc) {
-      const inset = 11.0;
-      final w = bc.maxWidth - inset * 2, h = w * r0 / c0;
-      final cell = math.min(w / cols, h / rows);
-      final ox = inset + (w - cell * cols) / 2, oy = inset + (h - cell * rows) / 2;
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // every child here is keyed: beams come and go and finished numbers drop out, and an
-          // unkeyed list would hand each number its neighbour's place and replay its animation
-          // light from a goods to the ones it buffs / multiplies
-          if (g.beams.isNotEmpty)
-            Positioned.fill(
-              key: const ValueKey('beams'),
-              child: BeamLayer(beams: g.beams, center: (i) => Offset(ox + (i % cols + 0.5) * cell, oy + (i ~/ cols + 0.5) * cell)),
-            ),
-          // a stacked goods' burst, over the neighbouring cells
-          for (final e in g.powerUp.entries)
-            Positioned(
-              key: ValueKey('burst-${e.key}'),
-              left: ox + (e.key % cols) * cell - cell * 0.6,
-              top: oy + (e.key ~/ cols) * cell - cell * 0.6,
-              child: PowerUpBurst(token: e.value, size: cell * 2.2, level: g.shown[e.key]?.stack ?? 2),
-            ),
-          // little hearts popping out of a goods as it earns
-          for (final e in g.heartPop.entries)
-            Positioned(
-              key: ValueKey('hearts-${e.key}'),
-              left: ox + (e.key % cols + 0.5) * cell - cell * 0.8,
-              top: oy + (e.key ~/ cols + 0.5) * cell - cell * 0.8,
-              child: HeartBurst(token: e.value, count: 6, size: cell * 1.6),
-            ),
-          for (final e in g.floats.entries)
-            for (final fl in e.value)
-              Positioned(
-                key: ValueKey('float-${fl.id}'),
-                left: ox + (e.key % cols) * cell,
-                top: oy + (e.key ~/ cols) * cell - 10,
-                width: cell,
-                child: Center(child: FloatText(fl.text, fl.kind, key: ValueKey(fl.id), onDone: () => g.floats[e.key]?.remove(fl))),
-              ),
-        ],
-      );
-    },
-  );
-
-  Widget _cell(int i, double cell) {
-    final f = g.shown[i];
-    final placing = g.phase == Phase.place && g.pending.isNotEmpty && (f == null || g.run.canOverwrite(i));
-    // the goods in hand is already here: this cell sparkles (put it on top to power it up)
-    final same = placing && f != null && g.pending.first.id == f.def.id;
-    final stack = f?.stack ?? 1;
-    final badge = g.badge[i];
-    final rar = f?.def.rarity;
-    return GestureDetector(
-      key: ValueKey('cell-$i'),
-      // a figure on the shelf opens its details; empty cells take the figure in hand
-      onTap: () {
-        if (placing && f != null) {
-          _confirmOverwrite(i);
-        } else if (f != null && !placing) {
-          Sfx.play('tap');
-          // the idol on it says hello, and the details open
-          g.tapFigure(f.def);
-          _info(f.def, f);
-        } else {
-          g.tapCell(i);
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          // empty cells glow; figures that can be written over only get the pink border
-          color: placing && f == null ? const Color(0xFFFFF0B3) : (f == null ? const Color(0xFFFFF5FA) : Colors.white),
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: f == null ? null : const [BoxShadow(color: Color(0x33D9539A), blurRadius: 4, offset: Offset(0, 2))],
-          border: Border.all(
-            color: same ? const Color(0xFFFFC21E) : (placing ? C.pink : (rar != null && rar.index >= Rarity.rare.index ? C.rarity(rar) : C.pinkLine)),
-            width: placing || (rar != null && rar.index >= Rarity.rare.index) ? 3 : 1.5,
-          ),
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            if (f == null) Icon(Icons.favorite_rounded, size: cell * 0.3, color: const Color(0xFFFFDDEB)),
-            // a stacked goods wears an aura that grows with each stack
-            // (keyed, so one appearing never restarts the goods' bounce next to it)
-            if (f != null && stack > 1) Positioned.fill(key: const ValueKey('aura'), child: IgnorePointer(child: StackAura(level: stack))),
-            // behind the goods and every number on the cell (the ×N tag sits on top of it)
-            if (same) Positioned.fill(key: const ValueKey('same'), child: IgnorePointer(child: SameGlow(size: cell))),
-            if (f != null)
-              Shake(
-                key: const ValueKey('goods'),
-                token: g.hit[i],
-                px: 5,
-                child: Bounce(
-                  token: g.pulse[i],
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: FigureArt(f.def, size: 200),
-                  ),
-                ),
-              ),
-            if (f != null) _timer(f),
-            if (f != null && stack > 1)
-              Positioned(
-                left: -4,
-                top: -6,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFFFFE066), Color(0xFFFF8FC0)]),
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: Text('×$stack', style: outlined((cell * 0.17).clamp(10, 15), Colors.white, stroke: const Color(0xFFC2306E), width: 2.5)),
-                ),
-              ),
-            if ((badge != null && badge != 0) || g.gave[i] != null)
-              Positioned(
-                // scaled with the cell so bigger shelves keep the numbers in the corner
-                right: cell * 0.02,
-                bottom: cell * 0.0,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    // what it did to others (×2 gold, +2 mint), then what it earned (pink)
-                    if (g.gave[i] != null)
-                      Text(
-                        g.gave[i]!,
-                        style: glowNumber((cell * 0.17).clamp(10, 15), g.gave[i]!.startsWith('×') ? const Color(0xFFFFB300) : C.mint, width: 2.5),
-                      ),
-                    if (badge != null && badge != 0)
-                      Text('$badge', style: badge > 0 ? heartNumber((cell * 0.2).clamp(11, 18), width: (cell * 0.035).clamp(2, 3)) : glowNumber((cell * 0.2).clamp(11, 18), C.red, width: (cell * 0.035).clamp(2, 3))),
-                  ],
-                ),
-              ),
-            if (g.smoking(i))
-              Positioned.fill(
-                key: const ValueKey('smoke'),
-                child: OverflowBox(
-                  maxWidth: cell * 1.5,
-                  maxHeight: cell * 1.5,
-                  child: Smoke(token: g.smoke[i], size: cell * 1.5),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Countdowns for things that go off (fireworks, balloons, lottery bags).
-  Widget _timer(Fig f) {
-    int? left;
-    final fuse = f.def.effect<Fuse>();
-    final life = f.def.effect<Lifetime>();
-    final every = f.def.effect<EveryN>() ?? f.def.effect<SpawnEveryN>();
-    if (fuse != null) left = fuse.n - f.age;
-    if (life != null) left = life.n - f.age;
-    if (every != null) {
-      final n = every is EveryN ? every.n : (every as SpawnEveryN).n;
-      left = n - f.age % n;
-    }
-    if (left == null || left <= 0) return const SizedBox();
-    return Positioned(
-      left: 0,
-      top: 0,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 5),
-        decoration: BoxDecoration(color: C.ink, borderRadius: BorderRadius.circular(8)),
-        child: Text(
-          '$left',
-          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900),
-        ),
-      ),
-    );
   }
 
   /// "品がえ" for a single use, "品がえ 2/3" once the stall has added more.
@@ -783,53 +523,6 @@ class _GameScreenState extends State<GameScreen> {
     _ => const [],
   };
 
-  /// The live was a success: the five celebrating on stage fill the screen (fading in, slowly
-  /// zooming), so a cleared live looks different at a glance.
-  Widget _clearBg() {
-    final screen = MediaQuery.sizeOf(context);
-    return Positioned(
-      left: -600,
-      right: -600,
-      top: -200,
-      bottom: -200,
-      child: IgnorePointer(
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: 1),
-          duration: const Duration(milliseconds: 4000),
-          builder: (_, t, _) => Opacity(
-            opacity: (t * 4).clamp(0.0, 1.0),
-            child: ColoredBox(
-              color: const Color(0xFF2A1238),
-              child: Center(
-                child: SizedBox(
-                  width: screen.width,
-                  height: screen.height,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Transform.scale(scale: 1.08 - 0.08 * Curves.easeOut.transform(t), child: Image.asset('assets/ui/clear_bg.jpg', fit: BoxFit.cover)),
-                      // a light veil so the card on top still reads
-                      const DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0x00000000), Color(0x55120820), Color(0x55120820), Color(0x22000000)],
-                            stops: [0, 0.35, 0.8, 1],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   /// The 妨害 (siren, shoving match, outcome); a fresh one each time.
   Widget _jam() => JamOverlay(g, key: ValueKey(g.jamToken));
 
@@ -849,474 +542,8 @@ class _GameScreenState extends State<GameScreen> {
     ),
   );
 
-  Widget _capsules() {
-    final opts = g.options;
-    return Positioned.fill(
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: g.phase == Phase.capsule ? g.openCapsule : null,
-        // a tall goods (a long effect, the idol's bubble, two buttons) shrinks to fit rather than overflow
-        child: LayoutBuilder(
-          builder: (_, bc) => Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: SizedBox(
-                width: bc.maxWidth,
-                child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (g.phase == Phase.capsule) Text(g.omen ? 'な、なんか光ってる…！' : 'タップしてあける！', style: outlined(24, Colors.white)),
-            if (g.phase == Phase.reveal && g.idol != null && g.idolOnPull)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: IdolToast(who: g.idol!, line: g.idolLine, token: g.idolToken, fade: false),
-              ),
-            const SizedBox(height: 12),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [for (final o in opts) _capsuleSlot(o, opts.length)]),
-            if (g.phase == Phase.reveal) ...[
-              const SizedBox(height: 14),
-              _revealButton(
-                PopButton(
-                  key: _kRepull,
-                  _uses('もう一回ひく', g.run.repulls, g.run.repullMax),
-                  color: const Color(0xFF8E7CC3),
-                  sound: null,
-                  onTap: g.run.repulls > 0 ? g.repull : null,
-                ),
-              ),
-            ],
-          ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _capsuleSlot(FigureDef o, int n) {
-    final size = n == 1 ? 130.0 : 96.0;
-    if (g.phase == Phase.dropping) {
-      return TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0, end: 1),
-        duration: const Duration(milliseconds: 850),
-        curve: Curves.bounceOut,
-        builder: (_, t, c) => Transform.translate(offset: Offset(0, -320 * (1 - t)), child: c),
-        child: Capsule(rarity: o.rarity, size: size),
-      );
-    }
-    if (g.phase == Phase.capsule) {
-      return _Wobble(
-        strength: 0.05 + o.rarity.index * 0.04,
-        child: Capsule(rarity: o.rarity, size: size),
-      );
-    }
-    // reveal
-    final col = C.rarity(o.rarity);
-    final art = n == 1 ? 200.0 : 140.0;
-    return GestureDetector(
-      onTap: () => g.choose(o),
-      child: SizedBox(
-        width: n == 1 ? 340 : 200,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              key: _kItem,
-              alignment: Alignment.center,
-              children: [
-                Sunburst(color: col, size: art * 1.7),
-                TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: 1),
-                  duration: const Duration(milliseconds: 450),
-                  builder: (_, t, _) => Capsule(rarity: o.rarity, size: size, split: t),
-                ),
-                TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: 1),
-                  duration: Duration(milliseconds: o.rarity.index >= Rarity.epic.index ? 900 : 600),
-                  curve: Curves.elasticOut,
-                  builder: (_, t, c) => Transform.scale(scale: t, child: c),
-                  child: FigureArt(o, size: art),
-                ),
-                Sparkles(token: g.flashToken * 31 + o.hashCode, size: art * 1.8, colors: [col, Colors.white, C.gold, C.pink]),
-                if (g.fresh.contains(o.id))
-                  Positioned(
-                    top: art * 0.05,
-                    right: n == 1 ? 40 : 0,
-                    child: NewSticker(size: n == 1 ? 76 : 58),
-                  ),
-              ],
-            ),
-            Text(o.name, style: outlined(n == 1 ? 30 : 22, Colors.white)),
-            // rarity and types side by side
-            Padding(
-              key: _kTags,
-              padding: const EdgeInsets.only(top: 4),
-              child: Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [RarityStars(o.rarity, size: 22), for (final t in o.tags) TagChip(t)],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Panel(
-              key: _kEffect,
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                children: [
-                  Text(
-                    o.description,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 14, height: 1.4, color: C.ink, fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            _revealButton(PopButton(key: _kPlace, n == 1 ? '祭壇に置く' : 'これにする', onTap: () => g.choose(o))),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _bossCard({required Widget body, String? ribbon}) => Center(
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(20, 56, 20, 20),
-      child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0.6, end: 1),
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.elasticOut,
-        builder: (_, s, c) => Transform.scale(scale: s, child: c),
-        child: Panel(
-          ribbon: ribbon,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Bounce(token: g.bossToken, amount: 0.1, child: Image.asset('assets/ui/boss_${g.bossMood}.png', height: 170)),
-              Text(
-                g.bossLine,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16, color: C.ink, fontWeight: FontWeight.w800, height: 1.4),
-              ),
-              const SizedBox(height: 12),
-              body,
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-
-  Widget _payday() {
-    final r = g.run;
-    final song = r.paydaysPaid + 1;
-    final who = g.songIdol;
-    // short of the quota: つむぎ's card with the gauge; met: the curtain call (below)
-    if (who == null) {
-      return _bossCard(
-        ribbon: '♪ $song曲目 おわり！',
-        body: Column(
-          children: [
-            SizedBox(width: 260, child: QuotaFill(key: ValueKey('quota-${r.paydaysPaid}'), hearts: r.coins, quota: r.due)),
-            const SizedBox(height: 10),
-            _wide(PopButton('ハートを届ける！', onTap: g.pay, fontSize: 22)),
-          ],
-        ),
-      );
-    }
-    // the song was a success: one card — the idol in the middle with her line, the gauge past the quota
-    final col = idolColor[who]!;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: 1),
-          duration: const Duration(milliseconds: 700),
-          curve: Curves.elasticOut,
-          builder: (_, t, c) => Transform.scale(scale: 0.5 + 0.5 * t, child: c),
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              Sparkles(token: g.burstToken, size: 420, colors: [C.gold, C.pink, col, Colors.white], count: 50),
-              Panel(
-                ribbon: '♪ $song曲目 大成功！',
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.asset(portrait(who, happy: true), height: 210, fit: BoxFit.contain, alignment: Alignment.topCenter),
-                    Container(
-                      width: 270,
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: col, width: 3),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(who, style: outlined(14, col, stroke: Colors.white, width: 3)),
-                          Text(g.songLine, style: const TextStyle(fontSize: 15, height: 1.35, color: C.ink, fontWeight: FontWeight.w800)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(width: 260, child: QuotaFill(key: ValueKey('quota-${r.paydaysPaid}'), hearts: r.coins, quota: r.due)),
-                    const SizedBox(height: 10),
-                    _wide(PopButton('ハートを届ける！', onTap: g.pay, fontSize: 22)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _failed() {
-    final p = g.payday!;
-    final short = p.due - (p.coinsBefore + p.bonus);
-    return _bossCard(
-      ribbon: 'ノルマ未達成…',
-      body: Column(
-        children: [
-          Text('ハートが あと $short 足りない…', style: outlined(22, C.red, stroke: Colors.white)),
-          const SizedBox(height: 12),
-          if (kAdsEnabled && g.run.canPostpone) _wide(PopButton('▶ 広告を見て延長！', onTap: g.watchAdToPostpone, color: C.mint, fontSize: 17)),
-          const SizedBox(height: 10),
-          _wide(PopButton('あきらめる', onTap: g.giveUp, color: Colors.blueGrey, fontSize: 16)),
-        ],
-      ),
-    );
-  }
-
-  Widget _cleared() => Stack(
-    alignment: Alignment.center,
-    children: [
-      Sparkles(token: 777, size: 460, colors: const [C.gold, C.pink, C.mint, Colors.white], count: 60),
-      _bossCard(
-        ribbon: 'ライブ大成功！',
-        body: Column(
-          children: [
-            Image.asset('assets/ui/ui_medal.png', height: 90),
-            const SizedBox(height: 8),
-            _wide(PopButton('アンコールへ！', onTap: g.keepGoing)),
-            const SizedBox(height: 10),
-            _wide(PopButton('おわる', onTap: g.giveUp, color: Colors.blueGrey, fontSize: 16)),
-          ],
-        ),
-      ),
-    ],
-  );
-
-  Widget _shop() {
-    final r = g.run;
-    return Center(
-      // scrolls when revivals add extra items
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(14, 58, 14, 14),
-        child: Panel(
-          ribbon: 'つむぎの物販ブース',
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (r.shopBuys == 0) Text('最初の1品は タダ！', style: outlined(16, C.pink, stroke: Colors.white, width: 3)),
-              const SizedBox(height: 10),
-              Column(children: [for (final o in r.shop) _offer(o)]),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  PopButton(
-                    _uses('品がえ', r.rerolls, r.rerollMax),
-                    onTap: r.rerolls > 0 ? g.reroll : null,
-                    color: const Color(0xFF8E7CC3),
-                    fontSize: 16,
-                  ),
-                  PopButton('つぎの曲へ ♪', onTap: g.leaveShop, color: C.pink, fontSize: 18),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _offer(Offer o) {
-    final can = !o.sold && g.run.coins >= g.run.priceOf(o) && g.run.canBuy(o);
-    final icon = switch (o.kind) {
-      OfferKind.figure => FigureArt(o.fig!, size: 60),
-      OfferKind.luck => FigureArt(figureById['gacha_charm']!, size: 60),
-      OfferKind.boost => SizedBox(width: 60, child: Center(child: IdolFace(o.idol!, size: 52))),
-      OfferKind.repullTicket => const SizedBox(width: 60, child: Icon(Icons.replay_rounded, size: 46, color: Color(0xFF8E7CC3))),
-      OfferKind.rerollTicket => const SizedBox(width: 60, child: Icon(Icons.shuffle_rounded, size: 44, color: C.woodDark)),
-      OfferKind.expand => const SizedBox(width: 60, child: Icon(Icons.grid_view_rounded, size: 44, color: C.woodDark)),
-      OfferKind.extraSpin => const SizedBox(width: 60, child: Icon(Icons.more_time_rounded, size: 46, color: Color(0xFFE6A700))),
-      OfferKind.rareSong => const SizedBox(width: 60, child: Icon(Icons.auto_awesome_rounded, size: 46, color: Color(0xFFE6A700))),
-      OfferKind.idolSong => SizedBox(width: 60, child: Center(child: IdolFace(o.idol!, size: 52))),
-    };
-    final card = Container(
-        padding: const EdgeInsets.all(8),
-        // a レア商品 shines gold
-        decoration: BoxDecoration(
-          color: o.rare ? const Color(0xFFFFF8DC) : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: o.rare ? const Color(0xFFE6A700) : (o.fig != null ? C.rarity(o.fig!.rarity) : C.woodDark), width: o.rare ? 3.5 : 2.5),
-        ),
-        child: Row(
-          children: [
-            icon,
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    o.title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: C.ink),
-                  ),
-                  Text(o.text, style: const TextStyle(fontSize: 12, height: 1.3, color: C.ink)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-            PopButton(
-              o.sold ? '売切' : (g.run.priceOf(o) == 0 ? 'タダ' : '${g.run.priceOf(o)}'),
-              onTap: can ? () => g.buy(o) : null,
-              color: C.gold,
-              fontSize: 16,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            ),
-          ],
-        ),
-      );
-    // a レア商品 sparkles on the shelf itself
-    return Opacity(
-      opacity: o.sold ? 0.4 : 1,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: o.rare && !o.sold ? RareShine(token: g.rareToken, child: card) : card,
-      ),
-    );
-  }
-
   /// The altar's width, kept from the last layout (the result card is as wide).
   double _shelfW = 360;
-
-  Widget _over() {
-    final r = g.run;
-    // everything on the result card spans the card
-    Widget wide(Widget b) => SizedBox(width: double.infinity, child: b);
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: SizedBox(
-          width: _shelfW,
-          child: Panel(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(r.cleared ? 'ライブ成功！' : 'ライブ終了', style: outlined(36, C.pink, stroke: Colors.white, width: 5)),
-              // つむぎ sums the run up
-              wide(
-                Row(
-                  children: [
-                    Image.asset('assets/ui/boss_${r.cleared || g.levelUps.isNotEmpty ? 1 : 0}.png', height: 76),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(10, 6, 10, 7),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: C.ink, width: 2),
-                        ),
-                        child: Text(
-                          g.overLine,
-                          style: const TextStyle(fontSize: 13, height: 1.35, color: C.ink, fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              // the three records side by side, as wide as the buttons
-              wide(
-                Row(
-                  children: [
-                    _stat('成功した曲', '${r.paydaysPaid}/${Run.clearPaydays}'),
-                    _stat('一回の最高', '${r.bestTurn}'),
-                    _stat('図鑑', '${widget.meta.seen.length}/${figures.length}'),
-                  ],
-                ),
-              ),
-              if (g.newRecord) Text('自己ベスト更新！', style: outlined(20, C.gold)),
-              if (g.turnRank != null)
-                TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: 1),
-                  duration: const Duration(milliseconds: 700),
-                  curve: Curves.elasticOut,
-                  builder: (_, t, c) => Transform.scale(scale: t, child: c),
-                  child: Text('最高ハート 全国 ${g.turnRank} 位！', style: outlined(24, C.pink, stroke: Colors.white, width: 4)),
-                ),
-              const SizedBox(height: 10),
-              Text(
-                'このライブで集めたハート ${r.earned}',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: C.ink),
-              ),
-              const SizedBox(height: 14),
-              wide(PopButton('もう一回！', onTap: g.newRun, fontSize: 24)),
-              const SizedBox(height: 10),
-              wide(
-                PopButton(
-                  'ランキング',
-                  fontSize: 16,
-                  color: C.gold,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => RankScreen(meta: widget.meta),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 10),
-              wide(PopButton('ガチャ選択へ', onTap: _toSelect, color: Colors.blueGrey, fontSize: 16)),
-            ],
-          ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// One record: a small caption over the number.
-  Widget _stat(String k, String v) => Expanded(
-    child: Column(
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            k,
-            style: const TextStyle(fontSize: 12, color: C.ink, fontWeight: FontWeight.w800),
-          ),
-        ),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(v, style: outlined(22, C.gold, width: 3)),
-        ),
-      ],
-    ),
-  );
 
   Widget _fastBadge() => IgnorePointer(
     child: Container(
@@ -1413,38 +640,38 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               )
             : TweenAnimationBuilder<double>(
-          // each beat bumps it (and a round number passed bumps it harder); the end pops once more
-          key: ValueKey(live ? 'live$v-${g.milestoneToken}' : 'end${g.totalToken}'),
-          tween: Tween(begin: 0, end: 1),
-          duration: Duration(milliseconds: live ? 320 : 900),
-          builder: (_, t, _) {
-            final pop = Curves.elasticOut.transform(t);
-            return Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                if (plus && (!live || g.milestoneToken > 0))
-                  Positioned(
-                    left: 60 - (big ? 130 : 85),
-                    top: 26 - (big ? 130 : 85),
-                    child: Sparkles(token: live ? g.milestoneToken : g.totalToken, size: big ? 260 : 170, colors: const [C.gold, Colors.white, C.pink], count: big ? 34 : 16),
-                  ),
-                // cute hearts popping out of the badge: a few on every beat, a fountain at the end
-                if (plus)
-                  Positioned(
-                    left: size * 0.45 - 110,
-                    top: size * 0.55 - 110,
-                    child: HeartBurst(token: live ? v : -g.totalToken, count: live ? 7 : (big ? 26 : 16), size: 220),
-                  ),
-                Transform.scale(
-                  scale: live ? 1 + 0.16 * (1 - pop) : 1 + 0.3 * (1 - pop),
-                  alignment: Alignment.centerLeft,
-                  child: _totalLook(v, size, plus, t, pop),
-                ),
-              ],
-            );
-          },
-        ),
+                // each beat bumps it (and a round number passed bumps it harder); the end pops once more
+                key: ValueKey(live ? 'live$v-${g.milestoneToken}' : 'end${g.totalToken}'),
+                tween: Tween(begin: 0, end: 1),
+                duration: Duration(milliseconds: live ? 320 : 900),
+                builder: (_, t, _) {
+                  final pop = Curves.elasticOut.transform(t);
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      if (plus && (!live || g.milestoneToken > 0))
+                        Positioned(
+                          left: 60 - (big ? 130 : 85),
+                          top: 26 - (big ? 130 : 85),
+                          child: Sparkles(token: live ? g.milestoneToken : g.totalToken, size: big ? 260 : 170, colors: const [C.gold, Colors.white, C.pink], count: big ? 34 : 16),
+                        ),
+                      // cute hearts popping out of the badge: a few on every beat, a fountain at the end
+                      if (plus)
+                        Positioned(
+                          left: size * 0.45 - 110,
+                          top: size * 0.55 - 110,
+                          child: HeartBurst(token: live ? v : -g.totalToken, count: live ? 7 : (big ? 26 : 16), size: 220),
+                        ),
+                      Transform.scale(
+                        scale: live ? 1 + 0.16 * (1 - pop) : 1 + 0.3 * (1 - pop),
+                        alignment: Alignment.centerLeft,
+                        child: _totalLook(v, size, plus, t, pop),
+                      ),
+                    ],
+                  );
+                },
+              ),
       ),
     );
   }
@@ -1453,197 +680,42 @@ class _GameScreenState extends State<GameScreen> {
   Widget _totalLook(int v, double size, bool plus, double t, [double pop = 1]) {
     final shown = v;
     return Transform.rotate(
-                    angle: -0.06,
-                    child: _Pulse(
-                      child: Shine(
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(12, 2, 14, 4),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: plus ? const [Color(0xFFFFB3D6), Color(0xFFFF4F98)] : const [Color(0xFFB0B8C8), Color(0xFF6A7488)],
-                          ),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: C.ink, width: 3),
-                          boxShadow: [
-                            if (plus)
-                              BoxShadow(
-                                color: Color.lerp(C.gold, const Color(0xFFFF6FA8), (math.log(v + 1) / math.log(2000)).clamp(0.0, 1.0))!.withValues(alpha: 0.8 * (1 - t * 0.5)),
-                                blurRadius: 18 + 10 * (1 - t) + (math.log(v + 1) * 2),
-                                spreadRadius: 2 + math.log(v + 1) * 0.6,
-                              ),
-                            const BoxShadow(color: Color(0x55000000), offset: Offset(0, 4), blurRadius: 4),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            if (plus)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 2),
-                                // the heart beats with every heart that comes in
-                                child: Transform.scale(scale: 1 + 0.35 * (1 - pop), child: HeartIcon(size: size * 0.9)),
-                              ),
-                            Text(plus ? '+$shown' : '$shown', style: outlined(size, Colors.white, stroke: plus ? const Color(0xFFB0306E) : C.ink, width: 5)),
-                          ],
-                        ),
-                      ),
-                      ),
-                    ),
-                  );
-  }
-
-  Future<void> _info(FigureDef d, [Fig? f]) => showFigureInfo(context, d, f, g.run);
-
-  /// The two buttons under a revealed capsule share one width.
-  Widget _revealButton(Widget b) => SizedBox(width: 260, child: b);
-
-  /// Stacked buttons on the result cards all share one width.
-  Widget _wide(Widget b) => SizedBox(width: 250, child: b);
-
-  /// Shows what would be lost before writing over it.
-  void _confirmOverwrite(int i) {
-    // the same goods: it is stacked and powers up instead of being replaced
-    if (g.run.stacksOn(g.pending.first, i)) {
-      // now (as it is on the altar) → after one more stack, the numbers that grow in colour
-      final now = g.shown[i]?.stack ?? 1;
-      _confirmPair(
-        '重ねて 強化しますか？',
-        g.shown[i]?.def,
-        g.shown[i]?.def,
-        Icons.arrow_forward_rounded,
-        '強化する',
-        C.gold,
-        () => g.tapCell(i),
-        leftDesc: _stackedDesc(g.pending.first, now, hot: false),
-        rightDesc: _stackedDesc(g.pending.first, now + 1),
-      );
-      return;
-    }
-    _confirmPair(
-      'これに 上書きしますか？',
-      g.pending.first,
-      g.shown[i]?.def,
-      Icons.arrow_forward_rounded,
-      '上書きする',
-      C.pink,
-      () => g.tapCell(i),
-      rightNote: 'このグッズは なくなります',
-    );
-  }
-
-  /// [d]'s effects once stacked ×[stack], the numbers that change in colour.
-  /// Only what stacking really multiplies changes (hearts, buffs, multipliers; not luck or one-off gains).
-  Widget _stackedDesc(FigureDef d, int stack, {bool hot = true}) {
-    final spans = <TextSpan>[];
-    const plain = TextStyle(fontSize: 12, height: 1.35, fontWeight: FontWeight.w700, color: C.ink);
-    for (final (k, e) in d.effects.indexed) {
-      if (k > 0) spans.add(const TextSpan(text: '\n'));
-      final text = e.describe();
-      final stacks = switch (e) {
-        Luck() || GainOnPlaced() || OnPaydayGain() || PaydayDiscount() || OnPlacedEatAdjacentTag() || OnPlacedSpawnRare() || SpawnEveryN() || ShootAdjacent() || CopyBestAdjacent() || Lifetime() => false,
-        _ => true,
-      };
-      if (!stacks) {
-        spans.add(TextSpan(text: text));
-        continue;
-      }
-      var at = 0;
-      for (final m in RegExp(r'([+×-])(\d+)').allMatches(text)) {
-        spans.add(TextSpan(text: text.substring(at, m.start)));
-        final v = int.parse(m.group(2)!);
-        final now = v * stack;
-        spans.add(TextSpan(text: '${m.group(1)}$now', style: _hotStyle(hot)));
-        at = m.end;
-      }
-      spans.add(TextSpan(text: text.substring(at)));
-    }
-    return Text.rich(TextSpan(style: plain, children: spans), textAlign: TextAlign.center);
-  }
-
-  TextStyle? _hotStyle(bool on) => on ? const TextStyle(fontSize: 14, height: 1.35, fontWeight: FontWeight.w900, color: Color(0xFFE5408A)) : null;
-
-  /// Two figures side by side with their effects, and a yes / no.
-  void _confirmPair(String title, FigureDef? left, FigureDef? right, IconData arrow, String yes, Color color, VoidCallback onYes, {String? rightNote, Widget? leftDesc, Widget? rightDesc}) {
-    Sfx.play('tap');
-    Widget side(FigureDef? d, [String? note, Widget? desc]) => Expanded(
-      child: Column(
-        children: [
-          d == null ? const SizedBox(width: 64, height: 64, child: Icon(Icons.crop_square_rounded, size: 48, color: C.woodDark)) : FigureArt(d, size: 64),
-          Text(
-            d?.name ?? '空きマス',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: C.ink),
-          ),
-          // rarity and types, so you can see what the other figures will make of it
-          if (d != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Wrap(
-                spacing: 3,
-                runSpacing: 3,
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [RarityStars(d.rarity, size: 15), for (final t in d.tags) TagChip(t, size: 11)],
+      angle: -0.06,
+      child: Pulse(
+        child: Shine(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(12, 2, 14, 4),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: plus ? const [Color(0xFFFFB3D6), Color(0xFFFF4F98)] : const [Color(0xFFB0B8C8), Color(0xFF6A7488)],
               ),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: C.ink, width: 3),
+              boxShadow: [
+                if (plus)
+                  BoxShadow(
+                    color: Color.lerp(C.gold, const Color(0xFFFF6FA8), (math.log(v + 1) / math.log(2000)).clamp(0.0, 1.0))!.withValues(alpha: 0.8 * (1 - t * 0.5)),
+                    blurRadius: 18 + 10 * (1 - t) + (math.log(v + 1) * 2),
+                    spreadRadius: 2 + math.log(v + 1) * 0.6,
+                  ),
+                const BoxShadow(color: Color(0x55000000), offset: Offset(0, 4), blurRadius: 4),
+              ],
             ),
-          if (desc != null)
-            desc
-          else if (d != null)
-            Text(
-              d.description,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, height: 1.35, fontWeight: FontWeight.w700, color: C.ink),
-            ),
-          if (note != null)
-            Text(
-              note,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: C.red),
-            ),
-        ],
-      ),
-    );
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(14),
-        child: Panel(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(title, style: outlined(20, color, stroke: C.ink, width: 3)),
-              const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  side(left, null, leftDesc),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (plus)
                   Padding(
-                    padding: const EdgeInsets.only(top: 20),
-                    child: Icon(arrow, size: 36, color: color),
+                    padding: const EdgeInsets.only(right: 2),
+                    // the heart beats with every heart that comes in
+                    child: Transform.scale(scale: 1 + 0.35 * (1 - pop), child: HeartIcon(size: size * 0.9)),
                   ),
-                  side(right, rightNote, rightDesc),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  PopButton('やめる', fontSize: 16, color: Colors.blueGrey, onTap: () => Navigator.of(ctx).pop()),
-                  const SizedBox(width: 12),
-                  PopButton(
-                    yes,
-                    fontSize: 18,
-                    color: color,
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      onYes();
-                    },
-                  ),
-                ],
-              ),
-            ],
+                Text(plus ? '+$shown' : '$shown', style: outlined(size, Colors.white, stroke: plus ? const Color(0xFFB0306E) : C.ink, width: 5)),
+              ],
+            ),
           ),
         ),
       ),
@@ -1653,186 +725,8 @@ class _GameScreenState extends State<GameScreen> {
   /// Leaves the live for the gacha select screen (its back arrow leads on to the title).
   void _toSelect() => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => SelectScreen(meta: widget.meta)));
 
-  /// Pick what to get for watching an ad.
-  void _adSheet() {
-    Sfx.play('tap');
-    Widget option(AdReward r, Widget icon, String title, String sub) => GestureDetector(
-      onTap: () {
-        Navigator.of(context).pop();
-        g.watchAd(r);
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: C.woodDark, width: 2.5),
-        ),
-        child: Row(
-          children: [
-            SizedBox(width: 52, height: 52, child: icon),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: C.ink),
-                  ),
-                  Text(
-                    sub,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: C.woodDark),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.play_circle_fill_rounded, color: C.mint, size: 34),
-          ],
-        ),
-      ),
-    );
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(14),
-        child: Panel(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('広告を見て どれかひとつ', style: outlined(22, C.mint, stroke: C.ink, width: 3)),
-              const Text(
-                '1曲ごとに1回まで',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: C.ink),
-              ),
-              const SizedBox(height: 10),
-              option(AdReward.coins, const HeartIcon(size: 52), 'ハート +${g.adCoins}', 'すぐにもらえる'),
-              option(AdReward.repull, const Icon(Icons.replay_rounded, size: 44, color: C.pink), 'もう一回ひく 復活', '曲の終わりを待たずに 満タンにもどる'),
-              option(AdReward.luck, FigureArt(figureById['gacha_charm']!, size: 52), '運 +5%', 'Rが出やすくなる'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// In-run menu: resume, sound, or quit to the title.
-  void _menu() {
-    Sfx.play('tap');
-    final m = widget.meta;
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Panel(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('メニュー', style: outlined(26, C.pink, stroke: C.ink, width: 3)),
-              const SizedBox(height: 8),
-              // sound settings as icons, like on the title
-              SoundToggles(m),
-              const SizedBox(height: 14),
-              for (final b in [
-                PopButton('つづける', fontSize: 22, onTap: () => Navigator.of(ctx).pop()),
-                PopButton(
-                  'あそびかた',
-                  fontSize: 18,
-                  color: C.gold,
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => HowToScreen(meta: m)));
-                  },
-                ),
-                // ends the run right away and shows the result
-                PopButton(
-                  'あきらめる',
-                  fontSize: 18,
-                  color: C.red,
-                  onTap: g.canGiveUp
-                      ? () {
-                          Navigator.of(ctx).pop();
-                          g.giveUp();
-                        }
-                      : null,
-                ),
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: SizedBox(width: 240, child: b),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
-Future<void> showFigureInfo(BuildContext context, FigureDef d, [Fig? f, Run? run]) {
-  return showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.transparent,
-    builder: (_) => Padding(
-      padding: const EdgeInsets.all(14),
-      child: Panel(
-        child: Row(
-        children: [
-          FigureArt(d, size: 110),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  d.name,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: C.ink),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Wrap(
-                    spacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      RarityStars(d.rarity, size: 18),
-                      Text(
-                        d.tags.map((t) => '「$t」').join(),
-                        style: const TextStyle(color: C.ink, fontWeight: FontWeight.w900),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  d.description,
-                  style: const TextStyle(fontSize: 15, height: 1.4, color: C.ink, fontWeight: FontWeight.w600),
-                ),
-                if (f != null && f.stack > 1)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text('重ねて強化中：効果が ×${f.stack}', style: outlined(15, const Color(0xFFE6A700), stroke: Colors.white, width: 3)),
-                  ),
-                if (f != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    '置いてから ${f.age} 回転${f.lastGain != 0 ? '・さっきのハート ${f.lastGain}' : ''}',
-                    style: const TextStyle(color: C.woodDark, fontWeight: FontWeight.w800),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// The little downward tail under the boss's speech bubble.
 /// The boss's line in at most two lines: the font shrinks until it fits.
 class _TwoLines extends StatelessWidget {
   final String text;
@@ -1858,6 +752,7 @@ class _TwoLines extends StatelessWidget {
   );
 }
 
+/// The little downward tail under the boss's speech bubble.
 class _TailPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -1882,56 +777,4 @@ class _TailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_TailPainter o) => false;
-}
-
-class _Pulse extends StatefulWidget {
-  final Widget child;
-  const _Pulse({required this.child});
-  @override
-  State<_Pulse> createState() => _PulseState();
-}
-
-class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(reverse: true);
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  // its own layer: a forever-pulsing button must not repaint the whole screen each frame
-  Widget build(BuildContext context) => RepaintBoundary(
-    child: AnimatedBuilder(
-      animation: _c,
-      builder: (_, c) => Transform.scale(scale: 1 + 0.06 * Curves.easeInOut.transform(_c.value), child: c),
-      child: widget.child,
-    ),
-  );
-}
-
-class _Wobble extends StatefulWidget {
-  final Widget child;
-  final double strength;
-  const _Wobble({required this.child, required this.strength});
-  @override
-  State<_Wobble> createState() => _WobbleState();
-}
-
-class _WobbleState extends State<_Wobble> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 700))..repeat();
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => RepaintBoundary(
-    child: AnimatedBuilder(
-      animation: _c,
-      builder: (_, c) => Transform.rotate(angle: math.sin(_c.value * 2 * math.pi * 2) * widget.strength * (_c.value < 0.5 ? 1 : 0.3), child: c),
-      child: widget.child,
-    ),
-  );
 }
