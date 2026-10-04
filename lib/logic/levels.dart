@@ -13,7 +13,7 @@ int levelNeed(int level) => (150 * math.pow(1.35, level - 1)).round();
 /// Figures that start dropping at exactly [level].
 List<FigureDef> unlockedAt(int level) => [
   for (final f in figures)
-    if (f.level == level && f.rarity != Rarity.curse) f,
+    if (f.level == level) f,
 ];
 
 /// The next level that unlocks something, or null when everything is out.

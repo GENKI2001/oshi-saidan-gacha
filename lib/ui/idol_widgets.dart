@@ -20,10 +20,11 @@ const idolColor = {
 };
 
 /// Waist-up portrait: 'a' smiling, 'b' super happy (hearts).
-String portrait(String who, {bool happy = false}) => 'assets/ui/cutin_${speakerId[who]}_${happy ? 'b' : 'a'}.webp';
+/// Her waist-up portrait: [face] a smiling, b ultra happy ([happy]), c shy and touched.
+String portrait(String who, {bool happy = false, String? face}) => 'assets/ui/cutin_${speakerId[who]}_${face ?? (happy ? 'b' : 'a')}.webp';
 
 /// Where each face sits on her smiling portrait (fractions of width / height).
-const _faceAt = {'ひなた': (0.47, 0.17), 'しずく': (0.5, 0.17), 'こはる': (0.49, 0.19), 'よる': (0.5, 0.19), 'もも': (0.5, 0.18)};
+const _faceAt = {'ひなた': (0.46, 0.2), 'しずく': (0.5, 0.2), 'こはる': (0.5, 0.21), 'よる': (0.5, 0.21), 'もも': (0.5, 0.2)};
 
 /// A round face crop of the portrait.
 class IdolFace extends StatelessWidget {
@@ -33,9 +34,30 @@ class IdolFace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // つむぎ has no cut-in portrait: her face comes from her standing picture
+    if (who == kTsumugi) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Color.lerp(idolColor[who], Colors.white, 0.6),
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [BoxShadow(color: idolColor[who]!.withValues(alpha: 0.6), blurRadius: 8)],
+        ),
+        child: ClipOval(
+          child: OverflowBox(
+            maxWidth: size * 1.85,
+            maxHeight: size * 1.85,
+            alignment: const Alignment(0, -0.6),
+            child: Image.asset('assets/ui/boss_1.png', width: size * 1.85, height: size * 1.85, fit: BoxFit.cover, alignment: Alignment.topCenter),
+          ),
+        ),
+      );
+    }
     final (fx, fy) = _faceAt[who] ?? (0.5, 0.2);
-    // the portrait is about 2:3; show it so the face fills the circle
-    final w = size * 1.75, h = w * 1.5;
+    // the portrait is about 2:3; the whole head fits the circle (chin, ears and bows too)
+    final w = size * 1.4, h = w * 1.5;
     return Container(
       width: size,
       height: size,
@@ -168,7 +190,7 @@ class CutIn extends StatelessWidget {
                     height: h * 0.8,
                     child: Image.asset(portrait(who, happy: true), fit: BoxFit.contain, alignment: Alignment.topRight),
                   ),
-                  // ★4!! and the name
+                  // the stars and the name
                   Positioned(
                     left: 14,
                     top: h * 0.2,
@@ -181,7 +203,6 @@ class CutIn extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             RarityStars(ssr ? Rarity.legend : Rarity.epic, size: ssr ? 50 : 44),
-                            Text(ssr ? '★4!!' : '★3!', style: outlined(ssr ? 52 : 44, ssr ? C.gold : Colors.white, stroke: ssr ? const Color(0xFFB4501A) : col, width: 7)),
                             Text(who, style: outlined(34, Colors.white, stroke: col, width: 6)),
                           ],
                         ),
@@ -376,7 +397,7 @@ class TagChip extends StatelessWidget {
         border: Border.all(color: C.ink, width: 2),
       ),
       child: Text(
-        col != null ? '♡$tag' : tag,
+        tag,
         style: col != null ? outlined(size, Colors.white, stroke: Color.lerp(col, C.ink, 0.55)!, width: 2.5) : TextStyle(fontSize: size, fontWeight: FontWeight.w900, color: C.ink),
       ),
     );

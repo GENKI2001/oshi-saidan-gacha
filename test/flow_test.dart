@@ -1,7 +1,6 @@
 // Plays whole runs through GameController (the same calls the buttons make)
 // and checks the phase machine never gets stuck.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oshi_saidan/logic/figures.dart';
 import 'package:oshi_saidan/logic/modes.dart';
 import 'package:oshi_saidan/ui/controller.dart';
 import 'package:oshi_saidan/ui/meta.dart';
@@ -12,14 +11,16 @@ void main() {
     Sfx.enabled = false;
     final setups = <GameController Function()>[
       () => GameController(Meta()),
-      () => GameController(Meta(), machine: machineById['yoru'], ascension: 10),
-      () => GameController(Meta(), machine: machineById['shizumomo'], ascension: 3),
-      () => GameController(Meta(), machine: machineById['premium'], ascension: 5),
+      () => GameController(Meta(), machine: machineById['yoru']),
+      () => GameController(Meta(), machine: machineById['shizumomo']),
+      () => GameController(Meta(), machine: machineById['dome']),
+      () => GameController(Meta(), machine: machineById['tenbai']), // a 妨害 every few turns
       () => GameController(Meta(), machine: machineById['koharu']),
     ];
+    var jams = 0;
     for (var game = 0; game < setups.length; game++) {
       final g = setups[game]();
-      var guard = 0, postponed = false, shopped = 0;
+      var guard = 0, postponed = false, shopped = 0, lastJam = 0;
       while (g.phase != Phase.over) {
         expect(++guard, lessThan(5000), reason: 'stuck in ${g.phase}');
         switch (g.phase) {
@@ -58,6 +59,13 @@ void main() {
             g.keepGoing();
           case Phase.cutin:
             g.skipCutin();
+          case Phase.jam:
+            if (g.jamToken != lastJam) {
+              lastJam = g.jamToken;
+              jams++;
+            }
+            g.jamReady();
+            g.jamPush();
           case Phase.dropping || Phase.scoring || Phase.over:
             break;
         }
@@ -65,16 +73,10 @@ void main() {
       }
       // ignore: avoid_print
       print('game $game (${g.machine.name}): paydays ${g.run.paydaysPaid}, turns ${g.run.turn}, shops $shopped, best ${g.run.bestTurn}');
-      await t.pump(const Duration(seconds: 2)); // let delayed jingles fire
+      await t.pump(const Duration(seconds: 5)); // let delayed jingles fire
       g.dispose();
     }
-  });
-
-  test('the boss card cannot be thrown away while there is room', () {
-    Sfx.enabled = false;
-    final g = GameController(Meta());
-    g.pending.add(figureById[kCardId]!);
-    expect(g.canDiscard, isFalse);
+    expect(jams, greaterThan(0), reason: 'the 転売ヤー machine should have had a 妨害');
   });
 
   testWidgets('あきらめる from the menu goes straight to the result, also mid-capsule', (t) async {
@@ -90,7 +92,7 @@ void main() {
     g.giveUp();
     expect(g.phase, Phase.over);
     expect(meta.runs, 1);
-    await t.pump(const Duration(seconds: 2));
+    await t.pump(const Duration(seconds: 5));
     expect(g.phase, Phase.over, reason: 'nothing pending brings the run back');
     g.dispose();
   });

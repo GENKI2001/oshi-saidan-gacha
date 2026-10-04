@@ -18,8 +18,8 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     keep = set()
     for j in json.loads((HERE / 'jobs.json').read_text()):
-        if j.get('kind') == 'whisper':
-            continue  # ささやきボイス are mixed into tracks by art/asmr.py
+        if j.get('kind') == 'scene':
+            continue  # シチュエーションボイス are mixed into tracks by art/asmr.py
         src = Path(j['out'])
         keep.add(src.stem)
         dst = OUT / f'{src.stem}.m4a'

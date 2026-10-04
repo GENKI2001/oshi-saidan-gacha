@@ -22,7 +22,17 @@ import 'crowd.dart';
 import 'sfx.dart';
 import 'voice.dart';
 
-enum Phase { ready, dropping, capsule, cutin, reveal, place, scoring, payday, failed, cleared, shop, over }
+enum Phase { ready, dropping, capsule, cutin, reveal, place, jam, scoring, payday, failed, cleared, shop, over }
+
+/// Light from a goods to the goods it buffs (+) or multiplies (×).
+class Beam {
+  final int from;
+  final List<int> to;
+  final bool mult;
+  final int amount;
+  final int born = DateTime.now().millisecondsSinceEpoch;
+  Beam(this.from, this.to, this.mult, this.amount);
+}
 
 class Float {
   static int _ids = 0;
@@ -32,7 +42,7 @@ class Float {
   Float(this.text, this.kind);
 }
 
-enum AdReward { remove, coins, luck }
+enum AdReward { repull, coins, luck }
 
 /// Rewarded ads (the 広告で報酬 button and the payday 延長): iOS for now.
 bool get kAdsEnabled => Ads.instance.enabled;
@@ -55,27 +65,15 @@ enum Coach {
   place2,
   cell2,
   doubled,
-  spin3,
-  place3,
-  cell3,
-  spin4,
-  place4,
-  cell4,
-  swap1,
-  swap2,
-  swap3,
-  swapped,
   go,
-  free,
-  pay,
-  expand,
-  reroll,
-  multi,
-  leave,
-  card,
-  remove1,
-  remove2,
-  tools,
+}
+
+/// One piece of news for the top of the screen.
+class TopToast {
+  final List<Achievement>? achievements;
+  final (int, int)? level; // from, to
+  final List<MachineDef>? machines;
+  const TopToast({this.achievements, this.level, this.machines});
 }
 
 class GameController extends ChangeNotifier {
@@ -85,6 +83,14 @@ class GameController extends ChangeNotifier {
 
   // shelf as shown (lags behind run.cells while steps play)
   List<Fig?> shown = [];
+  final Map<int, int> powerUp = {}; // cell → token: a stacked goods' burst
+  final Map<int, int> heartPop = {}; // cell → token: little hearts out of a goods that earned
+
+  // ── juice ──
+  // the running count while the hearts come in (the top-left badge grows with it)
+  int liveTotal = 0, milestoneToken = 0;
+  final List<Beam> beams = [];
+  int rareToken = 0; // a レア商品 came in at the stall
   final Map<int, int> badge = {};
   final Map<int, String> gave = {}; // what a cell did to others this turn (×2, +2), kept until the next spin
   List<int> pulse = [];
@@ -110,9 +116,6 @@ class GameController extends ChangeNotifier {
   Set<String> fresh = {};
   bool opened = false;
   final List<FigureDef> pending = [];
-  bool removing = false;
-  bool swapping = false; // いれかえ: pick two cells
-  int? swapFirst;
 
   int coinsShown = 0;
   String? banner;
@@ -149,18 +152,42 @@ class GameController extends ChangeNotifier {
 
   int burstToken = 0; // confetti
 
-  // ── 実績 ──
-  List<Achievement> achToast = []; // just unlocked, shown as a toast
-  int achToken = 0;
-  final List<Achievement> runAchievements = []; // unlocked during this live (listed on the result)
+  // ── news at the top of the screen: 実績, a level up, a new gacha — one at a time ──
+  TopToast? toast;
+  int toastToken = 0;
+  final List<TopToast> _toasts = [];
+  Timer? _toastTimer;
+  final List<Achievement> runAchievements = []; // unlocked during this live
+
+  void _pushToast(TopToast t) {
+    _toasts.add(t);
+    if (toast == null) _nextToast();
+  }
+
+  void _nextToast() {
+    if (!_alive) return;
+    if (_toasts.isEmpty) {
+      toast = null;
+      notifyListeners();
+      return;
+    }
+    toast = _toasts.removeAt(0);
+    toastToken++;
+    final token = toastToken;
+    Future.delayed(const Duration(milliseconds: 400), () => Sfx.play('unlock'));
+    notifyListeners();
+    // each stays up as long as its slide-in, read and fade-out take
+    _toastTimer?.cancel();
+    _toastTimer = Timer(const Duration(milliseconds: 4300), () {
+      if (toastToken == token) _nextToast();
+    });
+  }
 
   void _checkAchievements() {
     final got = meta.checkAchievements();
     if (got.isEmpty) return;
-    achToast = got;
-    achToken++;
     runAchievements.addAll(got);
-    Future.delayed(const Duration(milliseconds: 400), () => Sfx.play('unlock'));
+    _pushToast(TopToast(achievements: got));
   }
 
   /// Counts each idol's goods on the altar now (for the 祭壇 achievements).
@@ -175,14 +202,11 @@ class GameController extends ChangeNotifier {
   }
   String? songIdol; // who thanks the crowd after a song
   String songLine = '';
-  bool _cardNotice = false; // つむぎ left a 注意書き: she says so at the stall
   bool _alive = true;
   bool newRecord = false;
 
   // how this run was set up, and what it unlocked
   final MachineDef machine;
-  final int ascension;
-  int? ascOpened;
   List<MachineDef> newMachines = [];
   bool turnRecord = false; // beat the best single turn this run
 
@@ -191,9 +215,7 @@ class GameController extends ChangeNotifier {
   Coach coach = Coach.none;
   int _pulls = 0;
   static const tutorialCell1 = 6, tutorialCell2 = 7; // こはるのアクキー, then こはるのアクスタ to its right
-  // こはるの缶バッジ far from the アクスタ, ももの缶バッジ right under it; then the two swap places
-  static const tutorialCell3 = 12, tutorialCell4 = 11;
-  static const _tutorialPulls = ['koharu_keyholder', 'momo_badge', 'koharu_acsta', 'koharu_badge', 'momo_badge'];
+  static const _tutorialPulls = ['koharu_keyholder', 'momo_badge', 'koharu_acsta'];
 
   /// The info steps move on with a tap anywhere.
   void coachNext() {
@@ -203,10 +225,7 @@ class GameController extends ChangeNotifier {
       Coach.item => Coach.tags,
       Coach.tags => Coach.effect,
       Coach.effect => Coach.place2,
-      Coach.doubled => Coach.spin3,
-      Coach.swapped => Coach.go,
-      Coach.multi => Coach.leave,
-      Coach.tools => Coach.none,
+      Coach.doubled => Coach.go,
       final c => c,
     };
     if (coach == Coach.none) meta.finishTutorial();
@@ -226,34 +245,55 @@ class GameController extends ChangeNotifier {
   int? turnRank; // 全国順位 on that board, once known
   int _step = 0;
 
-  GameController(this.meta, {MachineDef? machine, this.ascension = 0, this.tutorial = false}) : machine = machine ?? machines.first {
+  GameController(this.meta, {MachineDef? machine, this.tutorial = false}) : machine = machine ?? machines.first {
     newRun();
   }
 
   void newRun() {
     // the pool is fixed for the run: figures unlocked mid-run drop from the next one
-    run = Run(seed: DateTime.now().microsecondsSinceEpoch, rules: rulesFor(machine, ascension)..level = meta.level);
+    run = Run(seed: DateTime.now().microsecondsSinceEpoch, rules: rulesFor(machine)..level = meta.level);
+    // `--dart-define=JAM_DEMO=true`: a 妨害 every turn, to check its screens
+    if (const bool.fromEnvironment('JAM_DEMO')) run.rules.jamRate = 1;
+    // `--dart-define=STACK_DEMO=true`: a few goods already on the altar and the gacha drops only
+    // those, so stacking the same goods (×2, ×3, …) can be tried right away
+    // `--dart-define=JUICE_DEMO=true`: the big moments come often, to try them out —
+    // ★3/★4 capsules (昇格演出), a レア商品 at every stall, a low best spin (FEVER) and spare hearts
+    if (const bool.fromEnvironment('JUICE_DEMO')) {
+      run.luckBonus += 60;
+      run.rareChance = 1;
+      run.coins += 60;
+      run.rules.jamRate = 0;
+      meta.bestTurn = 10;
+    }
+    if (const bool.fromEnvironment('STACK_DEMO')) {
+      const ids = ['koharu_badge', 'hinata_badge', 'yoru_star', 'shizuku_snow'];
+      for (final (k, id) in ids.indexed) {
+        final at = const [5, 6, 9, 10][k];
+        if (run.cells[at] == null) run.place(figureById[id]!, at);
+      }
+      run.rules.idWeight.addAll({for (final id in ids) id: 1e6});
+      run.rules.jamRate = 0;
+    }
     _counted = 0;
     levelUps = [];
     for (final f in run.figs) {
       meta.see(f.def.id);
     }
-    ascOpened = null;
     newMachines = [];
+    toast = null;
+    _toasts.clear();
+    _toastTimer?.cancel();
     turnRecord = false;
     turnRank = null;
     phase = Phase.ready;
     pending.clear();
     badge.clear();
     floats.clear();
-    removing = false;
-    swapping = false;
-    swapFirst = null;
     gave.clear();
+    jam = null;
     payday = null;
     newRecord = false;
     runAchievements.clear();
-    achToast = [];
     _adAt = -1;
     _syncShelf();
     coinsShown = run.coins;
@@ -263,12 +303,14 @@ class GameController extends ChangeNotifier {
       coach = Coach.spin1;
       _pulls = 0;
     }
+    Bgm.play('bgm_${machine.bgm}', fromStart: true); // a new live: its song from the top
     notifyListeners();
   }
 
   @override
   void dispose() {
     _alive = false;
+    _toastTimer?.cancel();
     timeDilation = 1;
     Voice.stop();
     super.dispose();
@@ -283,10 +325,13 @@ class GameController extends ChangeNotifier {
     }
   }
 
-  // ── fast-forward: a finger held down while the coins are counted ──
-  static const fastSpeed = 3;
+  // ── fast-forward while the coins are counted: ×2 on its own once the altar is crowded,
+  //    ×3 while a finger is held down ──
+  static const fastSpeed = 3, autoSpeed = 2;
+  static const autoFastGoods = 10; // this many goods on the altar and the count runs at ×2
   bool _held = false;
-  bool get fast => _held && phase == Phase.scoring;
+  int get speed => phase != Phase.scoring ? 1 : (_held ? fastSpeed : (run.figs.length >= autoFastGoods ? autoSpeed : 1));
+  bool get fast => speed > 1;
   set holding(bool v) {
     if (_held == v) return;
     _held = v;
@@ -295,7 +340,7 @@ class GameController extends ChangeNotifier {
 
   /// Animations speed up with the beats (timeDilation below 1 runs them faster).
   void _syncSpeed() {
-    final d = fast ? 1 / fastSpeed : 1.0;
+    final d = 1 / speed;
     if (timeDilation != d) {
       timeDilation = d;
       notifyListeners();
@@ -309,16 +354,24 @@ class GameController extends ChangeNotifier {
     var left = ms.toDouble();
     while (left > 0 && _alive) {
       await Future.delayed(const Duration(milliseconds: slice));
-      left -= slice * (fast ? fastSpeed : 1);
+      left -= slice * speed;
     }
   }
 
-  /// つむぎ says [line] (voiced when it has a take).
-  void say(int mood, String line, {bool voice = true}) {
+  /// つむぎ says [line] (text only: she has no voice in play).
+  void say(int mood, String line) {
     bossMood = mood;
     bossLine = line;
     bossToken++;
-    if (voice) Voice.say(kTsumugi, line);
+  }
+
+  /// A goods with an idol on it was tapped on the altar: she says hello.
+  void tapFigure(FigureDef d) {
+    if (_coaching || d.cast.isEmpty || phase == Phase.scoring || phase == Phase.jam) return;
+    final who = d.cast[math.Random().nextInt(d.cast.length)];
+    final lines = idolLines[who]!;
+    idolSay(who, pick(math.Random().nextBool() ? lines.pull : lines.talk));
+    notifyListeners();
   }
 
   /// The player pokes つむぎ on the stage: she chats (not mid-count or in the tutorial).
@@ -339,7 +392,7 @@ class GameController extends ChangeNotifier {
   }
 
   /// The tutorial's own explanations are spoken; the idols keep quiet then.
-  bool get _coaching => tutorial && coach != Coach.none && coach != Coach.free;
+  bool get _coaching => tutorial && coach != Coach.none;
 
   // ── gacha ──
   Future<void> turnHandle() async {
@@ -348,12 +401,14 @@ class GameController extends ChangeNotifier {
     lastTotal = 0; // the last turn's gain stays up until the next spin
     idol = null;
     badge.clear();
+    heartPop.clear(); // (a later rebuild must not pop old hearts again)
     gave.clear();
-    removing = false;
-    swapping = false;
-    swapFirst = null;
-    if (const [Coach.spin1, Coach.spin2, Coach.spin3, Coach.spin4].contains(coach)) coach = Coach.wait;
-    if (coach == Coach.go) coach = Coach.free;
+    if (const [Coach.spin1, Coach.spin2].contains(coach)) coach = Coach.wait;
+    // the last guided step: spinning on from here is the game itself
+    if (coach == Coach.go) {
+      coach = Coach.none;
+      meta.finishTutorial();
+    }
     await _drop();
   }
 
@@ -365,7 +420,7 @@ class GameController extends ChangeNotifier {
     if (coach == Coach.repull) coach = Coach.wait;
     Sfx.play('reroll');
     // never worse than what was just in hand
-    final floor = bestOption == Rarity.curse ? Rarity.normal : bestOption;
+    final floor = bestOption;
     phase = Phase.dropping;
     await _drop(run.pullAtLeast(floor));
   }
@@ -383,7 +438,7 @@ class GameController extends ChangeNotifier {
     await _wait(300);
     // the capsule sounds fancier the rarer the best thing inside is
     final best = bestOption;
-    Sfx.play('drop_${best == Rarity.curse ? 0 : math.min(best.index, 3)}');
+    Sfx.play('drop_${math.min(best.index, 3)}');
     await _wait(450);
     if (!_alive || phase == Phase.over) return;
     phase = Phase.capsule;
@@ -392,16 +447,15 @@ class GameController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The rarest drop (the boss's card ranks lowest).
-  Rarity get bestOption =>
-      options.map((o) => o.rarity).reduce((a, b) => (a == Rarity.curse ? -1 : a.index) >= (b == Rarity.curse ? -1 : b.index) ? a : b);
+  /// The rarest drop.
+  Rarity get bestOption => options.map((o) => o.rarity).reduce((a, b) => a.index >= b.index ? a : b);
 
-  bool get omen => bestOption != Rarity.curse && bestOption.index >= Rarity.epic.index;
+  bool get omen => bestOption.index >= Rarity.epic.index;
 
   /// The best option that has an idol on it, and who of them talks.
   (FigureDef, String)? get _speaker {
     final withCast = options.where((o) => o.cast.isNotEmpty).toList()
-      ..sort((a, b) => (b.rarity == Rarity.curse ? -1 : b.rarity.index).compareTo(a.rarity == Rarity.curse ? -1 : a.rarity.index));
+      ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
     if (withCast.isEmpty) return null;
     final f = withCast.first;
     return (f, f.cast[math.Random().nextInt(f.cast.length)]);
@@ -412,7 +466,7 @@ class GameController extends ChangeNotifier {
     opened = true;
     final sp = _coaching ? null : _speaker;
     final best = bestOption;
-    if (sp != null && best != Rarity.curse && best.index >= Rarity.epic.index && sp.$1.rarity == best) {
+    if (sp != null && best.index >= Rarity.epic.index && sp.$1.rarity == best) {
       // ★3 / ★4 with an idol on it: she cuts in first, then the goods come out
       final lines = idolLines[sp.$2]!;
       phase = Phase.cutin;
@@ -441,9 +495,8 @@ class GameController extends ChangeNotifier {
     if (coach == Coach.wait) {
       coach = switch (options.first.id) {
         'koharu_keyholder' => Coach.place1,
-        'momo_badge' => _pulls == 2 ? Coach.repull : Coach.place4,
+        'momo_badge' => Coach.repull,
         'koharu_acsta' => Coach.item,
-        'koharu_badge' => Coach.place3,
         _ => Coach.wait,
       };
     }
@@ -462,7 +515,6 @@ class GameController extends ChangeNotifier {
       idolOnPull = true; // she stays on as a little bubble over the goods
     } else if (!_coaching && !fromCutin) {
       if (best == Rarity.legend && options.every((o) => o.cast.isEmpty)) say(2, pick(lineLegend));
-      if (best == Rarity.curse) say(2, pick(lineCursePull));
     }
     fresh = {
       for (final o in options)
@@ -470,7 +522,7 @@ class GameController extends ChangeNotifier {
     };
     Sfx.play('open');
     Future.delayed(const Duration(milliseconds: 90), () {
-      Sfx.play(best == Rarity.curse ? 'minus' : 'reveal_${math.min(best.index, 3)}');
+      Sfx.play('reveal_${math.min(best.index, 3)}');
       if (fresh.isNotEmpty) Future.delayed(const Duration(milliseconds: 350), () => Sfx.play('new', volume: 0.7));
     });
     for (final o in options) {
@@ -486,13 +538,10 @@ class GameController extends ChangeNotifier {
     phase = Phase.place;
     if (coach == Coach.place1) coach = Coach.cell1;
     if (coach == Coach.place2) coach = Coach.cell2;
-    if (coach == Coach.place3) coach = Coach.cell3;
-    if (coach == Coach.place4) coach = Coach.cell4;
     notifyListeners();
   }
 
-  /// The boss's card must go on the shelf unless there is no room.
-  bool get canDiscard => pending.isNotEmpty && (pending.first.id != kCardId || run.emptyCells.isEmpty);
+  bool get canDiscard => pending.isNotEmpty;
 
   void discardPending() {
     if (!canDiscard) return;
@@ -502,70 +551,33 @@ class GameController extends ChangeNotifier {
   }
 
   Future<void> tapCell(int i) async {
-    if (swapping) {
-      // the tutorial swaps こはるの缶バッジ with ももの缶バッジ
-      if (coach == Coach.swap2 && i != tutorialCell3) return;
-      if (coach == Coach.swap3 && i != tutorialCell4) return;
-      if (swapFirst == null) {
-        if (shown[i] == null) return;
-        swapFirst = i;
-        if (coach == Coach.swap2) coach = Coach.swap3;
-        Sfx.play('tap');
-        pulse[i]++;
-        notifyListeners();
-        return;
-      }
-      final a = swapFirst!;
-      swapFirst = null;
-      swapping = false;
-      if (a != i && run.swap(a, i)) {
-        if (coach == Coach.swap3) coach = Coach.swapped;
-        final ba = badge.remove(a), bi = badge.remove(i);
-        if (ba != null) badge[i] = ba;
-        if (bi != null) badge[a] = bi;
-        final ga = gave.remove(a), gi = gave.remove(i);
-        if (ga != null) gave[i] = ga;
-        if (gi != null) gave[a] = gi;
-        _syncShelf();
-        pulse[a]++;
-        pulse[i]++;
-        Sfx.play('place');
-        HapticFeedback.selectionClick();
-      }
-      notifyListeners();
-      return;
-    }
-    if (removing) {
-      if (shown[i] == null) return;
-      // the tutorial wants the boss's card gone
-      if (coach == Coach.remove2 && shown[i]!.def.id != kCardId) return;
-      if (coach == Coach.remove2) coach = Coach.tools;
-      final g = run.remove(i);
-      badge.remove(i);
-      gave.remove(i);
-      removing = false;
-      _float(i, g > 0 ? '+$g' : 'ポイ', 0);
-      Sfx.play('pop');
-      if (g > 0) Sfx.play('buy');
-      hit[i]++;
-      HapticFeedback.mediumImpact();
-      _syncShelf();
-      coinsShown = run.coins;
-      notifyListeners();
-      return;
-    }
     if (phase != Phase.place || pending.isEmpty) return;
     // the tutorial wants a particular cell
     if (coach == Coach.cell1 && i != tutorialCell1) return;
     if (coach == Coach.cell2 && i != tutorialCell2) return;
-    if (coach == Coach.cell3 && i != tutorialCell3) return;
-    if (coach == Coach.cell4 && i != tutorialCell4) return;
-    if (const [Coach.cell1, Coach.cell2, Coach.cell3, Coach.cell4].contains(coach)) coach = Coach.wait;
+    if (const [Coach.cell1, Coach.cell2].contains(coach)) coach = Coach.wait;
     // the new figure can go over an old one
     if (run.cells[i] != null && !run.canOverwrite(i)) return;
     final over = run.cells[i] != null;
     final d = pending.removeAt(0);
+    final stacking = over && run.stacksOn(d, i);
     final steps = over ? run.overwrite(d, i) : run.place(d, i);
+    // the same goods on itself: it powers up (×2, ×3, …) and puts on an aura
+    if (stacking) {
+      meta.noteStack(run.cells[i]!.stack);
+      powerUp[i] = (powerUp[i] ?? 0) + 1; // ギュイーン… ピカーン (PowerUpBurst)
+      Sfx.play('omen');
+      HapticFeedback.lightImpact();
+      () async {
+        await _wait(620);
+        Sfx.play('mult_big');
+        HapticFeedback.heavyImpact();
+        await _wait(900);
+        // done: drop it, so a later rebuild of the altar never plays it again
+        powerUp.remove(i);
+        notifyListeners();
+      }();
+    }
     badge.remove(i);
     gave.remove(i);
     if (over) hit[i]++;
@@ -638,9 +650,7 @@ class GameController extends ChangeNotifier {
     if (!canWatchAd) return;
     _adAt = run.paydaysPaid;
     switch (reward) {
-      case AdReward.remove:
-        run.removeTickets = run.removeMax;
-        run.swapTickets = run.swapMax;
+      case AdReward.repull:
         run.repulls = run.repullMax;
         say(1, pick(lineAdTickets));
       case AdReward.coins:
@@ -653,41 +663,6 @@ class GameController extends ChangeNotifier {
     }
     Sfx.play('buy');
     HapticFeedback.mediumImpact();
-    notifyListeners();
-  }
-
-  void toggleSwap() {
-    if (run.swapTickets <= 0 || phase == Phase.scoring) return;
-    // the tutorial's swap has to happen once it has been pointed at
-    if (coach == Coach.swap2 || coach == Coach.swap3) return;
-    swapping = !swapping;
-    swapFirst = null;
-    removing = false;
-    if (coach == Coach.swap1 && swapping) coach = Coach.swap2;
-    Sfx.play('toggle');
-    notifyListeners();
-  }
-
-  /// Used-up どける / いれかえ: the boss points at his stall.
-  void ticketUsed() {
-    say(0, pick(lineTicketUsed));
-    notifyListeners();
-  }
-
-  /// The tutorial showed what the boss's card does; now it can be removed.
-  void cardSeen() {
-    if (coach != Coach.card) return;
-    coach = Coach.remove1;
-    notifyListeners();
-  }
-
-  void toggleRemove() {
-    if (run.removeTickets <= 0 || phase == Phase.scoring) return;
-    swapping = false;
-    swapFirst = null;
-    removing = !removing;
-    if (coach == Coach.remove1 && removing) coach = Coach.remove2;
-    Sfx.play('toggle');
     notifyListeners();
   }
 
@@ -704,7 +679,208 @@ class GameController extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    _jamThenScore();
+  }
+
+  // ── 妨害: the scalper barges in after placing, before the hearts are counted ──
+  Jam? jam;
+  int jamStage = 0; // 0 siren + cut-in, 1 what to do (one line at a time), 2 the shoving match, 3 the outcome
+  int jamCount = 0; // the countdown before the shove: 3, 2, 1, then 0 = go
+  double jamP = 0; // chance to fend him off, moved by まもれ！
+  double jamLeft = 1; // shoving time left (1 → 0)
+  bool? jamSaved;
+  String jamIdol = 'ひなた'; // the idol with the most goods on the altar pushes back
+  int jamToken = 0, jamTapToken = 0;
+  List<FigureDef> jamTaken = []; // what he got away with
+
+  // slow enough to follow: the cut-in, then the rules line by line, the shove, a beat of suspense, the outcome
+  static const jamIntroMs = 2400, jamPushMs = 4500, jamOutroMs = 3800;
+  Completer<void>? _jamGo;
+
+  /// まもる！ on the explanation: the countdown starts.
+  void jamReady() {
+    if (phase != Phase.jam || jamStage != 1) return;
+    Sfx.play('tap');
+    if (_jamGo?.isCompleted == false) _jamGo!.complete();
+  }
+  // まもれ！ adds [jamTap]; the scalper pulls it back down. How hard he pulls changes all the time:
+  // he is in one of seven hidden modes (weak … overpowering), each a pull worth [jamModeRate] taps a
+  // second, held for a random while and wobbling ±40% inside it. Mode 4 out-pushes ordinary fast
+  // mashing; modes 5 and 6 only come out against players who mash faster still (a phone mashes fast).
+  // Held at the top, it is 100%.
+  static const jamStart = 0.25, jamTap = 0.045, jamMin = 0.03;
+  static const jamModeRate = [2.0, 3.0, 4.5, 7.5, 14.0, 19.0, 25.0];
+  int jamMode = 0; // 0 weak … 6 monstrous (hidden)
+  double jamForce = 0; // his pull right now, in taps a second (smoothed)
+
+  int _jamTaps = 0; // まもれ！ taps in this shove, to learn how fast the player mashes
+
+  /// The next mode: a stronger scalper ([Jam.power]) leans to the strong ones, and so does a player who
+  /// mashes fast ([Meta.mashRate] above 7 a second; a slow one meets the weak ones more); never the same twice.
+  int _nextJamMode(double power) {
+    final rate = meta.mashRate ?? 7;
+    final skill = ((rate - 7) / 4).clamp(-1.0, 1.5);
+    // the two monstrous modes open up only for very fast mashers: from 10 and 12 taps a second
+    double gate(int m) => m == 5 ? ((rate - 10) / 3).clamp(0.0, 1.0) : (m == 6 ? ((rate - 12) / 3).clamp(0.0, 1.0) : 1.0);
+    final w = [
+      for (var m = 0; m < jamModeRate.length; m++)
+        m == jamMode ? 0.0 : [2.2, 3.0, 3.0, 2.2, 1.4, 1.2, 1.0][m] * math.pow(power, math.min(m, 4) - 1.5) * math.exp(skill * 0.55 * (math.min(m, 4) - 2)) * gate(m),
+    ];
+    var x = run.rng.nextDouble() * w.fold(0.0, (a, b) => a + b);
+    for (var m = 0; m < jamModeRate.length; m++) {
+      if ((x -= w[m]) < 0) return m;
+    }
+    return 2;
+  }
+
+  FigureDef? _jamGift;
+  bool _giftPlacing = false;
+
+  Future<void> _jamThenScore() async {
+    if (_giftPlacing) {
+      _giftPlacing = false;
+      _score();
+      return;
+    }
+    // never during the tutorial (its first song)
+    final j = tutorial && !meta.tutorialDone ? null : run.rollJam();
+    if (j != null) await _jam(j);
+    if (!_alive || phase == Phase.over) return;
+    // fended off for a goods: it goes on the altar first, then the hearts are counted
+    if (_jamGift case final gift?) {
+      _jamGift = null;
+      pending.add(gift);
+      _giftPlacing = true;
+      phase = Phase.place;
+      notifyListeners();
+      return;
+    }
     _score();
+  }
+
+  Future<void> _jam(Jam j) async {
+    jam = j;
+    jamStage = 0;
+    jamCount = 3;
+    jamP = jamStart;
+    jamLeft = 1;
+    jamSaved = null;
+    jamTaken = [];
+    jamToken++;
+    final count = <String, int>{};
+    for (final f in run.figs) {
+      for (final m in f.def.cast) {
+        count[m] = (count[m] ?? 0) + 1;
+      }
+    }
+    jamIdol = count.isEmpty ? members[math.Random().nextInt(members.length)] : (count.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
+    phase = Phase.jam;
+    Sfx.play('siren');
+    HapticFeedback.heavyImpact();
+    shakeToken++;
+    flashToken++;
+    say(2, pick(lineJam));
+    notifyListeners();
+    await Future.delayed(const Duration(milliseconds: jamIntroMs));
+    if (!_alive || phase != Phase.jam) return;
+    // what is at stake, then wait for まもる！
+    jamStage = 1;
+    _jamGo = Completer<void>();
+    notifyListeners();
+    await _jamGo!.future;
+    if (!_alive || phase != Phase.jam) return;
+    // 3, 2, 1 … まもれ！ only works once it says スタート
+    jamStage = 2;
+    for (jamCount = 3; jamCount > 0; jamCount--) {
+      Sfx.play('tap');
+      HapticFeedback.selectionClick();
+      notifyListeners();
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!_alive || phase != Phase.jam) return;
+    }
+    Sfx.play('omen');
+    HapticFeedback.heavyImpact();
+    Voice.say(jamIdol, pick(idolLines[jamIdol]!.jamHelp), delayMs: 0);
+    notifyListeners();
+    // real time (a throttled browser tab must not stretch it), or the frames counted
+    // when the clock stands still (fake clocks in tests)
+    final sw = Stopwatch()..start();
+    var ms = 0;
+    _jamTaps = 0;
+    jamMode = _nextJamMode(j.power);
+    jamForce = jamModeRate[jamMode];
+    var modeUntil = 300 + run.rng.nextInt(900), target = jamForce;
+    while (_alive && phase == Phase.jam && ms < jamPushMs) {
+      await Future.delayed(const Duration(milliseconds: 33));
+      final now = math.min(jamPushMs, math.max(ms + 33, sw.elapsedMilliseconds));
+      if (now >= modeUntil) {
+        jamMode = _nextJamMode(j.power);
+        modeUntil = now + 350 + run.rng.nextInt(950);
+      }
+      // a fresh wobble every few frames, eased into so it surges rather than buzzes
+      if (run.rng.nextDouble() < 0.25) target = jamModeRate[jamMode] * (0.6 + run.rng.nextDouble() * 0.8);
+      jamForce += (target - jamForce) * 0.3;
+      jamP = (jamP - jamTap * jamForce * (now - ms) / 1000).clamp(jamMin, 1.0);
+      ms = now;
+      jamLeft = 1 - ms / jamPushMs;
+      notifyListeners();
+    }
+    if (!_alive || phase != Phase.jam) return;
+    jamLeft = 0;
+    Sfx.cut('push'); // taps still queued up must not keep thumping over the outcome
+    meta.recordMash(_jamTaps * 1000 / jamPushMs);
+    // the outcome, right away
+    jamStage = 3;
+    final saved = jamSaved = run.rng.nextDouble() < jamP;
+    if (saved) {
+      meta.recordJamWin();
+      _checkAchievements();
+      _jamGift = run.rewardJam(j); // the reward (a goods is placed before the count)
+      Sfx.play('jam_win');
+      burstToken++;
+      Crowd.cheer();
+      HapticFeedback.mediumImpact();
+      say(1, pick(lineJamWin));
+      Voice.say(jamIdol, pick(idolLines[jamIdol]!.jamWin), delayMs: 300);
+      notifyListeners();
+    } else {
+      Sfx.play('jam_lose');
+      shakeToken++;
+      HapticFeedback.heavyImpact();
+      say(3, pick(lineJamLose));
+      Voice.say(jamIdol, pick(idolLines[jamIdol]!.jamLose), delayMs: 300);
+      final before = List.of(run.cells);
+      final cells = run.applyJam(j);
+      jamTaken = [for (final c in cells) before[c]!.def];
+      notifyListeners();
+      // the goods fly off to him first, then the altar shows the gap
+      await Future.delayed(const Duration(milliseconds: 900));
+      if (!_alive || phase != Phase.jam) return;
+      for (final c in cells) {
+        hit[c]++;
+        _puff(c);
+        badge.remove(c);
+        gave.remove(c);
+      }
+      _syncShelf();
+      coinsShown = run.coins;
+      notifyListeners();
+    }
+    await Future.delayed(const Duration(milliseconds: jamOutroMs));
+    if (!_alive || phase != Phase.jam) return;
+    jam = null;
+    notifyListeners();
+  }
+
+  /// まもれ！ — each tap shoves the scalper back a little.
+  void jamPush() {
+    if (phase != Phase.jam || jamStage != 2 || jamCount > 0) return;
+    jamP = math.min(1.0, jamP + jamTap);
+    _jamTaps++;
+    jamTapToken++;
+    Sfx.play('push', volume: 0.8);
+    HapticFeedback.lightImpact();
+    notifyListeners();
   }
 
   bool _fromShop = false;
@@ -715,12 +891,23 @@ class GameController extends ChangeNotifier {
     if (floats[i]!.length > 4) floats[i]!.removeAt(0);
   }
 
+  /// A beam of light from the goods to the ones it powers up (gone after a moment).
+  void _beam(Step s, bool mult) {
+    final b = Beam(s.idx, s.targets, mult, s.amount);
+    beams.add(b);
+    Future.delayed(const Duration(milliseconds: 750), () {
+      beams.remove(b);
+      if (_alive) notifyListeners();
+    });
+  }
+
   void _apply(Step s) {
     switch (s.kind) {
       case StepKind.add:
         badge[s.idx] = (badge[s.idx] ?? 0) + s.amount;
         pulse[s.idx]++;
         _float(s.idx, s.amount > 0 ? '+${s.amount}' : '${s.amount}', s.amount > 0 ? 0 : 3);
+        if (s.amount > 0) heartPop[s.idx] = (heartPop[s.idx] ?? 0) + 1;
         s.amount > 0 ? Sfx.tick(_step++) : Sfx.play('minus');
         Crowd.setHype(hype);
         Crowd.beat(_step, s.amount);
@@ -731,6 +918,7 @@ class GameController extends ChangeNotifier {
         Sfx.tick(_step++);
         coinsShown += s.amount;
       case StepKind.buff:
+        _beam(s, false);
         Sfx.play('buff');
         pulse[s.idx]++;
         gave[s.idx] = '+${s.amount}';
@@ -741,6 +929,7 @@ class GameController extends ChangeNotifier {
         }
         HapticFeedback.selectionClick();
       case StepKind.mult:
+        _beam(s, true);
         pulse[s.idx]++;
         gave[s.idx] = '×${s.amount}';
         for (final t in s.targets) {
@@ -790,6 +979,7 @@ class GameController extends ChangeNotifier {
     _syncSpeed(); // a finger may already be down
     badge.clear();
     _step = 0;
+    liveTotal = 0;
     final res = run.endTurn();
     notifyListeners();
     await _wait(200);
@@ -798,7 +988,20 @@ class GameController extends ChangeNotifier {
     for (final s in res.steps) {
       if (!_alive) return;
       if (s.kind == StepKind.remove && shown[s.idx] == null) continue;
+      if (!_alive) return;
       _apply(s);
+      // the running count, with a jolt at every round number it passes
+      final now = badge.values.fold(0, (a, b) => a + b);
+      for (final m in const [100, 500, 1000, 5000, 10000]) {
+        if (liveTotal < m && now >= m) {
+          milestoneToken++;
+          shakeToken++;
+          Sfx.play('total_big', volume: 0.6);
+          HapticFeedback.heavyImpact();
+        }
+      }
+      liveTotal = now;
+      notifyListeners();
       await _wait(s.kind == StepKind.mult ? ms + 180 : ms);
       ms = math.max(110, (ms * 0.9).round());
     }
@@ -822,15 +1025,17 @@ class GameController extends ChangeNotifier {
         say(2, pick(lineBigTurn));
       }
     } else if (res.total < 3 && run.turn > 3) {
-      say(0, pick(lineSmallTurn), voice: !_coaching);
+      say(0, pick(lineSmallTurn));
     } else if (!_coaching && math.Random().nextDouble() < 0.2) {
       say(0, pick(lineIdle));
     }
     coinsShown = run.coins; // the per-cell numbers stay up until the next spin
     notifyListeners();
     await _wait(700);
+    if (!_alive) return; // the screen was left mid-count
     _syncShelf();
     _countEarned();
+    if (meta.recordMachine(machine.id, turn: res.total)) Rank.instance.submitMachine(machine.id, res.total);
     if (meta.recordTurn(res.total)) {
       turnRecord = true;
       Rank.instance.submit(Board.bestTurn, res.total);
@@ -840,16 +1045,13 @@ class GameController extends ChangeNotifier {
       phase = Phase.payday;
       payday = null;
       Sfx.play('payday');
-      say(0, pick(linePayday), voice: !_coaching);
-      if (coach == Coach.free) coach = Coach.pay;
+      _curtainCall();
     } else {
       phase = Phase.ready;
       if (coach == Coach.wait) {
         coach = switch (run.turn) {
           1 => Coach.coins,
-          2 => Coach.doubled,
-          3 => Coach.spin4,
-          _ => Coach.swap1,
+          _ => Coach.doubled,
         };
       }
     }
@@ -875,10 +1077,35 @@ class GameController extends ChangeNotifier {
     }
     coinsShown = run.coins;
     Sfx.play('pay_ok');
-    Crowd.songEnd();
-    burstToken++;
-    _cardNotice = p.cardCells.isNotEmpty;
-    // the idol with the most goods on the altar thanks the crowd
+    bossMood = 1;
+    bossToken++;
+    HapticFeedback.mediumImpact();
+    _syncShelf();
+    meta.recordPaydays(run.paydaysPaid);
+    meta.recordMachine(machine.id, songs: run.paydaysPaid);
+    if (run.cleared && run.paydaysPaid == Run.clearPaydays) {
+      meta.clearedMachine(machine.id);
+      phase = Phase.cleared;
+      Sfx.play('clear');
+      say(1, pick(lineClear));
+      meta.recordClear();
+      _checkAchievements();
+    } else {
+      // the curtain call was already on the song's card: straight on to the merch booth
+      _openShop();
+    }
+    notifyListeners();
+  }
+
+  /// The end of a song. Quota met: one card for it all — the idol with the most goods on the altar
+  /// thanks the crowd (her line, her voice, the curtain-call tune) over the gauge brimming past the
+  /// quota. Short of it: つむぎ says so over the gauge.
+  void _curtainCall() {
+    if (run.coins < run.due) {
+      songIdol = null;
+      say(0, pick(linePayday));
+      return;
+    }
     final count = <String, int>{};
     for (final f in run.figs) {
       for (final m in f.def.cast) {
@@ -886,31 +1113,12 @@ class GameController extends ChangeNotifier {
       }
     }
     songIdol = count.isEmpty ? members[math.Random().nextInt(members.length)] : (count.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
-    bossMood = 1;
-    bossToken++;
+    songLine = pick(idolLines[songIdol!]!.songEnd);
+    Voice.say(songIdol!, songLine, delayMs: 500);
+    Bgm.play('bgm_clear'); // the curtain call and the stall get their own tune
+    Crowd.songEnd();
+    burstToken++;
     HapticFeedback.mediumImpact();
-    _syncShelf();
-    for (final c in p.cardCells) {
-      pulse[c]++;
-    }
-    meta.recordPaydays(run.paydaysPaid);
-    if (run.cleared && run.paydaysPaid == Run.clearPaydays) {
-      meta.clearedMachine(machine.id);
-      phase = Phase.cleared;
-      Sfx.play('clear');
-      say(1, pick(lineClear));
-      ascOpened = meta.recordClear(ascension);
-      Rank.instance.submit(Board.ascension, ascension);
-      _checkAchievements();
-    } else {
-      // the song's curtain call, then the merch booth (a tap skips ahead)
-      songLine = pick(idolLines[songIdol!]!.songEnd);
-      Voice.say(songIdol!, songLine, delayMs: 500);
-      Future.delayed(const Duration(milliseconds: 4200), () {
-        if (_alive && phase == Phase.payday && payday == p) toShop();
-      });
-    }
-    notifyListeners();
   }
 
   /// From the song's curtain call to the merch booth.
@@ -928,6 +1136,7 @@ class GameController extends ChangeNotifier {
 
   void postpone() {
     if (!run.canPostpone) return;
+    Bgm.play('bgm_clear');
     run.postpone();
     say(0, pick(linePostpone));
     _openShop();
@@ -940,6 +1149,7 @@ class GameController extends ChangeNotifier {
   void giveUp() {
     if (phase == Phase.over) return;
     if (tutorial) meta.finishTutorial();
+    Bgm.play('bgm_result');
     _countEarned();
     // the level goes up (by one at most) when the run is over; celebrated on the result screen
     if (meta.finishRun() case final up?) levelUps.add(up);
@@ -951,13 +1161,12 @@ class GameController extends ChangeNotifier {
     _checkAchievements();
     if (turnRecord) _fetchTurnRank();
     newMachines = meta.takeNewMachines();
-    Sfx.play(run.cleared ? 'jingle' : 'over');
+    if (levelUps.isNotEmpty) _pushToast(TopToast(level: (levelUps.first - 1, levelUps.last)));
+    if (newMachines.isNotEmpty) _pushToast(TopToast(machines: newMachines));
+    // a jingle only for a cleared live; giving up stays quiet (the result BGM is enough)
+    if (run.cleared) Sfx.play('jingle');
     // つむぎ sums it up (a level-up is the bigger news)
     overLine = pick(levelUps.isNotEmpty ? lineLevelUp : (run.cleared ? lineOverWin : lineOverLose));
-    Future.delayed(const Duration(milliseconds: 700), () => _alive && phase == Phase.over ? Voice.say(kTsumugi, overLine) : null);
-    if (newMachines.isNotEmpty || ascOpened != null) {
-      Future.delayed(const Duration(milliseconds: 900), () => Sfx.play('unlock'));
-    }
     notifyListeners();
   }
 
@@ -976,26 +1185,25 @@ class GameController extends ChangeNotifier {
 
   // ── shop ──
   void _openShop({bool encore = false}) {
-    if (coach == Coach.pay) {
-      coach = Coach.expand;
-      // the boss's card turns up early in the tutorial, so どける can be shown on it
-      run.leaveCard();
-      _syncShelf();
-      // the tutorial shows off the shelf upgrade: make sure it is there and affordable
-      Future.microtask(() {
-        // still three items: the upgrade replaces one of them
-        run.shop.removeWhere((o) => o.kind == OfferKind.expand);
-        if (run.shop.length >= 3) run.shop.removeLast();
-        run.shop.insert(0, Offer(OfferKind.expand, math.min(run.expandPrice, run.coins ~/ 2)));
-        notifyListeners();
-      });
-    }
+    heartPop.clear(); // the altar may grow at the stall and renumber its cells
     run.rollShop();
     phase = Phase.shop;
     Sfx.play('shop');
-    final hello = pick(encore ? lineEncore : (_cardNotice ? lineCard : lineShop));
-    _cardNotice = false;
+    _rareArrival();
+    final hello = pick(encore ? lineEncore : lineShop);
     if (!_coaching) Future.delayed(const Duration(milliseconds: 700), () => _alive && phase == Phase.shop ? say(encore ? 1 : 0, hello) : null);
+  }
+
+  /// A レア商品 on the shelf: a gold 「レア入荷！」 and a chime.
+  void _rareArrival() {
+    if (!run.shop.any((o) => o.rare)) return;
+    rareToken++;
+    Future.delayed(const Duration(milliseconds: 450), () {
+      if (_alive && phase == Phase.shop) {
+        Sfx.play('unlock');
+        HapticFeedback.mediumImpact();
+      }
+    });
   }
 
   Future<void> buy(Offer o) async {
@@ -1021,26 +1229,21 @@ class GameController extends ChangeNotifier {
     if (o.kind == OfferKind.expand) _syncShelf();
     coinsShown = run.coins;
     notifyListeners();
-    if (coach == Coach.expand && o.kind == OfferKind.expand) {
-      // next: 品がえ
-      coach = Coach.reroll;
-      notifyListeners();
-    }
   }
 
   void reroll() {
     if (run.reroll()) {
       Sfx.play('reroll');
+      _rareArrival();
       coinsShown = run.coins;
       HapticFeedback.selectionClick();
-      if (coach == Coach.reroll) coach = Coach.multi;
     }
     notifyListeners();
   }
 
   void leaveShop() {
     if (phase != Phase.shop) return;
-    if (coach == Coach.leave) coach = Coach.card;
+    Bgm.play('bgm_${machine.bgm}'); // the next song
     _syncShelf();
     if (pending.isNotEmpty) {
       _fromShop = true;

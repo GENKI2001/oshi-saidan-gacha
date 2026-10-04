@@ -9,7 +9,9 @@
 - 歓声：ループはなし。ハートを数えている間に短い歓声が重なって大きくなり（盛り上がり度で大きさが変わる）、大きく稼ぐと歓声、曲の成功で大歓声、推しのグッズを置くと客席から名前コール（`lib/ui/crowd.dart`、音は `art/crowd.py` が TTS のファンの叫び声とノイズから合成）
 - アイドルユニット「ぷりずむ☆パレット」5人（ひなた・しずく・こはる・よる・もも）＋マネージャーのつむぎ（ノルマ係）。全員20歳の架空の人物
 - グッズのタグ＝推しの名前。同じ推しを並べる・推し同士のコンビで稼ぐ
-- **フルボイス**：つむぎの台詞（取り立て・売店・チュートリアル・結果）と、メンバーのガチャ時の台詞・応援・タイトルコールをすべて音声で再生
+- **ボイス**：メンバー5人のガチャ時の台詞・応援・タイトルコール・妨害の台詞を音声で再生。祭壇のグッズをタップするとそのメンバーがしゃべる。つむぎは文字だけ（声はささやきボイスのみ）
+- **妨害イベント**：駒を置いたあと・点数計算の前に、転売ヤーのカイシメが乗りこんでくる（ふつう5%、ガチャ台で変わる）。サイレンとカットインのあと、祭壇にいちばん多いメンバーと押し合い。「まもれ！」の連打でまもれる確率が上がる（10回/秒の連打で約80%）。押しの強さと、負けたときの効果（グッズを1〜2個持っていかれる／この曲はもう一回ひくなし／この曲のハート半分／ハートを20〜40%失う）はランダム（`Run.rollJam`、画面は `lib/ui/jam_widgets.dart`、音は `art/sfx_jam.py`）
+- 祭壇のグッズは上から置きかえられる（注意書きの上に置くと +20）。どける・いれかえ・段位はなし
 - レア度は星1〜4。★3 / ★4 を引くと推しのカットイン（`lib/ui/idol_widgets.dart`）。カプセルはレア度ごとの絵（`assets/ui/capsule_<n>_top/bot.png`、`art/slice.py` が継ぎ目で上下に切る）
 - 実績（`lib/logic/achievements.dart`）：達成すると ささやきボイス（ASMR、18本）が聞ける。`art/asmr.py` が台詞を本物のささやき声に変換して左右の耳に振り分けた1本の音声にする（`assets/asmr/`、字幕のタイミングは `lib/ui/asmr_timing.dart`）
 - タイトルのメンバーをタップ／メンバー紹介でボイスが聞ける
@@ -29,13 +31,14 @@ flutter test integration_test/app_test.dart -d <シミュレーターID> --dart-
 | 場所 | 中身 |
 |---|---|
 | `art/goods.py` | グッズ96種の表（縁日版の駒 → 新ID・名前・絵文字・タグ・絵の説明）。`figures` で `lib/logic/figures.dart` を、`prompts` で画像プロンプトを生成。効果の数字は縁日版と同じ |
-| `lib/logic/modes.dart` | ガチャ台6種（ぷりパレ・しずもも・こはる推し・ひなた推し・よるの真夜中・プレミアム）と段位 |
+| `lib/logic/modes.dart` | ガチャ台13種と難易度（かんたん〜おに、`tool/sim.dart` のクリア率から決めた） |
+| `lib/ui/jam_widgets.dart` | 妨害イベントの画面（カイシメの絵は `art/gen/jama.txt` → `assets/ui/jama_a/b.webp`） |
 | `lib/ui/lines.dart` | 声の出る台詞すべて（つむぎ／5人／チュートリアル）。数字の変わる文は入れない（声は文ごとに1回録るため） |
 | `lib/ui/voice.dart` | ボイス再生。1度に1人、話している間は BGM を下げる。設定で ON/OFF |
 | `lib/ui/voice_ids.dart` | 「話者\|台詞」→ `assets/voice/<id>.m4a`（生成物） |
 | `lib/ui/idol_widgets.dart` | カットイン・吹き出し・顔アイコン・メンバーの色 |
 | `lib/ui/member_screen.dart` | メンバー紹介 |
-| `art/songs/` | 歌入り BGM 8曲（ACE-Step 1.5、歌詞は `docs/lyrics.md`）。手順と採用テイクは `art/songs/README.md`。`art/bgm.py` は以前の歌なし版（今は未使用） |
+| `art/songs/` | 歌入り BGM 8曲（ACE-Step 1.5 で作り、歌はメンバー本人の声で歌い直し＝`sing.py`。歌詞は `docs/lyrics.md`）。手順と採用テイクは `art/songs/README.md`。`art/bgm.py` は以前の歌なし版（今は未使用） |
 | `art/slice.py` | Codex の生成画像（マゼンタ／グリーン背景）を透過 PNG に。背景は端から続く部分だけ抜くので紫・ピンクの絵が欠けない |
 | `art/launch.py` | 起動画面（iOS はキービジュアル全面、Android はロゴ） |
 | `art/crowd.py` | 歓声・コール（`voice/crowd/` の叫び声 → `assets/sfx/crowd_*.wav` など） |
@@ -63,11 +66,34 @@ python3 art/slice.py && python3 art/icon.py && python3 art/launch.py
 
 ## 推し活レベル
 - これまで稼いだコインの合計でレベルが上がる。必要枚数は `lib/logic/levels.dart` の `levelNeed`
-- グッズの `level` がそのレベルになるとガチャに出る
+- グッズの `level` がそのレベルになるとガチャに出る。Lv1 から約半分（46種）が出る（種類が多いほど運の要素が大きい。`art/goods.py` の `LEVEL`）
+- 目安（ぷりパレガチャ Lv1、`dart run tool/sim.dart`）：ランダムに置くと約10%、効率よく置いて買うと約45%（推し活レベルが上がると少しやさしくなり、Lv15 で約60%）
 
 ## ランキング（サーバーなし）の設定
-ID は `lib/ui/rank.dart` の `boards`（`oshi.best_turn` / `oshi.paydays` / `oshi.ascension`）。手順は縁日版の README と同じ。
+ID は `lib/ui/rank.dart` の `boards`（`oshi.best_turn` / `oshi.paydays`）。手順は縁日版の README と同じ。
 Android は Play Console で作った ID を `rank.dart` と `android/app/src/main/res/values/games-ids.xml` に書く。
+
+### ガチャごとのランキング（「このガチャで全国○位」）
+ガチャ選択のカードに、そのガチャでの「1回の最高ハート」の全国順位を出す。ボードは `lib/ui/rank.dart` の `machineBoards`（ガチャの一覧から自動で作る）。
+- App Store Connect：Game Center → リーダーボード（クラシック）を下の iOS ID で作る。スコアは整数・大きいほど上・期間なし。作ったら審査に出すバージョンの Game Center 欄に追加する
+- Play Console：Play ゲームサービス → リーダーボードを同じ名前で作り、振られた ID を `rank.dart` の Android 側（今は `CgkI_REPLACE_turn_…`）と `android/app/src/main/res/values/games-ids.xml` に書く
+- 登録前・未ログインのときは送れなかったスコアを取っておき（ガチャごとに送った最高値も覚えている）、登録後に送る。順位はわかった台だけ表示する
+
+| iOS ID | 表示名 | Android（仮） |
+|---|---|---|
+| `oshi.turn.pripare` | ぷりパレガチャの最高ハート | `CgkI_REPLACE_turn_pripare` |
+| `oshi.turn.otameshi` | おためしガチャの最高ハート | `CgkI_REPLACE_turn_otameshi` |
+| `oshi.turn.shizumomo` | しずももガチャの最高ハート | `CgkI_REPLACE_turn_shizumomo` |
+| `oshi.turn.koharu` | こはる推しガチャの最高ハート | `CgkI_REPLACE_turn_koharu` |
+| `oshi.turn.hinata` | ひなた推しガチャの最高ハート | `CgkI_REPLACE_turn_hinata` |
+| `oshi.turn.shizuku` | しずく推しガチャの最高ハート | `CgkI_REPLACE_turn_shizuku` |
+| `oshi.turn.momo` | もも推しガチャの最高ハート | `CgkI_REPLACE_turn_momo` |
+| `oshi.turn.nyan` | ぱれにゃんガチャの最高ハート | `CgkI_REPLACE_turn_nyan` |
+| `oshi.turn.yoru` | よる推しガチャの最高ハート | `CgkI_REPLACE_turn_yoru` |
+| `oshi.turn.fan` | ファンミーティングガチャの最高ハート | `CgkI_REPLACE_turn_fan` |
+| `oshi.turn.premium` | プレミアムガチャの最高ハート | `CgkI_REPLACE_turn_premium` |
+| `oshi.turn.tenbai` | 転売ヤー警戒ガチャの最高ハート | `CgkI_REPLACE_turn_tenbai` |
+| `oshi.turn.dome` | ドームツアーガチャの最高ハート | `CgkI_REPLACE_turn_dome` |
 
 ## リリースビルド
 ```

@@ -29,6 +29,7 @@ def main():
     ap.add_argument("--guidance", type=float, default=None)
     ap.add_argument("--shift", type=float, default=3.0)
     ap.add_argument("--no-think", action="store_true")
+    ap.add_argument("--lyrics", default="lyrics", help="which lyrics of the song: lyrics or lyrics_kana")
     args = ap.parse_args()
 
     from acestep.handler import AceStepHandler
@@ -54,7 +55,7 @@ def main():
         for seed in args.seeds:
             t1 = time.time()
             params = GenerationParams(
-                caption=s["caption"], lyrics=s["lyrics"].strip(),
+                caption=s["caption"], lyrics=s[args.lyrics].strip(),
                 vocal_language="ja", bpm=s["bpm"], keyscale=s["keyscale"],
                 timesignature="4", duration=float(s["duration"]),
                 inference_steps=steps, guidance_scale=guidance, shift=args.shift,
@@ -62,7 +63,8 @@ def main():
             )
             cfg = GenerationConfig(batch_size=1, use_random_seed=False, seeds=[seed],
                                    audio_format="wav")
-            tag = f"{name}__{args.dit}__s{seed}"
+            variant = "" if args.lyrics == "lyrics" else "_" + args.lyrics.split("_")[1]
+            tag = f"{name}{variant}__{args.dit}__s{seed}"
             sub = os.path.join(args.out, tag)
             res = generate_music(dit, llm, params, cfg, save_dir=sub)
             dt = time.time() - t1

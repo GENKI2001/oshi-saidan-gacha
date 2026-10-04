@@ -21,9 +21,11 @@ RENDER = HERE / 'render'
 VOICES = {
     'ひなた': ('hinata_B', '高めで明るくまっすぐな、二十歳の女性アイドルの声。元気でテンションが高く、少し早口。'),
     'しずく': ('shizuku_A', '落ち着いた透明感のある、二十歳の女性の声。丁寧な敬語で静かに話す、クールで上品な話し方。'),
-    'こはる': ('koharu_A', 'ふわふわと柔らかく、ゆっくりおっとりした、二十歳の女性の声。少し眠たげで甘く、のんびりした話し方。'),
+    # the bright take (D); A (おっとり、眠たげ) was tried and sounded off
+    'こはる': ('koharu_D', '明るく元気いっぱいで、ふわふわ甘い、二十歳の女性アイドルの声。テンション高めで、にこにこ弾むように話す。'),
     'よる': ('yoru_A', 'いたずらっぽく小悪魔的な、二十歳の女性の声。少し低めでささやくように、からかって楽しそうに話す。'),
-    'もも': ('momo_A', '甘く高めでかわいらしい、二十歳の女性アイドルの声。あざとく甘えるような、きゃぴきゃぴした話し方。'),
+    # B: A sounded muffled (picked by ear from B-H)
+    'もも': ('momo_B', 'とても甘い声の、二十歳の女性アイドル。妹っぽく甘えんぼで、語尾がはねる。'),
     # bright and glamorous (asked for 明るく華やか): G stays around 380 Hz, clear of ひなた / もも (~450 Hz)
     'つむぎ': ('tsumugi_G', 'つやのある明るい声の二十歳の女性。アナウンサーのように聞き取りやすく、華やかで、にこやかに話す。'),
 }
@@ -36,8 +38,8 @@ MOOD = {
     'angry': 'ぷんぷん怒って、頬をふくらませて。',
 }
 
-# ささやきボイス: the speaker's own voice (same reference take), whispered close to the ear
-WHISPER = '耳元でささやくウィスパーボイス。吐息まじりで、ゆっくり、やさしく、とても小さな声で話す。'
+# シチュエーションボイス: her usual voice, talking to the one fan right in front of her
+SCENE = 'すぐ目の前にいる大切なファンに、ふたりきりで語りかけるように。気持ちをこめて、表情豊かに、自然な会話のテンポで。'
 
 # Spoken text fixes (TTS pitfalls). Display text stays as written.
 READINGS = [
@@ -70,11 +72,11 @@ def main() -> None:
     for l in lines:
         who, text, mood = l['who'], l['text'], l['mood']
         ref, cap = VOICES[who]
-        caption = (cap.split('。')[0] + '。' + WHISPER) if mood == 'whisper' else cap + MOOD[mood]
+        caption = cap + (SCENE if mood == 'scene' else MOOD[mood])
         say = spoken(text)
         seed = SEED.get(text, 11)
         vid = hashlib.sha1(f'{who}|{say}|{caption}{"" if seed == 11 else seed}'.encode()).hexdigest()[:10]
-        if mood == 'whisper':
+        if mood == 'scene':
             asmr.setdefault(l['track'], []).append({'id': vid, 'text': text})
         else:
             table[f'{who}|{text}'] = vid
@@ -83,7 +85,7 @@ def main() -> None:
         seen.add(vid)
         jobs.append({'out': str(RENDER / f'{vid}.wav'), 'text': say, 'caption': caption,
                      'ref': str(HERE / 'candidates' / f'{ref}.wav'), 'seed': seed,
-                     'duration_scale': 1.05 if mood == 'whisper' else 0.85, 'kind': 'whisper' if mood == 'whisper' else 'line', 'who': who})
+                     'duration_scale': 0.92 if mood == 'scene' else 0.85, 'kind': 'scene' if mood == 'scene' else 'line', 'who': who})
     (HERE / 'jobs.json').write_text(json.dumps(jobs, ensure_ascii=False, indent=1))
     (HERE / 'asmr.json').write_text(json.dumps(asmr, ensure_ascii=False, indent=1))
     body = ''.join(f"  {json.dumps(k, ensure_ascii=False)}: '{v}',\n" for k, v in sorted(table.items()))

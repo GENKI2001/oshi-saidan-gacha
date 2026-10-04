@@ -1,12 +1,15 @@
-// 実績: the list, the "unlocked!" toast, and the ささやきボイス player that
+// 実績: the list, the "unlocked!" toast, and the シチュエーションボイス player that
 // achievements open.
 
+import 'dart:math' as math;
 import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import '../logic/achievements.dart';
+import '../logic/levels.dart';
+import '../logic/modes.dart';
 import 'asmr_timing.dart';
 import 'idol_widgets.dart';
 import 'lines.dart';
@@ -82,7 +85,7 @@ class AchievementToast extends StatelessWidget {
                 children: [
                   Text('実績解除！ ${a.title}${got.length > 1 ? ' ほか${got.length - 1}件' : ''}', style: outlined(15, C.pink, stroke: Colors.white, width: 3)),
                   if (track != null)
-                    _withIcon(Icons.headphones_rounded, '${track.who}のささやきボイスが 聞けるように！', C.ink)
+                    _withIcon(Icons.record_voice_over_rounded, '${track.who}のシチュエーションボイスが 聞けるように！', C.ink)
                   else
                     Text(a.text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.ink)),
                 ],
@@ -91,6 +94,101 @@ class AchievementToast extends StatelessWidget {
             if (track != null) _face(track.who, 40),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The 推し活 level went up: the same toast as a 実績, with what it adds to the gacha.
+class LevelUpToast extends StatelessWidget {
+  final int from, to;
+  final int token;
+  const LevelUpToast(this.from, this.to, {super.key, required this.token});
+
+  @override
+  Widget build(BuildContext context) {
+    final news = [for (var l = from + 1; l <= to; l++) ...unlockedAt(l)];
+    return _ToastFrame(
+      token: token,
+      icon: Image.asset('assets/ui/lv_badge.png', width: 44, height: 44),
+      title: '推し活レベル UP！ Lv$from → Lv$to',
+      body: news.isEmpty
+          ? const Text('ハートを集めて どんどん上げよう', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.ink))
+          : Row(
+              children: [
+                Text('新しく ${news.length} 種がガチャに ', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.ink)),
+                for (final f in news.take(5)) FigureArt(f, size: 22),
+              ],
+            ),
+    );
+  }
+}
+
+/// The frame the top-of-screen toasts share: slides down, stays, fades.
+class _ToastFrame extends StatelessWidget {
+  final int token;
+  final Widget icon, body;
+  final String title;
+  const _ToastFrame({required this.token, required this.icon, required this.title, required this.body});
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    key: ValueKey(token),
+    tween: Tween(begin: 0, end: 1),
+    duration: const Duration(milliseconds: 4200),
+    builder: (_, t, c) {
+      final ms = t * 4200;
+      final inT = Curves.easeOutBack.transform((ms / 400).clamp(0, 1));
+      final out = ((ms - 3700) / 500).clamp(0.0, 1.0);
+      return Opacity(opacity: 1 - out, child: Transform.translate(offset: Offset(0, -60 * (1 - inT)), child: c));
+    },
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(10, 8, 12, 8),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFFFFF4C2), Color(0xFFFFE0F0)]),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: C.ink, width: 3),
+        boxShadow: [BoxShadow(color: C.gold.withValues(alpha: 0.7), blurRadius: 14)],
+      ),
+      child: Row(
+        children: [
+          icon,
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(title, style: outlined(15, C.pink, stroke: Colors.white, width: 3))),
+                body,
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// A gacha just unlocked: the same toast as a 実績, with the machine on it.
+class UnlockToast extends StatelessWidget {
+  final List<MachineDef> got;
+  final int token;
+  const UnlockToast(this.got, {super.key, required this.token});
+
+  @override
+  Widget build(BuildContext context) {
+    final m = got.first;
+    return _ToastFrame(
+      token: token,
+      icon: MachineArt(hue: m.hue, height: 44),
+      title: 'ガチャ解放！ ${m.name}${got.length > 1 ? ' ほか${got.length - 1}台' : ''}',
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(m.blurb, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.ink)),
+          DifficultyBadge(m.difficulty, size: 11),
+        ],
       ),
     );
   }
@@ -117,30 +215,27 @@ class _AchievementScreenState extends State<AchievementScreen> {
     final done = achievements.where((a) => m.achieved.contains(a.id)).length;
     return Scaffold(
       backgroundColor: C.night,
-      appBar: AppBar(
-        backgroundColor: C.night,
-        foregroundColor: Colors.white,
-        title: Text('実績 $done / ${achievements.length}', style: outlined(22, Colors.white, width: 2)),
-      ),
       body: Container(
         decoration: const BoxDecoration(image: DecorationImage(image: AssetImage('assets/ui/venue_1.jpg'), fit: BoxFit.cover)),
-        child: Center(
+        child: SafeArea(bottom: false, child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
               children: [
+                // the header scrolls away with the list
+                ScreenHeader('実績', note: '$done / ${achievements.length}'),
                 Container(
                   padding: const EdgeInsets.all(10),
                   margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(16), border: Border.all(color: C.ink, width: 2)),
                   child: Row(
                     children: [
-                      const Icon(Icons.headphones_rounded, color: C.pink, size: 28),
+                      const Icon(Icons.record_voice_over_rounded, color: C.pink, size: 28),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
-                          '実績を達成すると、メンバーの「ささやきボイス」が聞けるようになるよ。ヘッドホン推奨！',
+                          '実績を達成すると、メンバーの「シチュエーションボイス」が聞けるようになるよ。あなただけの特別なひとときを！',
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: C.ink, height: 1.4),
                         ),
                       ),
@@ -151,7 +246,7 @@ class _AchievementScreenState extends State<AchievementScreen> {
               ],
             ),
           ),
-        ),
+        )),
       ),
     );
   }
@@ -190,8 +285,8 @@ class _AchievementScreenState extends State<AchievementScreen> {
                 if (!got && goal > 1) Text('${now.clamp(0, goal)} / $goal', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: C.ink)),
                 if (track != null)
                   _withIcon(
-                    got ? Icons.headphones_rounded : Icons.lock_rounded,
-                    got ? '${track.who}「${track.title}」' : '${track.who}のささやきボイス',
+                    got ? Icons.record_voice_over_rounded : Icons.lock_rounded,
+                    got ? '${track.who}「${track.title}」' : '${track.who}のシチュエーションボイス',
                     got ? col : const Color(0xFF9A8FA2),
                   ),
               ],
@@ -214,7 +309,7 @@ class _AchievementScreenState extends State<AchievementScreen> {
   }
 }
 
-/// Plays one ささやきボイス track with its lines as subtitles.
+/// Plays one シチュエーションボイス with its lines as subtitles.
 class AsmrScreen extends StatefulWidget {
   final AsmrTrack track;
   const AsmrScreen({super.key, required this.track});
@@ -272,11 +367,20 @@ class _AsmrScreenState extends State<AsmrScreen> {
     return k;
   }
 
+  /// Her face for a line: shy and touched on the tender ones, beaming on the excited ones.
+  String _expression(String line) {
+    if (RegExp(r'…|ありがと|秘密|ないしょ|照れ|ドキドキ|どきどき|ほんと|気持ち|約束|特別|夢').hasMatch(line)) return 'c';
+    if (RegExp(r'！|やった|だいすき|だーいすき|おめでと|すごい|わぁ|きゃー').hasMatch(line)) return 'b';
+    return 'a';
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = widget.track;
     final col = idolColor[t.who]!;
     final cur = _line;
+    final line = cur < 0 ? null : t.lines[cur];
+    final face = line == null ? 'a' : _expression(line);
     return Scaffold(
       backgroundColor: const Color(0xFF1A1230),
       appBar: AppBar(backgroundColor: Colors.transparent, foregroundColor: Colors.white, title: Text(t.title, style: outlined(20, Colors.white, stroke: col, width: 3))),
@@ -284,41 +388,66 @@ class _AsmrScreenState extends State<AsmrScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Opacity(opacity: 0.35, child: Image.asset('assets/ui/venue_0.jpg', fit: BoxFit.cover)),
-          DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, const Color(0xFF1A1230).withValues(alpha: 0.9)]))),
+          Opacity(opacity: 0.45, child: Image.asset('assets/ui/venue_0.jpg', fit: BoxFit.cover)),
+          DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [col.withValues(alpha: 0.18), const Color(0xFF1A1230).withValues(alpha: 0.85)]))),
           SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.headphones_rounded, color: Colors.white, size: 18, shadows: [Shadow(color: col, blurRadius: 4)]),
-                    const SizedBox(width: 4),
-                    Text('ヘッドホン推奨', style: outlined(14, Colors.white, stroke: col, width: 3)),
-                  ],
-                ),
+                // she stands in a fixed box: the length of the line never moves her
                 Expanded(
-                  child: t.who == kTsumugi
-                      ? Image.asset('assets/ui/boss_1.png', fit: BoxFit.contain)
-                      : Image.asset(portrait(t.who), fit: BoxFit.contain, alignment: Alignment.topCenter),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned.fill(
+                        top: 8,
+                        child: _Breathing(
+                          // a little hop as each line starts
+                          child: TweenAnimationBuilder<double>(
+                            key: ValueKey(cur),
+                            tween: Tween(begin: 0, end: 1),
+                            duration: const Duration(milliseconds: 520),
+                            builder: (_, v, c) => Transform.translate(
+                              offset: Offset(0, -math.sin(v * math.pi) * (face == 'b' ? 18 : 8)),
+                              child: Transform.rotate(angle: math.sin(v * math.pi) * (face == 'b' ? 0.025 : (face == 'c' ? -0.015 : 0)), child: c),
+                            ),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 260),
+                              child: Image.asset(
+                                portrait(t.who, face: face),
+                                key: ValueKey(face),
+                                fit: BoxFit.contain,
+                                alignment: Alignment.bottomCenter,
+                                gaplessPlayback: true,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // shy lines get a few floating hearts
+                      if (face == 'c')
+                        Positioned(
+                          right: 40,
+                          top: 60,
+                          child: IgnorePointer(child: Sparkles(token: cur + 1, size: 120, colors: [col, Colors.white, const Color(0xFFFF8FC0)], count: 10)),
+                        ),
+                    ],
+                  ),
                 ),
-                // the line she is whispering now, the others faint
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 400),
-                    child: Text(
-                      cur < 0 ? '……' : t.lines[cur],
-                      key: ValueKey(cur),
-                      textAlign: TextAlign.center,
-                      style: outlined(18, Colors.white, stroke: Color.lerp(col, C.ink, 0.4)!, width: 4).copyWith(height: 1.5),
+                // what she is saying, in a speech bubble of fixed height
+                SizedBox(
+                  height: 150,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (c, a) => ScaleTransition(scale: Tween(begin: 0.9, end: 1.0).animate(CurvedAnimation(parent: a, curve: Curves.easeOutBack)), child: FadeTransition(opacity: a, child: c)),
+                      child: _bubble(t.who, line ?? '……', col, key: ValueKey(cur)),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 PopButton(_playing ? 'もう一度はじめから' : '▶ 聞く', color: col, fontSize: 18, onTap: _play),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -326,4 +455,106 @@ class _AsmrScreenState extends State<AsmrScreen> {
       ),
     );
   }
+
+  Widget _bubble(String who, String text, Color col, {Key? key}) => Stack(
+    key: key,
+    clipBehavior: Clip.none,
+    children: [
+      Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 14),
+        padding: const EdgeInsets.fromLTRB(18, 20, 18, 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: col, width: 3),
+          boxShadow: [BoxShadow(color: col.withValues(alpha: 0.45), blurRadius: 14)],
+        ),
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: Text(text, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.5, fontWeight: FontWeight.w900, color: C.ink)),
+            ),
+          ),
+        ),
+      ),
+      // the tail points up at her
+      Positioned(
+        top: 2,
+        left: 0,
+        right: 0,
+        child: Center(child: CustomPaint(size: const Size(28, 16), painter: _TailPainter(col))),
+      ),
+      // her name on a tag
+      Positioned(
+        left: 14,
+        top: 0,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          decoration: BoxDecoration(color: col, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white, width: 2)),
+          child: Text(who, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white)),
+        ),
+      ),
+    ],
+  );
+}
+
+/// A slow, gentle breathing sway, so she never stands frozen.
+class _Breathing extends StatefulWidget {
+  final Widget child;
+  const _Breathing({required this.child});
+  @override
+  State<_Breathing> createState() => _BreathingState();
+}
+
+class _BreathingState extends State<_Breathing> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 3200))..repeat();
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    builder: (_, c) {
+      final v = math.sin(_c.value * 2 * math.pi);
+      return Transform.translate(
+        offset: Offset(0, v * 3),
+        child: Transform.scale(scale: 1 + v * 0.008, alignment: Alignment.bottomCenter, child: c),
+      );
+    },
+    child: widget.child,
+  );
+}
+
+/// The little triangle on top of the speech bubble.
+class _TailPainter extends CustomPainter {
+  final Color col;
+  _TailPainter(this.col);
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(size.width / 2, 0)
+      ..lineTo(size.width, size.height)
+      ..close();
+    canvas.drawPath(p, Paint()..color = Colors.white);
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, size.height)
+        ..lineTo(size.width / 2, 0)
+        ..lineTo(size.width, size.height),
+      Paint()
+        ..color = col
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_TailPainter o) => o.col != col;
 }

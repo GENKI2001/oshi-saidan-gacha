@@ -1,0 +1,15 @@
+Create one image 1536x1024: a sprite sheet laid out as an exact grid of 4 columns x 3 rows (12 cells of equal size). Collectible goods of an original anime idol unit, one per cell, in this order left-to-right, top-to-bottom:
+1 an acrylic stand of chibi HINATA crossing both arms in a big X pose, red sparkles, on a clear base
+2 a light-blue eight-pointed snowflake crystal charm with chibi SHIZUKU in the middle, glittering
+3 a square checkerboard cookie (yellow and brown squares) with chibi KOHARU face icing in the middle
+4 a purple four-pointed star brooch with long diagonal rays and a tiny black bat, shiny gold rim
+5 a big pink ribbon tied in an X cross shape with a heart charm and a tiny MOMO cat-ear tag
+6 a rainbow diagonal shoulder sash (tasuki) with hearts and stars, folded neatly
+7 a small plush of PARENYAN (round white cat mascot) jumping diagonally with motion lines and a star trail
+8 a night-sky constellation map in blue and purple with diagonal star lines, tiny chibi SHIZUKU and YORU in the corners
+9 a pink cheering pennant flag on a stick, tilted diagonally, with stars and hearts
+10 a bingo card with a diagonal line of stamped hearts, tiny chibi HINATA and KOHARU in the corner
+11 two glowing penlights crossed in an X, one pink and one cyan, light glow around them
+12 a miniature diamond-shaped stage model with five tiny idol figures (HINATA, SHIZUKU, KOHARU, YORU, MOMO) on it, sparkling lights
+The characters are from the attached reference sheet — draw them with exactly these designs (hair, colors, accessories): HINATA (red-orange theme, orange-brown high side ponytail with a big red ribbon and a gold star clip), SHIZUKU (sky-blue theme, long straight navy hair with hime cut, water-drop earrings), KOHARU (yellow theme, wavy honey-blonde bob with a white flower clip, sleepy eyes), YORU (purple theme, black twin tails with purple tips, bat-wing hair clip, small fang), MOMO (pink theme, fluffy pastel-pink hair with a pink cat-ear headband), TSUMUGI (green theme, short chestnut bob with a green hairpin, deadpan half-lidded eyes). PARENYAN is the idol unit's mascot: a round chubby white cat with a tiny rainbow star on its forehead.
+Style: kawaii flat 2D sticker illustrations of anime idol merchandise (goods), chunky rounded shapes, chibi characters with big sparkling anime eyes, soft pastel colors with each idol's theme color as accent, clean dark-brown outlines, each object has a thick white die-cut sticker border. Every object is centered in its own cell, same scale, fully inside the cell with generous margin, no overlap between cells. The whole background is ONE flat solid pure magenta color (#FF00FF) everywhere, no gradients, no shadows on the background, no grid lines, no text, no letters, no numbers, no watermark.

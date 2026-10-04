@@ -2,10 +2,10 @@
 // Effects are plain data; run.dart interprets them. Descriptions are
 // generated from the data so mass-produced figures never drift from text.
 
-enum Rarity { normal, rare, epic, legend, curse }
+enum Rarity { normal, rare, epic, legend }
 
 extension RarityInfo on Rarity {
-  String get label => const ['★1', '★2', '★3', '★4', '注意'][index];
+  String get label => const ['★1', '★2', '★3', '★4'][index];
 }
 
 sealed class Effect {
@@ -128,7 +128,7 @@ class Lifetime extends Effect {
   String describe() => '$n回転で 消える（期間限定）';
 }
 
-/// 毎回となりの駒を1体撃ち落とし、その稼ぎの ×m をもらう（のろいを優先）
+/// 毎回となりの駒を1体撃ち落とし、その稼ぎの ×m をもらう
 class ShootAdjacent extends Effect {
   final int m;
   const ShootAdjacent(this.m);
@@ -150,7 +150,7 @@ class OnPlacedEatAdjacentTag extends Effect {
   final int v;
   const OnPlacedEatAdjacentTag(this.tag, this.v);
   @override
-  String describe() => tag == 'のろい' ? '置いた時、となりの注意書きを全部はがして 1枚につき +$v' : '置いた時、となりの「$tag」を全部 交換に出して 1つにつき +$v';
+  String describe() => '置いた時、となりの「$tag」を全部 交換に出して 1つにつき +$v';
 }
 
 /// 置いた時、レア以上の駒を n体生んで割れる
@@ -183,14 +183,6 @@ class Luck extends Effect {
   const Luck(this.v);
   @override
   String describe() => '祭壇にある間 R以上が出やすい（+$v%）';
-}
-
-/// どけた時 +v
-class OnRemovedGain extends Effect {
-  final int v;
-  const OnRemovedGain(this.v);
-  @override
-  String describe() => 'どけると +$v';
 }
 
 /// となりの [tag] 1体につき +v
@@ -257,6 +249,47 @@ class MultShelfTag extends Effect {
   const MultShelfTag(this.tag, this.f);
   @override
   String describe() => '祭壇の「$tag」を全部 ×$f';
+}
+
+/// ななめの [tag] 1つにつき +v
+class AddPerDiagonalTag extends Effect {
+  final String tag;
+  final int v;
+  const AddPerDiagonalTag(this.tag, this.v);
+  @override
+  String describe() => 'ななめの「$tag」1つにつき +$v';
+}
+
+/// ななめの駒1つにつき +v
+class AddPerDiagonalFigures extends Effect {
+  final int v;
+  const AddPerDiagonalFigures(this.v);
+  @override
+  String describe() => 'ななめのグッズ1つにつき +$v';
+}
+
+/// ななめの4マスが全部うまっていると +v（端では埋まりきらない）
+class AddIfDiagonalFull extends Effect {
+  final int v;
+  const AddIfDiagonalFull(this.v);
+  @override
+  String describe() => 'ななめ4マスが全部うまっていると +$v';
+}
+
+/// ななめの駒すべてに +v
+class BuffDiagonal extends Effect {
+  final int v;
+  const BuffDiagonal(this.v);
+  @override
+  String describe() => 'ななめのグッズ すべて +$v';
+}
+
+/// ななめの駒を ×f
+class MultDiagonal extends Effect {
+  final int f;
+  const MultDiagonal(this.f);
+  @override
+  String describe() => 'ななめのグッズを ×$f';
 }
 
 class FigureDef {

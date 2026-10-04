@@ -20,11 +20,12 @@ PAGES = {
     'shelf': ((0, 150, 1206, 1800), []),
     'payday': ((0, 820, 1206, 1880), []),
     'shop': ((0, 350, 1206, 2300), []),
-    'result': ((0, 350, 1206, 2000), []),
+    'jam': ((0, 300, 1206, 2300), []),
+    'select': ((0, 150, 1206, 2400), []),
 }
 
 # which store-screenshot moment each page is cut from (tool/screenshots.sh → art/howto/shots)
-FROM = {'spin': 'h_spin', 'reveal': '5_pull', 'shelf': '4_scoring', 'payday': '6_payday', 'shop': '8_shop', 'result': 'h_result'}
+FROM = {'spin': 'h_spin', 'reveal': '5_pull', 'shelf': '4_scoring', 'payday': '6_payday', 'shop': '8_shop', 'jam': 'h_jam', 'select': 'h_select'}
 
 for name, (box, rings) in PAGES.items():
     im = Image.open(SRC / 'shots' / f'{FROM[name]}.png').convert('RGB')

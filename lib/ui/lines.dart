@@ -1,5 +1,6 @@
-// Every spoken line (フルボイス). Pure Dart so tool/voice_lines.dart can list
-// them for the voice batch (voice/make_voice_jobs.py → assets/voice).
+// Every line on screen. The idols' lines are voiced: tool/voice_lines.dart
+// lists them for the voice batch (voice/make_voice_jobs.py → assets/voice).
+// つむぎ's lines are text only (her voice is just in the シチュエーションボイス).
 //
 // つむぎ（ぷりパレのマネージャー・ノルマ係）mood: 0=ジト目 1=にっこり 2=びっくり 3=おこ
 // Lines must not contain numbers that change during play: the voice is
@@ -70,14 +71,6 @@ const lineSmallTurn = [
   'ここからです。ここから',
   'ハート、もうひと声ほしいですね',
 ];
-const lineCard = [
-  '注意書き、置いておきますね。ちゃんと読んでください',
-  '念のため、注意書きです。捨てたら怒りますよ',
-  'マネージャーからの、お知らせです',
-  'はい、注意書き。祭壇は、整理整頓ですよ',
-  '気が緩んでいるので、注意書きです',
-  'これ、邪魔だったら、どけてもいいですよ',
-];
 const lineFail = [
   'ハートが足りないじゃないですか！',
   'もう、客席が冷えちゃいましたよ！',
@@ -100,12 +93,6 @@ const lineClear = [
   'ライブ成功です。今日のこと、ずっと覚えておきますね',
 ];
 const lineLegend = ['うそ、星4じゃないですか！', 'ほ、星4…！ 本物ですか？', 'これは、とんでもないものが出ましたね', '星4です！ 今日はついてますね'];
-const lineCursePull = [
-  '注意書きです。ハズレじゃありません、お知らせです',
-  'あ、それはわたしの注意書きです',
-  '注意書きが出ました。ちゃんと読んでくださいね',
-  '残念、注意書きでした。でも、どけるとちょっといいことがありますよ',
-];
 const linePayday = [
   '曲の終わりです。ハートのノルマ、届いてますか？',
   '1曲おわりです。ノルマの確認をしますね',
@@ -116,10 +103,15 @@ const linePayday = [
 ];
 const lineEncore = ['アンコール、いきましょう！ お客さん、まだ帰りませんよ', 'アンコールの声、聞こえますか？ もう一曲です！', 'ライブは、まだ終わりません。アンコールです！'];
 const lineAdWait = ['広告の準備中です。少し待ってから、もう一回押してください'];
-const lineAdTickets = ['しかたないですね。どける・いれかえ、また使えるようにしておきました', 'どける・いれかえ、補充しておきました'];
+const lineAdTickets = ['しかたないですね。もう一回ひく、また使えるようにしておきました', 'もう一回ひく、補充しておきました'];
 const lineAdCoins = ['ハート、どうぞ。今回だけですよ', '差し入れのハートです。大事に使ってくださいね'];
 const lineAdLuck = ['運が上がるおまじない、かけておきました', 'おまじない、しておきました。いいの出ますように'];
-const lineTicketUsed = ['もう使いましたよね。次の曲が終わったら、また使えます', 'それは品切れです。次の曲まで待ってください', '使いすぎです。また次の曲で'];
+
+/// 妨害: the scalper KAISHIME barges in (つむぎ calls it, the idol with the most goods pushes back).
+const kJammer = 'カイシメ';
+const lineJam = ['転売ヤーです！ 「まもれ！」を連打してください！', '警備さーん！ …間に合いません、まもってください！', 'カイシメです！ 祭壇のグッズがねらわれてます！'];
+const lineJamWin = ['追いかえしました！ ナイス連打です', 'ふう、グッズは無事です', 'もう来ないでほしいですね'];
+const lineJamLose = ['やられました…', 'くやしいです。次は追いかえしましょう', '警備、強化しておきます…'];
 const lineShop = [
   '物販ブースです。最初のひとつはタダですよ',
   'いらっしゃいませ。ゆっくり見ていってください',
@@ -184,27 +176,8 @@ const coachLines = {
   'effect': 'グッズには効果があります。こはるのアクスタは、となりの「こはる」を×2！ うまく組み合わせて集めましょう',
   'place2': '「祭壇に置く」をタップです',
   'cell2': 'こはるのアクキーの、となりに置いてください',
-  'doubled': 'アクスタの効果で、アクキーのハートが2倍になりました！',
-  'spin3': 'もう一度、回しましょう',
-  'place3': 'こはるの缶バッジが出ました。「祭壇に置く」をタップです',
-  'cell3': '缶バッジは、ここに置いてみてください',
-  'spin4': 'つぎも回しましょう',
-  'place4': 'ももの缶バッジが出ました。「祭壇に置く」をタップです',
-  'cell4': 'こはるのアクスタの、となりに置いてください',
-  'swap1': 'こはるの缶バッジも「こはる」です。アクスタのとなりなら×2！「いれかえ」をタップです',
-  'swap2': 'こはるの缶バッジをタップしてください',
-  'swap3': 'ももの缶バッジをタップして、いれかえましょう',
-  'swapped': 'こはるの缶バッジが、アクスタのとなりに来ました！ これで缶バッジも×2です',
-  'go': '曲の終わりまでに、ハートを集めましょう！ 集まるほど、会場が盛り上がりますよ',
-  'pay': '曲の終わりです！「ハートを届ける！」をタップしてください',
-  'expand': 'ノルマを達成したら、物販ブースです。「祭壇を広げる」でマスを増やしましょう',
-  'reroll': '「品がえ」で、並んでいる品を入れかえられます',
-  'multi': '物販では何個でも買えます。最初のひとつはタダ、そのあとは買うたびに値上がりします',
-  'leave': '買い物がすんだら「つぎの曲へ」です',
-  'card': '注意書きが置かれちゃいましたね。タップして、効果を見てみてください',
-  'remove1': '注意書きは、毎回ハートが減っちゃいます。「どける」でどかしましょう',
-  'remove2': '注意書きをタップして、どけてください',
-  'tools': 'どける・いれかえは、1曲ごとに回復します。これでチュートリアルはおしまい！ ライブを成功させてください',
+  'doubled': 'アクスタの効果で、アクキーのハートが2倍になりました！ 置く場所が大事です。グッズは、上から置きかえることもできます',
+  'go': 'ノルマを達成しながら4曲こなしたらクリアです！ では一緒に頑張りましょう！',
 };
 
 // ── ぷりずむ☆パレット（5人） ──
@@ -223,7 +196,21 @@ class IdolLines {
 
   /// Tapped on the title or in the member list: talking about herself.
   final List<String> talk;
-  const IdolLines({required this.pull, required this.sr, required this.ssr, required this.cheer, required this.title, required this.songEnd, required this.talk});
+
+  /// 妨害: pushing the scalper back / fended off / he got away with it.
+  final List<String> jamHelp, jamWin, jamLose;
+  const IdolLines({
+    required this.pull,
+    required this.sr,
+    required this.ssr,
+    required this.cheer,
+    required this.title,
+    required this.songEnd,
+    required this.talk,
+    required this.jamHelp,
+    required this.jamWin,
+    required this.jamLose,
+  });
 }
 
 const idolLines = {
@@ -323,6 +310,9 @@ const idolLines = {
       'あなたの推し、ひなたにしてくれる？',
       'ずっと、いっしょに走っていこうね！',
     ],
+    jamHelp: ['やめてー！ ひなたのグッズ、まもって！', 'まけないもん！ いっしょに押しかえそう！'],
+    jamWin: ['やったー！ まもってくれて、ありがとう！'],
+    jamLose: ['うう、持っていかれちゃった…'],
   ),
   'しずく': IdolLines(
     pull: [
@@ -420,6 +410,9 @@ const idolLines = {
       'あなたの声援、ちゃんと聞こえていますよ',
       'これからも、そばで見ていてくださいね',
     ],
+    jamHelp: ['それは、ファンの皆さんのものです。返してください', 'お願いします、まもってください'],
+    jamWin: ['助かりました。ありがとうございます'],
+    jamLose: ['…くやしいです'],
   ),
   'こはる': IdolLines(
     pull: [
@@ -517,6 +510,9 @@ const idolLines = {
       'えへへ、また来てくれて、うれしい！',
       'これからも、いっしょにいてね！',
     ],
+    jamHelp: ['わわっ、こはるのグッズ、とらないでー！', 'がんばれー！ まもってー！'],
+    jamWin: ['えへへ、まもってくれて、ありがとー！'],
+    jamLose: ['ふえぇ、持っていかれちゃったよー'],
   ),
   'よる': IdolLines(
     pull: [
@@ -614,6 +610,9 @@ const idolLines = {
       'ステージでは、別人みたいでしょ？',
       'これからも、わたしだけを見ててね',
     ],
+    jamHelp: ['ふーん、よるのグッズに手を出すんだ？', 'ほら、本気で押しかえして？'],
+    jamWin: ['ふふっ、やるじゃん。ごほうび、あげよっか？'],
+    jamLose: ['あーあ、とられちゃった。あとで覚えてなよ'],
   ),
   'もも': IdolLines(
     pull: [
@@ -711,17 +710,15 @@ const idolLines = {
       'えへへ、また話しかけてくれたね！',
       'ずっと、ももを見ててね！',
     ],
+    jamHelp: ['やだー！ もものグッズ、さわらないで！', 'おねがい、ももをまもって！'],
+    jamWin: ['きゃー！ だいすき！ ありがと！'],
+    jamLose: ['ひどーい！ ももの宝物が…'],
   ),
 };
 
 /// Everything spoken, as (speaker, text, mood) — mood is a short TTS hint.
+/// Only the idols speak in play (つむぎ's lines are text only).
 List<(String, String, String)> allVoiced() => [
-  for (final l in [...lineStart, ...lineIdle, ...lineTicketUsed, ...lineShop, ...lineTitle, ...lineAdWait, ...lineTap]) (kTsumugi, l, 'calm'),
-  for (final l in coachLines.values) (kTsumugi, l, 'calm'),
-  for (final l in [...lineClear, ...lineAdTickets, ...lineAdCoins, ...lineAdLuck, ...lineOverWin, ...lineLevelUp, ...linePostpone, ...lineEncore]) (kTsumugi, l, 'happy'),
-  for (final l in [...lineBigTurn, ...lineLegend, ...lineCursePull]) (kTsumugi, l, 'surprise'),
-  for (final l in [...lineSmallTurn, ...lineCard, ...linePayday, ...lineOverLose]) (kTsumugi, l, 'deadpan'),
-  for (final l in lineFail) (kTsumugi, l, 'angry'),
   for (final e in idolLines.entries) ...[
     for (final l in e.value.pull) (e.key, l, 'happy'),
     for (final l in e.value.sr) (e.key, l, 'happy'),
@@ -730,5 +727,8 @@ List<(String, String, String)> allVoiced() => [
     for (final l in e.value.title) (e.key, l, 'excited'),
     for (final l in e.value.songEnd) (e.key, l, 'excited'),
     for (final l in e.value.talk) (e.key, l, 'happy'),
+    for (final l in e.value.jamHelp) (e.key, l, 'excited'),
+    for (final l in e.value.jamWin) (e.key, l, 'happy'),
+    for (final l in e.value.jamLose) (e.key, l, 'calm'),
   ],
 ];

@@ -130,9 +130,26 @@ void main() {
     await settle(t, 1400);
     await shot(t, '8_shop');
 
-    // back out to the members and the goods book
+    // a 妨害: the idol tells what is at stake (for あそびかた)
     g.leaveShop();
     await settle(t, 600);
+    g.run.rules.jamRate = 1;
+    g.options = [figureById['koharu_badge']!];
+    g.phase = Phase.capsule;
+    g.openCapsule();
+    await settle(t, 1200);
+    g.choose(g.options.single);
+    await settle(t, 300);
+    g.tapCell(g.run.emptyCells.isEmpty ? 0 : g.run.emptyCells.first); // (written over when the altar is full)
+    for (var k = 0; k < 120 && g.jamStage != 1; k++) {
+      await settle(t, 100);
+    }
+    // its lines fade in on the real clock: let them, then draw that frame
+    await t.runAsync(() => Future.delayed(const Duration(milliseconds: 1800)));
+    await t.pump(const Duration(milliseconds: 1));
+    await shot(t, 'h_jam');
+
+    // back out to the members and the goods book
     g.giveUp();
     await settle(t, 2500);
     await shot(t, 'h_result');
@@ -143,16 +160,21 @@ void main() {
     await t.tap(find.byKey(const ValueKey('member-よる')));
     await settle(t, 1200);
     await shot(t, '9_members');
-    await t.pageBack();
+    await t.tap(find.byIcon(Icons.arrow_back_rounded).first);
     await settle(t, 1000);
     await t.tap(find.textContaining('図鑑'));
     await settle(t, 1200);
     await shot(t, '10_book');
-    await t.pageBack();
+    await t.tap(find.byIcon(Icons.arrow_back_rounded).first);
     await settle(t, 1000);
     await t.tap(find.text('実績'));
     await settle(t, 1200);
     await shot(t, '11_achievements');
+    await t.tap(find.byIcon(Icons.arrow_back_rounded).first);
+    await settle(t, 1000);
+    await t.tap(find.text('あそぶ'));
+    await settle(t, 1500);
+    await shot(t, 'h_select');
     // let the last voice line go quiet before the tree is torn down
     Voice.stop();
     await t.runAsync(() => Future.delayed(const Duration(milliseconds: 500)));

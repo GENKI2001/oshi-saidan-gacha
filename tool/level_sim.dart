@@ -18,7 +18,7 @@ void main(List<String> args) {
     for (var p = 0; p < players; p++) {
       var level = 1, into = 0;
       for (var run = 1; run <= 120 && level < 15; run++) {
-        final res = play(p * 104729 + run * 7919, bot, () => rulesFor(machines.first, 0)..level = level);
+        final res = play(p * 104729 + run * 7919, bot, () => rulesFor(machines.first)..level = level);
         (earnedAt[level] ??= []).add(res.earned);
         into = (into + res.earned).clamp(0, levelNeed(level));
         if (into >= levelNeed(level)) {

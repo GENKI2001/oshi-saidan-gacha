@@ -57,3 +57,4 @@ app.*.map.json
 /art/__pycache__/
 !/voice/crowd_jobs.json
 /assets/voice/.*.tempo
+/voice/render_song/

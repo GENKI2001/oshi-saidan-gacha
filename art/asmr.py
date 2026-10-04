@@ -1,13 +1,11 @@
-"""ささやきボイス: mix each track's whispered lines into one stereo file.
+"""シチュエーションボイス: join each scene's lines into one file.
 
   ~/Desktop/escape-games/tadaima-hiyori/tools/Irodori-TTS/.venv/bin/python art/asmr.py
 (needs librosa + soundfile: the Irodori venv has both)
 
-Irodori whispers only halfway, so each line is "whisperized": an LPC analysis
-keeps the shape of the voice (who is talking) and the buzz of the vocal cords
-is replaced by breath noise; a little of the original is kept for warmth.
-The lines then alternate between the left and the right ear (level + a tiny
-delay + a softer far side), with a short pause between them.
+Her ordinary voice (no whisper, no ear-to-ear panning): the lines are trimmed,
+evened out and laid one after another with a short breath between them, centred
+as if she stands right in front of you, over a faint room tone.
 Writes assets/asmr/<track>.m4a and lib/ui/asmr_timing.dart (when each line starts).
 """
 import json
@@ -24,49 +22,14 @@ VOICE = ROOT / 'voice'
 OUT = ROOT / 'assets' / 'asmr'
 OUT.mkdir(parents=True, exist_ok=True)
 SR = 44100
-GAP = 0.9  # seconds between lines
+GAP = 0.75  # seconds between lines
 rng = np.random.default_rng(5)
 
 
-def whisperize(y, keep=0.28):
-    """LPC per frame: same formants, noise excitation (a breathy whisper)."""
-    n, hop = 1024, 256
-    win = np.hanning(n)
-    out = np.zeros(len(y) + n)
-    norm = np.zeros(len(y) + n)
-    pre = signal.lfilter([1, -0.95], [1], y)
-    for i in range(0, len(y) - n, hop):
-        frame = pre[i:i + n] * win
-        e = np.sqrt(np.mean(frame ** 2))
-        if e < 1e-5:
-            continue
-        a = librosa.lpc(frame + 1e-9 * rng.standard_normal(n), order=22)
-        res = signal.lfilter(a, [1], frame)
-        noise = rng.standard_normal(n) * np.sqrt(np.mean(res ** 2))
-        synth = signal.lfilter([1], a, noise)
-        out[i:i + n] += synth * win
-        norm[i:i + n] += win ** 2
-    out = out[:len(y)] / np.maximum(norm[:len(y)], 1e-3)
-    out = signal.lfilter([1], [1, -0.95], out)
-    # breath lives up high: lift the top a little, tame the lows
-    b, a = signal.butter(2, 300 / (SR / 2), btype='high')
-    out = signal.lfilter(b, a, out)
-    out = out / (np.abs(out).max() + 1e-9)
-    y = y / (np.abs(y).max() + 1e-9)
-    mix = out * (1 - keep) + y * keep
-    return mix / (np.abs(mix).max() + 1e-9)
-
-
-def ear(mono, side):
-    """Place a line at one ear: side -1 left, +1 right, 0 center."""
-    if side == 0:
-        return np.stack([mono, mono], axis=1) * 0.8
-    near = mono
-    far = np.concatenate([np.zeros(int(SR * 0.0006)), mono])[:len(mono)]  # ~0.6 ms later
-    b, a = signal.butter(1, 2500 / (SR / 2))
-    far = signal.lfilter(b, a, far) * 0.35
-    l, r = (near, far) if side < 0 else (far, near)
-    return np.stack([l, r], axis=1)
+def centre(mono):
+    """Right in front of you: both sides, the right a hair later for a little width."""
+    r = np.concatenate([np.zeros(int(SR * 0.0004)), mono])[:len(mono)]
+    return np.stack([mono, r], axis=1) * 0.8
 
 
 def main():
@@ -75,17 +38,16 @@ def main():
     for tid, lines in tracks.items():
         parts, t, st = [], 0.6, []
         buf = np.zeros((int(SR * 0.6), 2))
-        for k, l in enumerate(lines):
+        for l in lines:
             y, sr = sf.read(VOICE / 'render' / f"{l['id']}.wav")
             if y.ndim > 1:
                 y = y.mean(1)
             y = librosa.resample(y, orig_sr=sr, target_sr=SR)
             idx = np.nonzero(np.abs(y) > 0.01)[0]
             y = y[idx[0]:idx[-1] + 1]
-            w = whisperize(y)
-            side = (-1, 1, -1, 0, 1, -1)[k % 6]
+            y = y / (np.abs(y).max() + 1e-9)
             st.append(int(t * 1000))
-            buf = np.concatenate([buf, ear(w, side) * 0.55, np.zeros((int(SR * GAP), 2))])
+            buf = np.concatenate([buf, centre(y) * 0.7, np.zeros((int(SR * GAP), 2))])
             t = len(buf) / SR
         # a soft room tone under it so the silence is not dead
         room = rng.standard_normal(buf.shape) * 0.0025
@@ -93,8 +55,8 @@ def main():
         buf = buf + signal.lfilter(b, a, room, axis=0)
         wav = VOICE / 'render' / f'asmr_{tid}.wav'
         sf.write(wav, buf, SR)
-        subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-i', str(wav), '-af', 'loudnorm=I=-20:TP=-2',
-                        '-ac', '2', '-ar', '44100', '-c:a', 'aac', '-b:a', '96k', str(OUT / f'{tid}.m4a')], check=True)
+        subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-i', str(wav), '-af', 'loudnorm=I=-18:TP=-2',
+                        '-ac', '2', '-ar', '44100', '-c:a', 'aac', '-b:a', '128k', str(OUT / f'{tid}.m4a')], check=True)
         starts[tid] = st
         print(tid, f'{len(buf) / SR:.1f}s')
     body = ''.join(f"  '{k}': {v},\n" for k, v in starts.items())

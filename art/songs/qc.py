@@ -50,6 +50,8 @@ def main(paths):
     rows = []
     for p in paths:
         name = os.path.basename(p).split("__")[0]
+        for variant in ("_kana",):  # gen_songs.py --lyrics lyrics_kana
+            name = name.removesuffix(variant)
         x, sr = sf.read(p, always_2d=True)
         lufs = pyln.Meter(sr).integrated_loudness(x)
         peak = 20 * np.log10(np.abs(x).max() + 1e-9)

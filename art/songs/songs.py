@@ -30,9 +30,9 @@ SONGS = {
 ステージへ ジャンプ
 
 [Chorus]
-ぷりずむ☆パレット 虹色のハート
+光をかさねて 虹色のハート
 キミの毎日 ぬりかえちゃうよ
-ぷりずむ☆パレット 笑顔をあつめて
+手のひらいっぱい 笑顔をあつめて
 世界でいちばん かがやくよ
 
 [Verse 2]
@@ -46,9 +46,9 @@ SONGS = {
 未来へ ジャンプ
 
 [Chorus]
-ぷりずむ☆パレット 虹色のハート
+光をかさねて 虹色のハート
 キミの毎日 ぬりかえちゃうよ
-ぷりずむ☆パレット 笑顔をあつめて
+手のひらいっぱい 笑顔をあつめて
 世界でいちばん かがやくよ
 
 [Outro]
@@ -90,54 +90,65 @@ SONGS = {
 """,
     ),
     "bgm_pripare": dict(
-        title="ペンライト・ハートビート",
-        bpm=134, keyscale="D major", duration=140,
-        caption=BASE + "upbeat live concert idol song, driving drums, bright electric guitars, "
-        "shiny synths, crowd cheering, energetic chorus with fan calls, euphoric and powerful",
+        title="限界突破☆ヒートアップ！",
+        bpm=172, keyscale="E major", duration=140,
+        caption=BASE + "explosive climax anthem of an idol live concert at its absolute peak, very fast 172 BPM, "
+        "huge wall of sound: layered supersaw synths, octave-doubled distorted electric guitars, slap bass, "
+        "orchestral hits and strings, big brass section, choir pads, double-time snare rolls and crash cymbals, "
+        "an EDM-style riser build-up that explodes into every chorus, the chorus much bigger and thicker than the verses, "
+        "shouted gang vocals and crowd chants, energetic shouted call 'se-no!' by the whole group, "
+        "powerful belting lead vocals, key change up for the final chorus, euphoric, adrenaline, maximum hype",
         lyrics="""[Intro]
+（ハイ！ハイ！ハイ！ハイ！）
+せーの！
 
 [Verse 1]
-客席いっぱい ゆれる光
-ひとつひとつが キミの声
-ステージの上 深呼吸して
-いま 走り出すよ
+鳴りやまない かんせいが
+背中を ぐっと押してくる
+汗も 涙も ぜんぶ燃やして
+いちばん高く とんでいけ
 
 [Pre-Chorus]
-聞こえてる ちゃんと届いてる
-キミのハートの 音
+まだまだ いけるでしょ？
+声をちょうだい（ハイ！）
+もっと 熱く（ハイ！）
 
 [Chorus]
-ペンライト ふって ハートビート
-光の海で つながろう
-ペンライト ふって ハートビート
-キミの想いが 力になる
-（いっしょに）
+限界突破 ヒートアップ！
+会場ぜんぶ 燃えあがれ
+限界突破 ヒートアップ！
+キミとならば どこまでも
+（いえい！）
 
 [Verse 2]
-赤も青も 黄色もピンク
-むらさき色も 夜空に咲いた
-ちいさな光が 集まったら
-ほら 星になるよ
+五色の光 ぶつかって
+夜空ごと まっしろに
+最後の一秒 まばたきしないで
+いまが いちばん アツいんだ
 
 [Pre-Chorus]
-聞こえてる ちゃんと届いてる
-キミのハートの 音
+ついてきて 離さない
+手をのばして（ハイ！）
+もっと 高く（ハイ！）
 
 [Chorus]
-ペンライト ふって ハートビート
-光の海で つながろう
-ペンライト ふって ハートビート
-キミの想いが 力になる
+限界突破 ヒートアップ！
+会場ぜんぶ 燃えあがれ
+限界突破 ヒートアップ！
+キミとならば どこまでも
+（いえい！）
 
 [Bridge]
-アンコールまで 終わらせないよ
-声をあげて もっと高く
+（せーの！）
+とどけ とどけ 天井こえて
+さけべ さけべ 声がかれても
 
 [Chorus]
-ペンライト ふって ハートビート
-光の海で つながろう
-ペンライト ふって ハートビート
-キミとわたしの 永遠ステージ
+限界突破 ヒートアップ！
+会場ぜんぶ 燃えあがれ
+限界突破 ヒートアップ！
+最高のまま 終わらせない
+（ハイ！ハイ！ハイ！ハイ！）
 """,
     ),
     "bgm_shizumomo": dict(
@@ -343,4 +354,198 @@ SONGS = {
 キミと いつまでも かがやこう
 """,
     ),
+    # no singing: the curtain call after a song (quota met) and the result screen
+    "bgm_clear": dict(
+        title="ノルマ達成！",
+        bpm=150, keyscale="C major", duration=48,
+        caption="instrumental only, no vocals, triumphant celebration music for an idol concert after a song succeeded, "
+        "bright brass fanfare, sparkling glockenspiel, driving pop drums, cheering crowd ambience, joyful and victorious, "
+        "J-pop idol game victory theme, seamless loop",
+        lyrics="[Instrumental]",
+    ),
+    "bgm_result": dict(
+        title="ライブのあとで",
+        bpm=96, keyscale="F major", duration=64,
+        caption="instrumental only, no vocals, warm gentle ending theme after an idol concert, soft piano and music box, "
+        "light strings, relaxed shuffle beat, a little nostalgic but happy, calm result screen music for a cute idol game, seamless loop",
+        lyrics="[Instrumental]",
+    ),
 }
+
+# bgm_title's lyrics without kanji, so ACE-Step can't misread them
+# (赤 青 黄色 紫 came out as "あか おう そいろ さき", 虹色 as "にじろ")
+SONGS["bgm_title"]["lyrics_kana"] = """[Intro]
+
+[Verse 1]
+あか あお きいろ むらさき ぴんく
+いつつのいろが きらりとひかる
+はじめましての どきどきだって
+いっしょに まほうに かえちゃおう
+
+[Pre-Chorus]
+せーので てをつないで
+すてーじへ じゃんぷ
+
+[Chorus]
+ひかりをかさねて にじいろのはーと
+きみのまいにち ぬりかえちゃうよ
+てのひらいっぱい えがおをあつめて
+せかいでいちばん かがやくよ
+
+[Verse 2]
+ちいさなゆめを ゆびでまぜたら
+みたことのない いろができたよ
+ひとりじゃだせない このかがやきを
+きみに とどけにいくからね
+
+[Pre-Chorus]
+せーので こえをあわせて
+みらいへ じゃんぷ
+
+[Chorus]
+ひかりをかさねて にじいろのはーと
+きみのまいにち ぬりかえちゃうよ
+てのひらいっぱい えがおをあつめて
+せかいでいちばん かがやくよ
+
+[Outro]
+きらきら にじのむこうまで
+"""
+
+# ぷりパレガチャ (the lobby machine): a playful song about turning the capsule machine
+SONGS["bgm_lobby"] = dict(
+    title="きらきら はっぴー",
+    bpm=165, keyscale="G major", duration=125,
+    caption=BASE + "high-energy, full-power idol pop about turning a capsule toy gacha machine, fast 165 BPM, "
+    "five girls singing their hearts out with powerful belting lead vocals and big gang vocals, "
+    "energetic shouted calls like 'se-no!' and 'hai! hai!', bright supersaw synths, punchy electric guitars, "
+    "driving drums with double-time snare fills, glockenspiel sparkles, cheerful brass hits, "
+    "a riser build-up that explodes into a huge, thick, euphoric chorus much bigger than the verses, "
+    "cute but all-out, maximum excitement, like the peak of a live concert",
+    lyrics="""[Intro]
+
+[Verse 1]
+願いを こめたら
+ときめき あつめて
+今日こそ 会いたい
+大好きな あの子
+
+[Pre-Chorus]
+胸の どきどき
+止まらない
+手を のばしたら
+
+[Chorus]
+キラキラ はじけて
+いっしょに はじけて
+ふわっと ひらいて
+好きが いっぱい
+キラキラ はじけて
+夢まで とどけて
+ピカピカ 光って
+今日も ハッピー
+
+[Verse 2]
+ひとつ ひとつが
+宝もの だよ
+笑顔が ふえたら
+もっと 楽しい
+
+[Pre-Chorus]
+心 わくわく
+止まらない
+今 とびこもう
+
+[Chorus]
+キラキラ はじけて
+いっしょに はじけて
+ふわっと ひらいて
+好きが いっぱい
+キラキラ はじけて
+夢まで とどけて
+ピカピカ 光って
+今日も ハッピー
+
+[Bridge]
+そっと 目をあけて
+光が あふれて
+キミに 会えたら
+最高 だよね
+
+[Chorus]
+キラキラ はじけて
+いっしょに はじけて
+ふわっと ひらいて
+好きが いっぱい
+キラキラ はじけて
+夢まで とどけて
+ピカピカ 光って
+今日も ハッピー
+
+[Outro]
+また明日も 会いにくるね
+""",
+    lyrics_kana="""[Intro]
+
+[Verse 1]
+ねがいを こめたら
+ときめき あつめて
+きょうこそ あいたい
+だいすきな あのこ
+
+[Pre-Chorus]
+むねの どきどき
+とまらない
+てを のばしたら
+
+[Chorus]
+きらきら はじけて
+いっしょに はじけて
+ふわっと ひらいて
+すきが いっぱい
+きらきら はじけて
+ゆめまで とどけて
+ぴかぴか ひかって
+きょうも はっぴー
+
+[Verse 2]
+ひとつ ひとつが
+たからもの だよ
+えがおが ふえたら
+もっと たのしい
+
+[Pre-Chorus]
+こころ わくわく
+とまらない
+いま とびこもう
+
+[Chorus]
+きらきら はじけて
+いっしょに はじけて
+ふわっと ひらいて
+すきが いっぱい
+きらきら はじけて
+ゆめまで とどけて
+ぴかぴか ひかって
+きょうも はっぴー
+
+[Bridge]
+そっと めをあけて
+ひかりが あふれて
+きみに あえたら
+さいこう だよね
+
+[Chorus]
+きらきら はじけて
+いっしょに はじけて
+ふわっと ひらいて
+すきが いっぱい
+きらきら はじけて
+ゆめまで とどけて
+ぴかぴか ひかって
+きょうも はっぴー
+
+[Outro]
+また あしたも あいにくるね
+""",
+)

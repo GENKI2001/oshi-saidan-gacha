@@ -13,9 +13,13 @@ import 'package:oshi_saidan/logic/run.dart';
 
 typedef Bot = ({String name, bool smart, bool shop});
 
+/// How often a mashing player fends off a 妨害 (before his power).
+const jamDefense = 0.75;
+
 int _score(Run r, FigureDef d, int idx) {
   final c = r.clone();
-  c.place(d, idx);
+  // an occupied cell means stacking the same goods on itself
+  c.cells[idx] == null ? c.place(d, idx) : c.overwrite(d, idx);
   var s = c.coins - r.coins;
   // look two turns ahead so growers and fuses are valued
   s += c.endTurn().total;
@@ -30,15 +34,18 @@ int _score(Run r, FigureDef d, int idx) {
 
   void put(List<FigureDef> opts) {
     final empty = r.emptyCells;
-    if (empty.isEmpty) return;
+    // a smart player also considers stacking a goods on its twin
+    final stacks = bot.smart ? [for (final d in opts) for (var i = 0; i < r.size; i++) if (r.stacksOn(d, i)) i] : <int>[];
+    if (empty.isEmpty && stacks.isEmpty) return;
     if (!bot.smart) {
+      if (empty.isEmpty) return;
       r.place(opts[rnd.nextInt(opts.length)], empty[rnd.nextInt(empty.length)]);
       return;
     }
     FigureDef? bd;
     var bi = -1, bs = -1 << 30;
     for (final d in opts) {
-      for (final i in empty) {
+      for (final i in [...empty, ...stacks.where((i) => r.stacksOn(d, i))]) {
         final s = _score(r, d, i);
         if (s > bs) {
           bs = s;
@@ -47,7 +54,7 @@ int _score(Run r, FigureDef d, int idx) {
         }
       }
     }
-    r.place(bd!, bi);
+    r.cells[bi] == null ? r.place(bd!, bi) : r.overwrite(bd!, bi);
   }
 
   while (true) {
@@ -55,10 +62,14 @@ int _score(Run r, FigureDef d, int idx) {
     for (final f in r.figs) {
       used.add(f.def.id);
     }
-    // smart bots throw away the boss's card when they can
-    if (bot.smart && r.removeTickets > 0) {
-      final card = r.cells.indexWhere((f) => f?.def.id == kCardId);
-      if (card >= 0) r.remove(card);
+    // a 妨害: a player mashing まもれ！ fends off about half of them
+    final jam = r.rollJam();
+    if (jam != null) {
+      if (rnd.nextDouble() >= jamDefense / jam.power) {
+        r.applyJam(jam);
+      } else if (r.rewardJam(jam) case final gift?) {
+        put([gift]);
+      }
     }
     r.endTurn();
     if (!r.paydayNow) continue;
@@ -69,8 +80,8 @@ int _score(Run r, FigureDef d, int idx) {
       r.rollShop();
       final reserve = r.baseDue(r.paydaysPaid) ~/ 4;
       for (final o in [...r.shop]..sort((a, b) => b.price - a.price)) {
-        // the bot never swaps or re-pulls, so those upgrades would be wasted coins
-        if (o.kind == OfferKind.swapTicket || o.kind == OfferKind.repullTicket) continue;
+        // the bot never re-pulls, so that upgrade would be wasted coins
+        if (o.kind == OfferKind.repullTicket) continue;
         if (r.coins - r.priceOf(o) < reserve) continue;
         final d = r.buy(o);
         if (d != null) put([d]);
@@ -96,21 +107,22 @@ void main(List<String> args) {
     (name: 'greedy', smart: true, shop: false),
     (name: 'greedy+shop', smart: true, shop: true),
   ];
-  final m = n ~/ 4;
-  print('── machines (asc 0): random / greedy / greedy+shop');
+  final m = n ~/ 2;
+  // each machine at the level it unlocks (what a player meets first), and with everything out
+  print('── machines at their unlock level / at Lv15: random / greedy / greedy+shop');
   for (final mc in machines) {
-    print('   ${mc.name.padRight(10)} ${[for (final b in bots) pct(rate(m, b, () => rulesFor(mc, 0)))].join(' ')}');
+    final lv = mc.unlock == UnlockKind.level ? mc.unlockN : 1;
+    print('   ${mc.name.padRight(14)} Lv${'$lv'.padRight(2)} ${[for (final b in bots) pct(rate(m, b, () => rulesFor(mc)..level = lv))].join(' ')}   '
+        'Lv15 ${[for (final b in bots) pct(rate(m, b, () => rulesFor(mc)..level = 15))].join(' ')}');
   }
-  print('── 推し活レベル on ぷりパレガチャ (greedy+shop): which figures can drop');
-  print('   ${[for (final l in [1, 3, 5, 7, 9, 11, 13, 15]) 'Lv$l ${pct(rate(m, bots[2], () => rulesFor(machines.first, 0)..level = l))}'].join('  ')}');
-  print('── ascension on ぷりパレガチャ (greedy+shop)');
-  print('   ${[for (var a = 0; a <= maxAscension; a += 2) 'A$a ${pct(rate(m, bots[2], () => rulesFor(machines.first, a)))}'].join('  ')}');
+  print('── 推し活レベル on ぷりパレガチャ: random / greedy+shop');
+  print('   ${[for (final l in [1, 3, 5, 7, 9, 11, 13, 15]) 'Lv$l ${pct(rate(m, bots[0], () => rulesFor(machines.first)..level = l))}/${pct(rate(m, bots[2], () => rulesFor(machines.first)..level = l))}'].join('  ')}');
   for (final bot in bots) {
     var wins = 0;
     final died = List.filled(Run.clearPaydays + 1, 0);
     final withF = <String, int>{}, winsWithF = <String, int>{};
     for (var s = 1; s <= n; s++) {
-      final res = play(s * 7919, bot);
+      final res = play(s * 7919, bot, () => rulesFor(machines.first)..level = 1);
       if (res.cleared) wins++;
       died[res.paydays]++;
       for (final id in res.used) {

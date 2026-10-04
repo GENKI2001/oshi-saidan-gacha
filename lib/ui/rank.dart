@@ -14,7 +14,9 @@ import 'package:flutter/foundation.dart';
 import 'package:games_services/games_services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum Board { bestTurn, paydays, ascension }
+import '../logic/modes.dart';
+
+enum Board { bestTurn, paydays }
 
 class BoardInfo {
   final String title, unit, ios, android;
@@ -26,7 +28,13 @@ class BoardInfo {
 const boards = {
   Board.bestTurn: BoardInfo('1回の最高ハート', 'ハート', 'oshi.best_turn', 'CgkI_REPLACE_best_turn', TimeScope.allTime),
   Board.paydays: BoardInfo('成功した曲の数', '曲', 'oshi.paydays', 'CgkI_REPLACE_paydays', TimeScope.allTime),
-  Board.ascension: BoardInfo('最高段位', '段', 'oshi.ascension', 'CgkI_REPLACE_ascension', TimeScope.allTime),
+};
+
+/// One board per machine: the best single spin on that machine ("このガチャで全国○位").
+/// Create these in App Store Connect / Play Console with the same IDs (see README),
+/// then replace the Android placeholders with the IDs Play gives.
+final machineBoards = {
+  for (final m in machines) m.id: BoardInfo('${m.name}の最高ハート', 'ハート', 'oshi.turn.${m.id}', 'CgkI_REPLACE_turn_${m.id}', TimeScope.allTime),
 };
 
 class RankEntry {
@@ -48,6 +56,9 @@ class Rank extends ChangeNotifier {
   String? playerName;
   String? error;
   final Map<Board, int> _pending = {};
+  final Map<String, int> _pendingMachine = {}; // machine id → best spin not sent yet
+  final Map<String, int> machineRank = {}; // machine id → the player's rank there, once known
+  final Map<String, int> _sentMachine = {}; // machine id → the best already on its board
   SharedPreferences? _p;
 
   bool get ready => state == RankState.ready;
@@ -58,6 +69,12 @@ class Rank extends ChangeNotifier {
       for (final b in Board.values) {
         final v = _p!.getInt('pending_${b.name}');
         if (v != null) _pending[b] = v;
+      }
+      for (final id in machineBoards.keys) {
+        final v = _p!.getInt('pending_m_$id');
+        if (v != null) _pendingMachine[id] = v;
+        final s = _p!.getInt('sent_m_$id');
+        if (s != null) _sentMachine[id] = s;
       }
     } catch (_) {}
     await signIn();
@@ -119,12 +136,36 @@ class Rank extends ChangeNotifier {
     if (ready) await _flush();
   }
 
+  /// The best spin on one machine; kept and retried like [submit].
+  Future<void> submitMachine(String id, int value) async {
+    if (value <= (_sentMachine[id] ?? 0)) return; // already there
+    final best = _pendingMachine[id];
+    if (best == null || value > best) _pendingMachine[id] = value;
+    _savePending();
+    if (ready) await _flush();
+  }
+
   Future<void> _flush() async {
     if (demo) {
       _demoMine.addAll(_pending);
+      _demoMachine.addAll(_pendingMachine);
       _pending.clear();
+      _pendingMachine.clear();
       _savePending();
       return;
+    }
+    for (final id in [..._pendingMachine.keys]) {
+      final info = machineBoards[id];
+      if (info == null) continue;
+      try {
+        await Leaderboards.submitScore(
+          score: Score(iOSLeaderboardID: info.ios, androidLeaderboardID: info.android, value: _pendingMachine[id]!),
+        );
+        _sentMachine[id] = _pendingMachine.remove(id)!;
+        _p?.setInt('sent_m_$id', _sentMachine[id]!);
+      } catch (_) {
+        // not set up in the stores yet, or offline: keep it for the next try
+      }
     }
     for (final b in [..._pending.keys]) {
       final info = boards[b]!;
@@ -147,6 +188,35 @@ class Rank extends ChangeNotifier {
       final v = _pending[b];
       v == null ? p.remove('pending_${b.name}') : p.setInt('pending_${b.name}', v);
     }
+    for (final id in machineBoards.keys) {
+      final v = _pendingMachine[id];
+      v == null ? p.remove('pending_m_$id') : p.setInt('pending_m_$id', v);
+    }
+  }
+
+  /// Fetches the player's rank on every machine board (for the gacha select's cards).
+  /// Boards that don't exist yet or have no score just stay unknown.
+  Future<void> refreshMachineRanks() async {
+    if (!ready) return;
+    for (final e in machineBoards.entries) {
+      int? r;
+      if (demo) {
+        final mine = _demoMachine[e.key];
+        r = mine == null ? null : (5000 ~/ (mine + 10)).clamp(1, 999) + 1;
+      } else {
+        try {
+          final s = await Leaderboards.getPlayerScoreObject(
+            iOSLeaderboardID: e.value.ios,
+            androidLeaderboardID: e.value.android,
+            scope: PlayerScope.global,
+            timeScope: e.value.time,
+          );
+          r = s?.rank;
+        } catch (_) {}
+      }
+      if (r != null && r > 0) machineRank[e.key] = r;
+    }
+    notifyListeners();
   }
 
   // ── reading ──
@@ -221,17 +291,17 @@ class Rank extends ChangeNotifier {
 
   // ── demo data (RANK_DEMO only; every name says it is a demo) ──
   final Map<Board, int> _demoMine = {};
+  final Map<String, int> _demoMachine = {};
 
   List<RankEntry> _demoBoard(Board b, bool friends) {
     const names = ['デモ たぬ吉', 'デモ こばん', 'デモ きつね', 'デモ わたあめ', 'デモ ラムネ', 'デモ 太鼓', 'デモ 金魚', 'デモ だるま'];
     final base = switch (b) {
       Board.bestTurn => 900,
       Board.paydays => 14,
-      Board.ascension => 10,
     };
     final others = [
       for (var i = 0; i < (friends ? 3 : names.length); i++)
-        (names[i], b == Board.ascension ? (base - i).clamp(0, 10) : (base * (1 - i * 0.11)).round()),
+        (names[i], (base * (1 - i * 0.11)).round()),
     ];
     final mine = _demoMine[b] ?? _pending[b];
     final all = [...others.map((o) => (o.$1, o.$2, false)), if (mine != null) ('あなた', mine, true)]..sort((x, y) => y.$2.compareTo(x.$2));

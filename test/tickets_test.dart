@@ -1,40 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oshi_saidan/logic/defs.dart';
 import 'package:oshi_saidan/logic/figures.dart';
+import 'package:oshi_saidan/logic/modes.dart';
 import 'package:oshi_saidan/logic/run.dart';
 
 void main() {
-  test('いれかえ: free, refills every payday, the stall raises it up to 3', () {
-    final r = Run(seed: 1);
-    r.place(figureById['coin']!, 0);
-    expect(r.swap(0, 5), isTrue);
-    expect(r.cells[0], isNull);
-    expect(r.cells[5]!.def.id, 'coin');
-    expect(r.swap(5, 0), isFalse, reason: 'only one use per payday');
-    r.coins = 9999;
-    for (var k = 0; k < 60; k++) {
-      r.rollShop();
-      final more = r.shop.where((o) => o.kind == OfferKind.swapTicket);
-      if (more.isNotEmpty) r.buy(more.first);
-    }
-    expect(r.swapMax, Run.maxUses, reason: 'capped at 3');
-    // paying a payday refills every use for free
-    r.swapTickets = 0;
-    r.coins = 9999;
-    r.turn = Run.turnsPerPayday;
-    r.payday();
-    expect(r.swapTickets, Run.maxUses);
-  });
-
-  test('a figure can be overwritten, but not the boss card', () {
+  test('any figure can be overwritten on a full altar', () {
     final r = Run(seed: 2);
     for (var i = 0; i < r.size; i++) {
-      if (r.cells[i] == null) r.place(figureById[i == 3 ? kCardId : 'coin']!, i);
+      if (r.cells[i] == null) r.place(figureById['coin']!, i);
     }
     expect(r.emptyCells, isEmpty);
-    expect(r.canOverwrite(3), isFalse);
-    expect(r.canOverwrite(0), isTrue);
-    r.overwrite(figureById['koharu_keyholder']!, 0);
-    expect(r.cells[0]!.def.id, 'koharu_keyholder');
+    expect(r.canOverwrite(3), isTrue);
+    r.overwrite(figureById['koharu_keyholder']!, 3);
+    expect(r.cells[3]!.def.id, 'koharu_keyholder');
   });
 
   test('a figure can be overwritten while the shelf still has room', () {
@@ -45,15 +24,6 @@ void main() {
     expect(r.canOverwrite(1), isFalse);
     r.overwrite(figureById['koharu_keyholder']!, 0);
     expect(r.cells[0]!.def.id, 'koharu_keyholder');
-  });
-
-  test('どける starts at one use per payday; an upgrade adds one', () {
-    final r = Run(seed: 3)..coins = 999;
-    r.place(figureById['coin']!, 0);
-    r.remove(0);
-    expect(r.removeTickets, 0);
-    r.buy(_find(r, OfferKind.removeTickets));
-    expect([r.removeTickets, r.removeMax], [1, 2]);
   });
 
   test('the shelf grows to 6x6 and no further, each step dearer', () {
@@ -80,12 +50,108 @@ void main() {
     expect(r.repulls, 2, reason: 'refilled for free at the payday');
   });
 
-  test('the stall shows three things, one a どける / いれかえ upgrade while they can grow', () {
+  test('the stall always shows three things', () {
     final r = Run(seed: 8);
     for (var k = 0; k < 200; k++) {
       r.rollShop();
       expect(r.shop.length, 3);
-      expect(r.shop.any((o) => o.kind == OfferKind.removeTickets || o.kind == OfferKind.swapTicket), isTrue);
+    }
+  });
+
+  test('妨害: about 5% of turns, and each outcome does what it says', () {
+    final r = Run(seed: 11);
+    var n = 0;
+    for (var k = 0; k < 4000; k++) {
+      if (r.rollJam() != null) n++;
+    }
+    expect(n / 4000, closeTo(0.05, 0.015));
+
+    final s = Run(seed: 12);
+    for (var i = 0; i < 4; i++) {
+      s.place(figureById['coin']!, i);
+    }
+    final taken = s.applyJam(const Jam(JamKind.stealTwo, 1));
+    expect(taken.length, 2);
+    expect(s.figs.length, 2);
+
+    s.applyJam(const Jam(JamKind.noRepull, 1));
+    expect(s.repulls, 0);
+    s.applyJam(const Jam(JamKind.half, 1));
+    s.place(figureById['koharu_keyholder']!, 5); // +2 every turn
+    final full = s.clone()..halfThisSong = false;
+    expect(s.endTurn().total, (full.endTurn().total / 2).ceil());
+    s.coins = 100;
+    s.applyJam(const Jam(JamKind.hearts, 1, pct: 30));
+    expect(s.coins, 70);
+    // a new song lifts the spell
+    s.coins = 9999;
+    s.turn = Run.turnsPerPayday;
+    s.payday();
+    expect([s.halfThisSong, s.repulls], [false, s.repullMax]);
+  });
+
+  test('fending a 妨害 off for hearts doubles them until the song ends', () {
+    final r = Run(seed: 14);
+    r.place(figureById['koharu_keyholder']!, 0); // +2 every turn
+    final plain = r.clone().endTurn().total;
+    r.rewardJam(const Jam(JamKind.steal, 1, reward: JamReward.hearts));
+    expect(r.endTurn().total, plain * 2);
+    expect(r.endTurn().total, plain * 2, reason: 'still this song');
+    r.coins = 9999;
+    r.turn = Run.turnsPerPayday;
+    r.payday();
+    expect(r.doubleThisSong, isFalse, reason: 'a new song');
+  });
+
+  test('出現率UP doubles an idol\'s goods for the rest of the live, and stacks', () {
+    int count(Run r) {
+      var n = 0;
+      for (var k = 0; k < 3000; k++) {
+        if (r.pullOne().tags.contains('こはる')) n++;
+      }
+      return n;
+    }
+    final plain = count(Run(seed: 21));
+    final r = Run(seed: 21)..coins = 9999;
+    r.buy(Offer(OfferKind.boost, 0, null, 'こはる'));
+    r.buy(Offer(OfferKind.boost, 0, null, 'こはる'));
+    expect(r.boost['こはる'], 4);
+    expect(count(r), greaterThan(plain * 1.8));
+  });
+
+  test('at most two quota cutters on the altar: then they stop dropping and leave the stall', () {
+    final r = Run(seed: 22);
+    r.place(figureById['kosan']!, 0);
+    r.place(figureById['hinata_live']!, 1);
+    for (var k = 0; k < 3000; k++) {
+      expect(r.pullOne().has<PaydayDiscount>(), isFalse);
+    }
+    for (var k = 0; k < 300; k++) {
+      r.rollShop();
+      expect(r.shop.any((o) => o.fig?.has<PaydayDiscount>() ?? false), isFalse);
+    }
+    r.cells[1] = null; // one leaves: they can come again
+    expect(Iterable.generate(3000, (_) => r.pullOne()).any((f) => f.has<PaydayDiscount>()), isTrue);
+  });
+
+  test('a 妨害 has a hidden cap of 65-95% and a reward that suits the gacha', () {
+    final r = Run(seed: 31, rules: rulesFor(machineById['koharu']!));
+    final rewards = <JamReward>{};
+    for (var k = 0; k < 400; k++) {
+      final j = r.rollJam(force: true)!;
+      rewards.add(j.reward);
+      if (j.reward == JamReward.goods) expect(j.gift!.tags, contains('こはる'), reason: 'こはる推しガチャ gives こはる goods');
+    }
+    expect(rewards, JamReward.values.toSet());
+    final luck = r.luckBonus;
+    r.rewardJam(const Jam(JamKind.steal, 1, reward: JamReward.luck));
+    expect(r.luckBonus, luck + 10);
+  });
+
+  test('no 妨害 on a machine that turns them off', () {
+    final r = Run(seed: 13, rules: Rules(jamRate: 0));
+    for (var k = 0; k < 500; k++) {
+      expect(r.rollJam(), isNull);
     }
   });
 }

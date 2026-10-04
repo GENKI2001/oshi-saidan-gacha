@@ -7,6 +7,7 @@ white border is never keyed out. Each sticker goes to the grid cell holding its
 centre, so stickers that lean over a cell border are still cut whole.
 """
 import json
+import sys
 
 import numpy as np
 from PIL import Image
@@ -31,10 +32,15 @@ SHEETS.update({
     'boss_staff': (4, 1, UI, ['boss_0', 'boss_1', 'boss_2', 'boss_3'], None),
     'uikit': (4, 2, UI, ['ui_heart', 'ui_ribbon', 'ui_note', 'ui_mic', 'ui_penlight', 'ui_medal', 'ui_megaphone', 'ui_balloons'], 256),
     # one portrait per image (a sheet of five let the girls touch and bleed into each other)
-    **{f'cut_{i}_{v}': (1, 1, UI, [f'cutin_{i}_{v}'], None) for i in IDOLS for v in 'ab'},
+    # a: smiling, b: ultra happy, c: shy and touched (the シチュエーションボイス player)
+    **{f'cut_{i}_{v}': (1, 1, UI, [f'cutin_{i}_{v}'], None) for i in IDOLS for v in 'abc'},
     'machine': (1, 1, UI, ['machine'], 512),
     # ★1..★4 and the 注意書き dud; split into halves below
     'capsules': (3, 2, UI, ['capsule_0', 'capsule_1', 'capsule_2', 'capsule_3', 'capsule_4'], None),
+    # カイシメ, the scalper of the 妨害: shoving / blown away
+    'jama': (2, 1, UI, ['jama_a', 'jama_b'], None),
+    # chibi for the 妨害's shoving match: the five facing right, カイシメ facing left, then blown away
+    'chibi_push': (4, 2, UI, ['chibi_hinata', 'chibi_shizuku', 'chibi_koharu', 'chibi_yoru', 'chibi_momo', 'chibi_jama', 'chibi_jama_out'], None),
 })
 
 
@@ -66,7 +72,7 @@ def key(img, green=False):
     return np.dstack([rgb, alpha * 255]).astype(np.uint8)
 
 
-GREEN = {'uikit', 'capsules'}
+GREEN = {'uikit', 'capsules', 'jama', 'chibi_push'}
 
 
 def cut_sheet(name, cols, rows, out, ids, size):
@@ -120,13 +126,20 @@ def cut_sheet(name, cols, rows, out, ids, size):
             canvas = Image.new('RGBA', (w, hgt))
             canvas.paste(crop, ((w - crop.width) // 2, 0))
             canvas.resize((600, 900), Image.LANCZOS).save(out / f'{fid}.webp', **SAVE['webp'])
+        elif name in ('jama', 'chibi_push'):
+            crop.resize((round(crop.width * 600 / crop.height), 600), Image.LANCZOS).save(out / f'{fid}.webp', **SAVE['webp'])
         else:
             crop.resize((round(crop.width * 512 / crop.height), 512), Image.LANCZOS).save(out / f'{fid}.png')
         print(fid, crop.size)
 
 
+# `python3 art/slice.py goods_new1 cut_koharu_c`: only those sheets (and nothing after)
+ONLY = sys.argv[1:]
 for name, spec in SHEETS.items():
-    cut_sheet(name, *spec)
+    if not ONLY or name in ONLY:
+        cut_sheet(name, *spec)
+if ONLY:
+    sys.exit()
 
 # The title logo keeps its own aspect ratio (cropped to the art, 1024 wide).
 # out_title3: the logo redone in the key visual's soft glossy style (out_title.png was a flat sticker)

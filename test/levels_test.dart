@@ -30,21 +30,12 @@ void main() {
     }
   });
 
-  test('level 1 has normal, rare and epic figures; legends come later', () {
-    for (final rar in [Rarity.normal, Rarity.rare, Rarity.epic]) {
-      expect(figures.any((f) => f.rarity == rar && f.level == 1), isTrue, reason: rar.name);
+  test('level 1 already has every rarity for every member (a wide, lucky pool)', () {
+    for (final rar in [Rarity.normal, Rarity.rare, Rarity.epic, Rarity.legend]) {
+      for (final m in ['ひなた', 'しずく', 'こはる', 'よる', 'もも']) {
+        expect(figures.any((f) => f.rarity == rar && f.level == 1 && f.cast.contains(m)), isTrue, reason: '$m ${rar.name}');
+      }
     }
-    expect(figures.any((f) => f.rarity == Rarity.legend && f.level == 1), isFalse);
-    expect(figureById['unit_panel']!.level, greaterThan(1), reason: '大黒さま is too strong for a first festival');
-  });
-
-  test('a legend pull before any legend is unlocked gives an epic', () {
-    final r = Run(seed: 5, rules: Rules(level: 1));
-    for (var k = 0; k < 200; k++) {
-      expect(r.pullOne(minRarity: Rarity.legend).rarity, Rarity.epic);
-    }
-    for (var k = 0; k < 50; k++) {
-      r.rollShop();
-    }
+    expect(figures.where((f) => f.level == 1).length, greaterThanOrEqualTo(40));
   });
 }

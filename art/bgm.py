@@ -12,7 +12,7 @@ bgm_pripare   : ぷりパレガチャ, 128 BPM, E major, 16 bars — the unit's 
 bgm_shizumomo : しずももガチャ, 118 BPM, A major, 12 bars — maj7/m7 chords, electric piano comping, glassy bell lead, airy reverb
 bgm_koharu    : こはる推しガチャ, 100 BPM, F major, 12 bars — swung shuffle, toy piano lead, marimba offbeats, oom-pah bass
 bgm_hinata    : ひなた推しガチャ, 140 BPM, C major, 16 bars — full drive: 16th hats, brass stabs, "hai! hai!" claps, snare fills
-bgm_yoru      : よるの真夜中ガチャ, 112 BPM, D minor, 12 bars — harmonic minor (E7), harpsichord arps, staccato lead, celesta
+bgm_yoru      : よる推しガチャ, 112 BPM, D minor, 12 bars — harmonic minor (E7), harpsichord arps, staccato lead, celesta
 bgm_premium   : プレミアムガチャ, 132 BPM, Bb major, 16 bars — brassy stabs, big 16th glockenspiel, fanfare lead, crash + rolls
 
 Everything is written in C major / A minor and transposed by the song's `key`.

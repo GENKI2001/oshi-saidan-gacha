@@ -11,7 +11,9 @@ import 'voice_ids.dart';
 
 class Voice {
   static bool enabled = true;
-  static const volume = 1.0;
+  // set against the music: both are -16 LUFS files, the music plays at Bgm.volume (0.32) and only dips
+  // to 70% under a line, so 0.45 leaves the voice about 6 dB over it (1.0 drowned the music out)
+  static const volume = 0.45;
   static AudioPlayer? _player;
   static int _token = 0;
   static bool _paused = false;

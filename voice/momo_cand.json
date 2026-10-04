@@ -1,0 +1,44 @@
+[
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/candidates/momo_D.wav",
+  "text": "ももを選んでくれたの？ やったぁ、だーいすき！",
+  "caption": "明るく澄んだ高めの声の、二十歳の女性アイドル。こもらず、はっきりと前に出る声で、甘くあざとく、きゃぴきゃぴ話す。",
+  "seed": 7,
+  "duration_scale": 0.85
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/candidates/momo_E.wav",
+  "text": "ももを選んでくれたの？ やったぁ、だーいすき！",
+  "caption": "透き通るようにクリアで、キラキラした甘い声の二十歳の女性アイドル。息がこもらず、口を大きく開けてはきはき話す。",
+  "seed": 7,
+  "duration_scale": 0.85
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/candidates/momo_F.wav",
+  "text": "ももを選んでくれたの？ やったぁ、だーいすき！",
+  "caption": "鈴を転がすような高く明るい声の、二十歳の女性アイドル。かわいらしく甘えた話し方だが、一音一音がくっきり聞こえる。",
+  "seed": 7,
+  "duration_scale": 0.85
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/candidates/momo_G.wav",
+  "text": "ももを選んでくれたの？ やったぁ、だーいすき！",
+  "caption": "アニメのヒロインのような、張りのある明るい高音の声の二十歳の女性。元気で甘く、ハキハキと滑舌よく話す。",
+  "seed": 7,
+  "duration_scale": 0.85
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/candidates/momo_H.wav",
+  "text": "ももを選んでくれたの？ やったぁ、だーいすき！",
+  "caption": "マイクの近くで録った、クリアで抜けのいい、甘くてかわいい二十歳の女性アイドルの声。にこにこしながら弾むように話す。",
+  "seed": 7,
+  "duration_scale": 0.85
+ },
+ {
+  "out": "/Users/s29219/Desktop/casual-games/engines/oshi_saidan/voice/candidates/momo_I.wav",
+  "text": "ももを選んでくれたの？ やったぁ、だーいすき！",
+  "caption": "華やかで甘い、よく通る高めの声の二十歳の女性アイドル。少しあざといぶりっこ口調で、明るく軽やかに話す。",
+  "seed": 7,
+  "duration_scale": 0.85
+ }
+]

@@ -18,7 +18,7 @@ SRC = ROOT.parent / 'gacha_rogue' / 'lib' / 'logic' / 'figures.dart'
 # 縁日 tag → 推し祭壇 tag. Tags that are members are the 推し; the rest are kinds of goods.
 TAGS = {
     '縁起': 'ひなた', '水': 'しずく', '食べ物': 'こはる', '飾り': 'よる', '動物': 'もも',
-    '人': 'ファン', 'お金': 'お金', 'おもちゃ': 'ぱれにゃん', '道具': '応援', 'のろい': 'のろい',
+    '人': 'ファン', 'お金': '', 'おもちゃ': 'ぱれにゃん', '道具': '応援', 'のろい': 'のろい',
 }
 
 # old id: (new id, name, emoji, look)
@@ -118,7 +118,6 @@ G = {
     'kinmaneki': ('gold_maneki', '金の招き猫ポーズアクスタ', '🐈', 'a golden acrylic stand of HINATA and MOMO doing a beckoning-cat pose, shining'),
     'hannya': ('yoru_solo', 'よるのソロ衣装', '🦇', 'a black and purple gothic idol dress with bat wings on a mannequin'),
     'kintaro': ('momo_gachikoi', 'もものガチ恋オタク', '😍', 'a chibi male fan with heart eyes hugging a MOMO plush tightly, cute and comedic'),
-    'meishi': ('tokusoku', 'つむぎの注意書き', '📮', 'an envelope with a big red stamp mark and an angry chibi TSUMUGI doodle on it (no readable letters)'),
 }
 # Who appears on the capsule and speaks: the idols in the tags unless set here.
 MEMBERS = ['ひなた', 'しずく', 'こはる', 'よる', 'もも']
@@ -127,7 +126,56 @@ CAST = {
     'unit_panel': MEMBERS,
     'yoru_tan': ['よる'], 'yoru_cameko': ['よる'], 'momo_tan': ['もも'], 'momo_gachikoi': ['もも'],
 }
+# 推し活レベル: the 縁日 levels squeezed so about half the goods drop from the very start
+# (a wide pool from the first live makes the gacha luckier, spec: random ~10% / good play 35-50%)
+LEVEL = {2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 3, 9: 5, 10: 7, 11: 9, 12: 11, 13: 12, 14: 14, 15: 15}
+# effects changed from the 縁日 original: (from, to). There is no 注意書き here, so the letter that
+# peeled them off pays for a ひなた altar instead.
+EFFECTS = {'hinata_letter': ("OnPlacedEatAdjacentTag('のろい', 42)", "AddIfShelfTag('ひなた', 3, 12)")}
+# From the very first live every member has at least one goods of each rarity: these drop from Lv1,
+# and こはる (who had no ★3 at all) gets her trading card as one, as strong as ひなたのゴールド缶バッジ.
+START = {'shizumomo_sign', 'unit_panel'}
+RARITY = {'koharu_card': ('Rarity.normal', 'Rarity.epic')}
+SET_EFFECTS = {'koharu_card': "[MultAdjacentTag('こはる', 3)]"}
 IDS = {'kannushi': ('kosan', '古参オタク'), 'hyottoko': ('hinayoru_board', 'ひなよるのファンサボード')}
+
+# 「お金」 is gone (it read like the hearts): the tag is dropped and its two effects aim elsewhere
+RETARGET = {
+    'hinata_dress': ("MultShelfTag('', 4)", "MultShelfTag('ひなた', 3)"),
+    'gold_maneki': ("MultAdjacentTag('', 3)", "MultAdjacentTag('もも', 3)"),
+    'hinamomo_maneki': ("MultAdjacentTag('', 2)", "MultAdjacentTag('ひなた', 2)"),
+    # the PARENYAN piggy bank becomes a ぱれにゃん goods that likes the other ぱれにゃん
+    'oshi_bank': [("tags: []", "tags: ['ぱれにゃん']"), ("AddPerShelfTag('', 2)", "AddPerShelfTag('ぱれにゃん', 2)")],
+}
+
+# Goods made here (no 縁日 original): many work on the diagonals.
+# (id, name, emoji, look for the image prompt, the Dart definition)
+NEW = [
+    ('hinata_xpose', 'ひなたのクロスポーズアクスタ', '❌', 'an acrylic stand of chibi HINATA crossing both arms in a big X pose, red sparkles, on a clear base',
+     "FigureDef(id: 'hinata_xpose', name: 'ひなたのクロスポーズアクスタ', emoji: '❌', rarity: Rarity.rare, tags: ['ひなた'], cast: ['ひなた'], effects: [AddPerDiagonalTag('ひなた', 3)])"),
+    ('shizuku_snow', 'しずくの雪結晶チャーム', '❄️', 'a light-blue eight-pointed snowflake crystal charm with chibi SHIZUKU in the middle, glittering',
+     "FigureDef(id: 'shizuku_snow', name: 'しずくの雪結晶チャーム', emoji: '❄️', rarity: Rarity.rare, tags: ['しずく'], cast: ['しずく'], effects: [AddPerDiagonalFigures(2)])"),
+    ('koharu_checker', 'こはるのチェッククッキー', '🍪', 'a square checkerboard cookie (yellow and brown squares) with chibi KOHARU face icing in the middle',
+     "FigureDef(id: 'koharu_checker', name: 'こはるのチェッククッキー', emoji: '🍪', rarity: Rarity.normal, tags: ['こはる'], cast: ['こはる'], effects: [Add(1), AddPerDiagonalTag('こはる', 2)])"),
+    ('yoru_star', 'よるの四芒星ブローチ', '✴️', 'a purple four-pointed star brooch with long diagonal rays and a tiny black bat, shiny gold rim',
+     "FigureDef(id: 'yoru_star', name: 'よるの四芒星ブローチ', emoji: '✴️', rarity: Rarity.epic, tags: ['よる'], cast: ['よる'], level: 3, effects: [MultDiagonal(2)])"),
+    ('momo_ribbon_x', 'もものクロスリボン', '🎀', 'a big pink ribbon tied in an X cross shape with a heart charm and a tiny MOMO cat-ear tag',
+     "FigureDef(id: 'momo_ribbon_x', name: 'もものクロスリボン', emoji: '🎀', rarity: Rarity.rare, tags: ['もも'], cast: ['もも'], level: 5, effects: [BuffDiagonal(2)])"),
+    ('unit_sash', 'ぷりパレのたすき', '🎗️', 'a rainbow diagonal shoulder sash (tasuki) with hearts and stars, folded neatly',
+     "FigureDef(id: 'unit_sash', name: 'ぷりパレのたすき', emoji: '🎗️', rarity: Rarity.normal, tags: ['ファン'], effects: [Add(1), AddPerDiagonalFigures(1)])"),
+    ('nyan_hop', 'ぱれにゃんのななめジャンプ', '🐱', 'a small plush of PARENYAN (round white cat mascot) jumping diagonally with motion lines and a star trail',
+     "FigureDef(id: 'nyan_hop', name: 'ぱれにゃんのななめジャンプ', emoji: '🐱', rarity: Rarity.normal, tags: ['ぱれにゃん'], effects: [AddPerDiagonalTag('ぱれにゃん', 3)])"),
+    ('shizuyoru_map', 'しずよるの星座マップ', '🌌', 'a night-sky constellation map in blue and purple with diagonal star lines, tiny chibi SHIZUKU and YORU in the corners',
+     "FigureDef(id: 'shizuyoru_map', name: 'しずよるの星座マップ', emoji: '🌌', rarity: Rarity.epic, tags: ['しずく', 'よる'], cast: ['しずく', 'よる'], level: 7, effects: [AddPerDiagonalFigures(4)])"),
+    ('ouen_flag', 'ななめ応援フラッグ', '🚩', 'a pink cheering pennant flag on a stick, tilted diagonally, with stars and hearts',
+     "FigureDef(id: 'ouen_flag', name: 'ななめ応援フラッグ', emoji: '🚩', rarity: Rarity.rare, tags: ['応援'], level: 9, effects: [BuffDiagonal(3)])"),
+    ('hinakoha_bingo', 'ひなこはのビンゴカード', '🎯', 'a bingo card with a diagonal line of stamped hearts, tiny chibi HINATA and KOHARU in the corner',
+     "FigureDef(id: 'hinakoha_bingo', name: 'ひなこはのビンゴカード', emoji: '🎯', rarity: Rarity.rare, tags: ['ひなた', 'こはる'], cast: ['ひなた', 'こはる'], level: 7, effects: [Add(1), AddIfDiagonalFull(16)])"),
+    ('cross_penlight', 'クロスペンライト', '🔦', 'two glowing penlights crossed in an X, one pink and one cyan, light glow around them',
+     "FigureDef(id: 'cross_penlight', name: 'クロスペンライト', emoji: '🔦', rarity: Rarity.epic, tags: ['応援'], level: 12, effects: [MultDiagonal(3)])"),
+    ('unit_diamond', 'ぷりパレのダイヤ型ステージ模型', '💎', 'a miniature diamond-shaped stage model with five tiny idol figures (HINATA, SHIZUKU, KOHARU, YORU, MOMO) on it, sparkling lights',
+     "FigureDef(id: 'unit_diamond', name: 'ぷりパレのダイヤ型ステージ模型', emoji: '💎', rarity: Rarity.legend, tags: ['ファン'], cast: ['ひなた', 'しずく', 'こはる', 'よる', 'もも'], level: 14, effects: [Add(4), MultDiagonal(4)])"),
+]
 
 
 def figures():
@@ -136,17 +184,29 @@ def figures():
     out = []
     for old, (new, name, emoji, _) in G.items():
         pat = re.compile(r"FigureDef\(\s*id:\s*'" + old + r"'.*?\]\s*,?\s*(?:level:\s*\d+\s*,?\s*)?\)", re.S)
-        old_id = 'kCardId' if old == 'meishi' else None
-        m = pat.search(body) if old != 'meishi' else re.search(r"FigureDef\(id: kCardId.*?\)\]\)", body, re.S)
+        m = pat.search(body)
         assert m, old
         d = m.group(0)
-        d = re.sub(r"id: '[^']+'", f"id: '{new}'", d) if old != 'meishi' else d
+        d = re.sub(r"id: '[^']+'", f"id: '{new}'", d)
+        if new in EFFECTS:
+            d = d.replace(*EFFECTS[new])
         d = re.sub(r"name: '[^']+'", f"name: '{name}'", d)
         d = re.sub(r"emoji: '[^']+'", f"emoji: '{emoji}'", d)
         for a, b in TAGS.items():
             d = d.replace(f"'{a}'", f"'{b}'")
+        d = re.sub(r"tags: \[([^\]]*)\]", lambda mm: 'tags: [' + ', '.join(t for t in (x.strip() for x in mm.group(1).split(',')) if t and t != "''") + ']', d)
+        if new in RETARGET:
+            for x, y in RETARGET[new] if isinstance(RETARGET[new], list) else [RETARGET[new]]:
+                d = d.replace(x, y)
         for a, (b, n) in IDS.items():
             d = re.sub(r"AddIfAdjacentId\('" + a + r"', '[^']+'", f"AddIfAdjacentId('{b}', '{n}'", d)
+        d = re.sub(r"\s*level: (\d+),", lambda mm: '' if LEVEL[int(mm.group(1))] == 1 else mm.group(0).replace(mm.group(1), str(LEVEL[int(mm.group(1))])), d)
+        if new in START:
+            d = re.sub(r"\s*level: \d+,", '', d)
+        if new in RARITY:
+            d = d.replace(*RARITY[new])
+        if new in SET_EFFECTS:
+            d = re.sub(r"effects: \[[^\]]*\]", lambda _: 'effects: ' + SET_EFFECTS[new], d)
         tags = re.search(r"tags: \[([^\]]*)\]", d).group(1)
         cast = CAST.get(new) or [m for m in MEMBERS if f"'{m}'" in tags]
         if cast:
@@ -156,14 +216,13 @@ def figures():
     head = """// 推し祭壇ガチャの駒（グッズ）。効果の数字は 縁日版（../gacha_rogue）の対応する駒と同じ。
 // 生成元：art/goods.py（名前・タグ・絵の説明はそちらで直して `python3 art/goods.py figures`）。
 // 画像は assets/figures/<id>.webp（art/slice.py）。無いときは emoji で代用する。
-// タグ：ひなた・しずく・こはる・よる・もも（推し）／ファン・お金・ぱれにゃん・応援／のろい（つむぎの注意書き）
+// タグ：ひなた・しずく・こはる・よる・もも（推し）／ファン・ぱれにゃん・応援
 
 import 'defs.dart';
 
-const kCardId = 'tokusoku';
-
 const figures = <FigureDef>[
 """
+    out += [n[4] for n in NEW]
     text = head + ''.join('  ' + d.strip() + ',\n' for d in out) + '];\n\nfinal figureById = {for (final f in figures) f.id: f};\n'
     text = text.replace(',,', ',')
     (ROOT / 'lib' / 'logic' / 'figures.dart').write_text(text)
@@ -198,6 +257,16 @@ def prompts():
             f"Collectible goods of an original anime idol unit, one per cell, in this order left-to-right, top-to-bottom:\n{lines}\n{CAST_TEXT}\n{STYLE}\n")
         (gen / f'{name}.refs').write_text(str(gen / 'chars_ref.png') + '\n')
         sheets[name] = [n for n, _, _, _ in part]
+    # the goods made here get sheets of their own after the 縁日 ones (so those keep their cells)
+    for k in range(0, len(NEW), 12):
+        part = NEW[k:k + 12]
+        name = f'goods_new{k // 12 + 1}'
+        lines = '\n'.join(f'{i + 1} {look}' for i, (_, _, _, look, _) in enumerate(part))
+        (gen / f'{name}.txt').write_text(
+            f"Create one image 1536x1024: a sprite sheet laid out as an exact grid of 4 columns x 3 rows (12 cells of equal size). "
+            f"Collectible goods of an original anime idol unit, one per cell, in this order left-to-right, top-to-bottom:\n{lines}\n{CAST_TEXT}\n{STYLE}\n")
+        (gen / f'{name}.refs').write_text(str(gen / 'chars_ref.png') + '\n')
+        sheets[name] = [n for n, _, _, _, _ in part]
     (gen / 'sheets.json').write_text(json.dumps(sheets, indent=1))
     print('wrote', list(sheets))
 

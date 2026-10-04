@@ -63,6 +63,7 @@ class _GachaAppState extends State<GachaApp> {
     title: '推し祭壇ガチャ',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(useMaterial3: true, fontFamily: 'Rounded', colorSchemeSeed: const Color(0xFFFF6FA3)),
+    navigatorObservers: [routes],
     home: TitleScreen(meta: meta),
   );
 }

@@ -31,10 +31,15 @@ class Fig {
   final int uid;
   int age = 0;
   int lastGain = 0;
+  int stack = 1; // the same goods put on top of it: its numbers are ×stack (×2, ×3, …)
   Fig(this.def, this.uid);
   Fig copy() => Fig(def, uid)
     ..age = age
-    ..lastGain = lastGain;
+    ..lastGain = lastGain
+    ..stack = stack;
+
+  /// A multiplier [f] of a stacked goods grows with the stack: ×3 stacked twice is ×6, ×2 three times ×6.
+  int factor(int f) => f * stack;
 }
 
 enum StepKind { add, buff, mult, shoot, remove, spawn, instant }
@@ -49,6 +54,49 @@ class Step {
   const Step(this.kind, this.idx, {this.amount = 0, this.targets = const [], this.fig});
 }
 
+/// What a 妨害 does if he gets through.
+enum JamKind {
+  steal, // takes one of the goods off the altar
+  stealTwo, // takes two
+  noRepull, // no もう一回ひく until the song ends
+  half, // hearts are halved until the song ends
+  hearts, // knocks [Jam.pct]% of the hearts away
+}
+
+/// What fending him off brings.
+enum JamReward {
+  hearts, // hearts ×2 until the song ends
+  goods, // a goods that suits this gacha ([Jam.gift])
+  luck, // 運 +10% for the rest of the live
+  repull, // もう一回ひく +1 (this song)
+}
+
+class Jam {
+  final JamKind kind;
+
+  /// How hard he pushes (1 = normal): the player has to mash harder.
+  final double power;
+  final int pct;
+  final JamReward reward;
+  final FigureDef? gift;
+  const Jam(this.kind, this.power, {this.pct = 0, this.reward = JamReward.hearts, this.gift});
+
+  String get rewardText => switch (reward) {
+    JamReward.hearts => 'この曲のハートが ×2',
+    JamReward.goods => '★${gift!.rarity.index + 1}「${gift!.name}」がもらえる',
+    JamReward.luck => '運が +10%',
+    JamReward.repull => '「もう一回ひく」が +1',
+  };
+
+  String get text => switch (kind) {
+    JamKind.steal => 'グッズを1つ 持っていかれる',
+    JamKind.stealTwo => 'グッズを2つ 持っていかれる',
+    JamKind.noRepull => 'この曲は「もう一回ひく」が使えない',
+    JamKind.half => 'この曲のハートが 半分になる',
+    JamKind.hearts => 'ハートを $pct% 持っていかれる',
+  };
+}
+
 class TurnResult {
   final List<Step> steps;
   final int total;
@@ -59,45 +107,65 @@ class TurnResult {
 class PaydayResult {
   final int due, bonus, coinsBefore;
   final bool paid;
-  final List<int> cardCells;
-  PaydayResult(this.due, this.bonus, this.coinsBefore, this.paid, this.cardCells);
+  PaydayResult(this.due, this.bonus, this.coinsBefore, this.paid);
 }
 
-enum OfferKind { figure, luck, removeTickets, swapTicket, repullTicket, rerollTicket, expand }
+enum OfferKind {
+  figure,
+  luck,
+  boost,
+  repullTicket,
+  rerollTicket,
+  expand,
+  // レア商品: only now and then at the stall, and never the free first pick
+  extraSpin, // one more spin every song, for the rest of the live
+  rareSong, // the next song only drops R and up
+  idolSong, // the next song only drops [Offer.idol]'s goods
+}
 
 class Offer {
   final OfferKind kind;
   final int price;
   final FigureDef? fig;
+  final String? idol; // boost: whose goods come out more
   bool sold = false;
-  Offer(this.kind, this.price, [this.fig]);
+  Offer(this.kind, this.price, [this.fig, this.idol]);
 
   String get title => switch (kind) {
     OfferKind.figure => fig!.name,
     OfferKind.luck => 'つむぎのおまじない',
-    OfferKind.removeTickets => 'どける 回数+1',
-    OfferKind.swapTicket => 'いれかえ 回数+1',
-    OfferKind.repullTicket => 'もう一回ひく 回数+1',
-    OfferKind.rerollTicket => '品がえ 回数+1',
+    OfferKind.boost => '$idolの出現率UP',
+    OfferKind.repullTicket => 'もう一回ひく +1',
+    OfferKind.rerollTicket => '品がえ +1',
     OfferKind.expand => '祭壇を広げる',
+    OfferKind.extraSpin => 'アンコールの魔法',
+    OfferKind.rareSong => 'キラキラ確定チケット',
+    OfferKind.idolSong => '$idol確定チケット',
   };
+
+  /// A レア商品 (shown with its own badge).
+  bool get rare => kind == OfferKind.extraSpin || kind == OfferKind.rareSong || kind == OfferKind.idolSong;
 
   String get text => switch (kind) {
     OfferKind.figure => fig!.description,
     OfferKind.luck => 'R以上が出やすくなる（+8%）',
-    OfferKind.removeTickets => '「どける」が1回ふえる（最大3回）',
-    OfferKind.swapTicket => '「いれかえ」が1回ふえる（最大3回）',
+    OfferKind.boost => '「$idol」のグッズが よく出る（×${Run.boostStep.round()}）',
     OfferKind.repullTicket => '「もう一回ひく」が1回ふえる（最大5回）',
     OfferKind.rerollTicket => '「品がえ」が1回ふえる（最大3回）',
     OfferKind.expand => '祭壇のマスが増える',
+    OfferKind.extraSpin => '1曲で回せる回数が ずっと +1',
+    OfferKind.rareSong => '次の曲のあいだ R以上しか出ない',
+    OfferKind.idolSong => '次の曲のあいだ「$idol」のグッズしか出ない',
   };
 }
+
+const _idols = ['ひなた', 'しずく', 'こはる', 'よる', 'もも'];
 
 class Run {
   static const turnsPerPayday = 5;
   // 取り立て grows by the same factor every time
-  static const firstDue = 14;
-  static const dueGrowth = 3.7;
+  static const firstDue = 17; // raised from 14 with the diagonal goods, stacking and the レア商品 (random ~10%, good play ~40%)
+  static const dueGrowth = 3.95;
   static const clearPaydays = 4;
 
   final Rng rng;
@@ -111,15 +179,16 @@ class Run {
   int carriedDebt = 0;
   int luckBonus = 0;
   int choose = 1;
-  // どける / いれかえ are free to use; uses left refill at every payday.
-  // Each starts at 1 use per payday and the stall can raise it to [maxUses].
+  // 品がえ starts at 1 use per visit and the stall can raise it to [maxUses].
   static const maxUses = 3;
   static const maxRepulls = 5; // もう一回ひく can grow further
-  int removeMax = 1, swapMax = 1;
-  int removeTickets = 1; // どける uses left until the next payday
-  int swapTickets = 1; // いれかえ uses left until the next payday
   bool continueUsed = false;
   int bestTurn = 0;
+  int turnsPerSong = turnsPerPayday; // spins in a song (アンコールの魔法 adds one)
+  int songTurn = 0; // spins done in this song
+  static const maxTurnsPerSong = 7;
+  bool rareSong = false; // キラキラ確定チケット: this song drops R and up only
+  String? idolSong; // ○○確定チケット: this song drops only her goods
   int _uid = 0;
   final Set<String> seen = {};
   List<Offer> shop = [];
@@ -135,9 +204,6 @@ class Run {
     coins = this.rules.coins;
     luckBonus = this.rules.luck;
     choose = this.rules.choose;
-    // どける / いれかえ are one use each (0 when an ascension takes them away)
-    removeMax = swapMax = math.min(this.rules.removeTickets, 1);
-    removeTickets = swapTickets = removeMax;
     // starting figures go near the middle
     final order = [for (var i = 0; i < size; i++) i]..sort((a, b) => _centerDist(a).compareTo(_centerDist(b)));
     for (var k = 0; k < this.rules.start.length && k < size; k++) {
@@ -162,17 +228,20 @@ class Run {
       ..carriedDebt = carriedDebt
       ..luckBonus = luckBonus
       ..choose = choose
-      ..removeTickets = removeTickets
-      ..swapTickets = swapTickets
-      ..removeMax = removeMax
-      ..swapMax = swapMax
       ..expansions = expansions
       ..repulls = repulls
       ..repullMax = repullMax
       ..rerollMax = rerollMax
       ..rerolls = rerolls
       ..continueUsed = continueUsed
+      ..halfThisSong = halfThisSong
+      ..doubleThisSong = doubleThisSong
+      ..boost.addAll(boost)
       ..bestTurn = bestTurn
+      ..turnsPerSong = turnsPerSong
+      ..songTurn = songTurn
+      ..rareSong = rareSong
+      ..idolSong = idolSong
       .._uid = _uid;
     return r;
   }
@@ -193,6 +262,16 @@ class Run {
     return out;
   }
 
+  /// The (up to) four cells touching [i] corner to corner.
+  List<int> diagonals(int i) {
+    final r = rowOf(i), c = colOf(i), out = <int>[];
+    for (final (dr, dc) in const [(-1, -1), (-1, 1), (1, -1), (1, 1)]) {
+      final nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) out.add(nr * cols + nc);
+    }
+    return out;
+  }
+
   List<int> get emptyCells => [
     for (var i = 0; i < size; i++)
       if (cells[i] == null) i,
@@ -203,8 +282,8 @@ class Run {
   int get luck => luckBonus + figs.fold(0, (s, f) => s + (f.def.effect<Luck>()?.v ?? 0));
 
   // ── payday ──
-  int get turnsToPayday => turnsPerPayday - turn % turnsPerPayday;
-  bool get paydayNow => turn > 0 && turn % turnsPerPayday == 0 && turn ~/ turnsPerPayday > paydaysPaid;
+  int get turnsToPayday => turnsPerSong - songTurn;
+  bool get paydayNow => songTurn >= turnsPerSong;
   bool get cleared => paydaysPaid >= clearPaydays;
 
   int baseDue(int i) => (firstDue * math.pow(dueGrowth, i)).round();
@@ -215,7 +294,8 @@ class Run {
       final d = x.def.effect<PaydayDiscount>();
       if (d != null) f *= 1 - d.pct / 100;
     }
-    return (baseDue(paydaysPaid) * rules.dueMult * math.max(f, 0.4)).round() + carriedDebt;
+    final wall = paydaysPaid == 2 ? rules.thirdDueMult : 1.0;
+    return (baseDue(paydaysPaid) * rules.dueMult * wall * math.max(f, 0.4)).round() + carriedDebt;
   }
 
   // ── gacha ──
@@ -227,12 +307,35 @@ class Run {
     return [math.max(20, 62 - l), 27 + l * 0.6, 9 + l * 0.3, 2 + l * 0.1];
   }
 
-  List<FigureDef> _unlocked(Rarity r) => figures.where((f) => f.rarity == r && f.level <= rules.level).toList();
+  /// What can drop now. Goods that cut the quota stop dropping (and leave the stall) once
+  /// [maxDiscounts] of them are on the altar.
+  List<FigureDef> _unlocked(Rarity r) {
+    final capped = figs.where((f) => f.def.has<PaydayDiscount>()).length >= maxDiscounts;
+    return figures.where((f) => f.rarity == r && f.level <= rules.level && !(capped && f.has<PaydayDiscount>())).toList();
+  }
 
-  FigureDef pullOne({Rarity maxRarity = Rarity.legend, Rarity minRarity = Rarity.normal, bool allowCurse = false}) {
-    if (allowCurse && rules.curseRate > 0 && rng.nextDouble() < rules.curseRate) return figureById[kCardId]!;
+  static const maxDiscounts = 2;
+
+  // ── 出現率UP (bought at the stall): each one doubles an idol's goods, for the rest of the live ──
+  static const boostStep = 2.0;
+  final Map<String, double> boost = {};
+
+  double _weight(FigureDef f) {
+    var b = 1.0;
+    for (final t in f.tags) {
+      b = math.max(b, boost[t] ?? 1);
+    }
+    return rules.weightOf(f.id) * b * (isMultiplier(f) ? multWeight : 1);
+  }
+
+  /// Goods that multiply (×) come out less often than the rest: a few of them snowball a run.
+  static double multWeight = 0.5;
+  static bool isMultiplier(FigureDef f) => f.effects.any((e) => e is MultAdjacentTag || e is MultShelfTag || e is MultAll || e is MultDiagonal || e is Fuse);
+
+  FigureDef pullOne({Rarity maxRarity = Rarity.legend, Rarity minRarity = Rarity.normal}) {
     final w = rarityWeights;
     var lo = minRarity.index, hi = maxRarity.index;
+    if (rareSong) lo = math.min(hi, math.max(lo, Rarity.rare.index));
     var sum = 0.0;
     for (var k = lo; k <= hi; k++) {
       sum += w[k];
@@ -247,12 +350,18 @@ class Run {
       }
     }
     // a rarity with nothing unlocked yet (no レジェンド before 縁日 Lv6) gives the next one down
-    var pool = _unlocked(rar);
+    // ○○確定チケット: only her goods (any rarity she has, when this one has none)
+    List<FigureDef> avail(Rarity r) => [for (final f in _unlocked(r)) if (idolSong == null || f.cast.contains(idolSong)) f];
+    var pool = avail(rar);
     while (pool.isEmpty && rar.index > 0) {
       rar = Rarity.values[rar.index - 1];
-      pool = _unlocked(rar);
+      pool = avail(rar);
     }
-    final ws = [for (final f in pool) rules.weightOf(f.id)];
+    for (var k = rar.index + 1; pool.isEmpty && k < Rarity.values.length; k++) {
+      pool = avail(Rarity.values[k]);
+    }
+    if (pool.isEmpty) pool = _unlocked(Rarity.normal);
+    final ws = [for (final f in pool) _weight(f)];
     var y = rng.nextDouble() * ws.fold(0.0, (a, b) => a + b);
     for (var k = 0; k < pool.length; k++) {
       y -= ws[k];
@@ -261,20 +370,20 @@ class Run {
     return pool.last;
   }
 
-  /// Pulling again after seeing what came out is free, like どける / いれかえ:
-  /// 1 use per payday to start, raised at the stall up to [maxUses].
+  /// Pulling again after seeing what came out is free:
+  /// 1 use per payday to start, raised at the stall up to [maxRepulls].
   int repullMax = 1;
   int repulls = 1; // uses left until the next payday
 
   /// What the machine drops this turn. [atLeast] keeps a re-pull from coming
-  /// out worse than what was already in hand (and rules out the boss's card).
-  List<FigureDef> pullAtLeast(Rarity atLeast) => [pullOne(minRarity: atLeast, allowCurse: atLeast == Rarity.normal)];
+  /// out worse than what was already in hand.
+  List<FigureDef> pullAtLeast(Rarity atLeast) => [pullOne(minRarity: atLeast)];
 
   /// What the machine drops this turn (1, or 2 to choose from).
   List<FigureDef> pull() {
-    final out = <FigureDef>[pullOne(allowCurse: true)];
+    final out = <FigureDef>[pullOne()];
     while (out.length < choose) {
-      final f = pullOne(allowCurse: true);
+      final f = pullOne();
       if (!out.contains(f) || figures.length < 3) out.add(f);
     }
     return out;
@@ -332,35 +441,21 @@ class Run {
     return steps;
   }
 
-  /// Swaps two cells (either may be empty) with the いれかえ ticket.
-  bool swap(int a, int b) {
-    if (swapTickets <= 0 || a == b || (cells[a] == null && cells[b] == null)) return false;
-    swapTickets--;
-    final t = cells[a];
-    cells[a] = cells[b];
-    cells[b] = t;
-    return true;
-  }
+  /// A new figure can go over any old one.
+  bool canOverwrite(int idx) => cells[idx] != null;
 
-  /// A new figure can go over an old one (not over the boss's card).
-  bool canOverwrite(int idx) => cells[idx] != null && cells[idx]!.def.id != kCardId;
+  /// The same goods on top of itself stacks it instead (its numbers go ×2, ×3, …).
+  bool stacksOn(FigureDef d, int idx) => cells[idx]?.def.id == d.id;
 
   List<Step> overwrite(FigureDef d, int idx) {
     assert(canOverwrite(idx));
+    if (stacksOn(d, idx)) {
+      seen.add(d.id);
+      cells[idx]!.stack++;
+      return const [];
+    }
     cells[idx] = null;
     return place(d, idx);
-  }
-
-  /// Removes the figure at [idx] with a ticket. Returns coins gained.
-  int remove(int idx) {
-    final f = cells[idx];
-    if (f == null || removeTickets <= 0) return 0;
-    removeTickets--;
-    cells[idx] = null;
-    final g = f.def.effect<OnRemovedGain>()?.v ?? 0;
-    coins += g;
-    earned += g;
-    return g;
   }
 
   // ── scoring ──
@@ -369,7 +464,7 @@ class Run {
     var v = 0;
     for (final e in f.def.effects) {
       v += switch (e) {
-        Add() => e.v - (f.def.id == kCardId ? rules.curseExtra : 0),
+        Add() => e.v,
         AddIfCorner() => isCorner(i) ? e.v : 0,
         AddPerEmptyAdjacent() => neighbors(i).where((n) => cells[n] == null).length * e.v,
         AddPerShelfTag() => shelfTag(e.tag) * e.v,
@@ -382,14 +477,18 @@ class Run {
         AddPerShelfFigures() => figs.length ~/ e.n * e.v,
         Cooling() => math.max(0, e.v - (f.age - 1)),
         RandomAdd() => e.lo + rng.nextInt(e.hi - e.lo + 1),
+        AddPerDiagonalTag() => diagonals(i).where((n) => cells[n]?.def.tags.contains(e.tag) ?? false).length * e.v,
+        AddPerDiagonalFigures() => diagonals(i).where((n) => cells[n] != null).length * e.v,
+        AddIfDiagonalFull() => diagonals(i).length == 4 && diagonals(i).every((n) => cells[n] != null) ? e.v : 0,
         _ => 0,
       };
     }
-    return v;
+    return v * f.stack;
   }
 
   TurnResult endTurn() {
     turn++;
+    songTurn++;
     for (final f in figs) {
       f.age++;
     }
@@ -404,8 +503,7 @@ class Run {
       // only the cell to its right
       if (colOf(i) == cols - 1 || cells[i + 1] == null) continue;
       final v = i + 1;
-      final victim = cells[v]!;
-      final g = math.max(_base(v), 1) * sh.m + (victim.def.effect<OnRemovedGain>()?.v ?? 0);
+      final g = math.max(_base(v), 1) * sh.m;
       cells[v] = null;
       gain[i] = g;
       steps.add(Step(StepKind.shoot, i, amount: g, targets: [v]));
@@ -428,10 +526,11 @@ class Run {
         for (var c = 0; c < cols; c++)
           if (rowOf(i) * cols + c != i && cells[rowOf(i) * cols + c] != null) rowOf(i) * cols + c,
       ];
+      final v = buff.v * cells[i]!.stack;
       for (final t in ts) {
-        gain[t] = (gain[t] ?? 0) + buff.v;
+        gain[t] = (gain[t] ?? 0) + v;
       }
-      if (ts.isNotEmpty) steps.add(Step(StepKind.buff, i, amount: buff.v, targets: ts));
+      if (ts.isNotEmpty) steps.add(Step(StepKind.buff, i, amount: v, targets: ts));
     }
 
     // 3b. column buffs
@@ -442,10 +541,23 @@ class Run {
         for (var r = 0; r < rows; r++)
           if (r * cols + colOf(i) != i && cells[r * cols + colOf(i)] != null) r * cols + colOf(i),
       ];
+      final v = buff.v * cells[i]!.stack;
       for (final t in ts) {
-        gain[t] = (gain[t] ?? 0) + buff.v;
+        gain[t] = (gain[t] ?? 0) + v;
       }
-      if (ts.isNotEmpty) steps.add(Step(StepKind.buff, i, amount: buff.v, targets: ts));
+      if (ts.isNotEmpty) steps.add(Step(StepKind.buff, i, amount: v, targets: ts));
+    }
+
+    // 3c. diagonal buffs
+    for (var i = 0; i < size; i++) {
+      final buff = cells[i]?.def.effect<BuffDiagonal>();
+      if (buff == null) continue;
+      final ts = diagonals(i).where((n) => cells[n] != null).toList();
+      final v = buff.v * cells[i]!.stack;
+      for (final t in ts) {
+        gain[t] = (gain[t] ?? 0) + v;
+      }
+      if (ts.isNotEmpty) steps.add(Step(StepKind.buff, i, amount: v, targets: ts));
     }
 
     // 5. local multipliers, then global ones
@@ -453,10 +565,21 @@ class Run {
       final m = cells[i]?.def.effect<MultAdjacentTag>();
       if (m == null) continue;
       final ts = neighbors(i).where((n) => cells[n] != null && cells[n]!.def.tags.contains(m.tag) && (gain[n] ?? 0) > 0).toList();
+      final f = cells[i]!.factor(m.f);
       for (final t in ts) {
-        gain[t] = gain[t]! * m.f;
+        gain[t] = gain[t]! * f;
       }
-      if (ts.isNotEmpty) steps.add(Step(StepKind.mult, i, amount: m.f, targets: ts));
+      if (ts.isNotEmpty) steps.add(Step(StepKind.mult, i, amount: f, targets: ts));
+    }
+    for (var i = 0; i < size; i++) {
+      final m = cells[i]?.def.effect<MultDiagonal>();
+      if (m == null) continue;
+      final ts = diagonals(i).where((n) => cells[n] != null && (gain[n] ?? 0) > 0).toList();
+      final f = cells[i]!.factor(m.f);
+      for (final t in ts) {
+        gain[t] = gain[t]! * f;
+      }
+      if (ts.isNotEmpty) steps.add(Step(StepKind.mult, i, amount: f, targets: ts));
     }
     for (var i = 0; i < size; i++) {
       final m = cells[i]?.def.effect<MultShelfTag>();
@@ -465,10 +588,11 @@ class Run {
         for (final e in gain.entries)
           if (e.value > 0 && (cells[e.key]?.def.tags.contains(m.tag) ?? false)) e.key,
       ];
+      final f = cells[i]!.factor(m.f);
       for (final t in ts) {
-        gain[t] = gain[t]! * m.f;
+        gain[t] = gain[t]! * f;
       }
-      if (ts.isNotEmpty) steps.add(Step(StepKind.mult, i, amount: m.f, targets: ts));
+      if (ts.isNotEmpty) steps.add(Step(StepKind.mult, i, amount: f, targets: ts));
     }
     final fused = <int>[];
     for (var i = 0; i < size; i++) {
@@ -481,6 +605,7 @@ class Run {
         fused.add(i);
       }
       if (factor == null) continue;
+      factor = f.factor(factor);
       final ts = [
         for (final e in gain.entries)
           if (e.value > 0) e.key,
@@ -514,7 +639,10 @@ class Run {
       if (gain[i]! != 0) steps.add(Step(StepKind.add, i, amount: gain[i]!));
     }
 
-    final total = gain.values.fold(0, (a, b) => a + b);
+    var total = gain.values.fold(0, (a, b) => a + b);
+    // 妨害: this song's hearts come in at half (getting through) or double (fended off)
+    if (halfThisSong && total > 0) total = (total / 2).ceil();
+    if (doubleThisSong && total > 0) total *= 2;
     coins = math.max(0, coins + total);
     earned += math.max(0, total);
     bestTurn = math.max(bestTurn, total);
@@ -558,30 +686,18 @@ class Run {
     }
     coins += bonus;
     final d = due;
-    if (coins < d) return PaydayResult(d, bonus, before, false, const []);
+    if (coins < d) return PaydayResult(d, bonus, before, false);
     coins -= d;
     carriedDebt = 0;
     paydaysPaid++;
-    // a fresh period: どける / いれかえ fill back up, free
-    removeTickets = removeMax;
-    swapTickets = swapMax;
+    // a fresh song: もう一回ひく fills back up, and a 妨害's spell and the 確定チケット wear off
+    songTurn = 0;
     repulls = repullMax;
-    final cards = <int>[];
-    // from the 2nd payday on, the boss leaves his card (an obstacle) on the shelf every time
-    if (rules.cardEveryPayday || paydaysPaid >= 2) {
-      final at = leaveCard();
-      if (at != null) cards.add(at);
-    }
-    return PaydayResult(d, bonus, before, true, cards);
-  }
-
-  /// The boss puts his card in an empty cell (an obstacle to どける). Returns where, or null if full.
-  int? leaveCard() {
-    final empty = emptyCells;
-    if (empty.isEmpty) return null;
-    final at = rng.pick(empty);
-    cells[at] = _newFig(figureById[kCardId]!);
-    return at;
+    halfThisSong = false;
+    doubleThisSong = false;
+    rareSong = false;
+    idolSong = null;
+    return PaydayResult(d, bonus, before, true);
   }
 
   /// The once-per-run rescue (rewarded ad): this payday's bill moves to the next one.
@@ -591,6 +707,115 @@ class Run {
     continueUsed = true;
     carriedDebt = due;
     paydaysPaid++;
+    songTurn = 0;
+    repulls = repullMax;
+    halfThisSong = false;
+    doubleThisSong = false;
+    rareSong = false;
+    idolSong = null;
+  }
+
+  // ── 妨害 (a scalper barges in before the hearts are counted) ──
+  bool halfThisSong = false; // 妨害: hearts are halved until the song ends
+  bool doubleThisSong = false; // a 妨害 was fended off: hearts ×2 until the song ends
+
+  /// Whether a 妨害 happens this turn (rolled after placing, before scoring). [force]: it does.
+  Jam? rollJam({bool force = false}) {
+    if (!force && (rules.jamRate <= 0 || rng.nextDouble() >= rules.jamRate)) return null;
+    // how hard he pushes, and how bad it is if he gets through
+    final power = 0.75 + rng.nextDouble() * 0.6 * rules.jamPower;
+    final x = rng.nextDouble();
+    final kind = x < 0.45
+        ? JamKind.steal
+        : x < 0.6
+        ? JamKind.stealTwo
+        : x < 0.75
+        ? JamKind.noRepull
+        : x < 0.88
+        ? JamKind.half
+        : JamKind.hearts;
+    final goods = [for (var i = 0; i < size; i++) if (cells[i] != null) i];
+    final kindOk = switch (kind) {
+      JamKind.steal || JamKind.stealTwo => goods.isNotEmpty,
+      JamKind.noRepull => repulls > 0,
+      JamKind.half => !halfThisSong,
+      JamKind.hearts => coins > 0,
+    };
+    final k = kindOk ? kind : (goods.isNotEmpty ? JamKind.steal : JamKind.hearts);
+    // what fending him off brings
+    final y = rng.nextDouble();
+    final gift = _jamGift();
+    final reward = y < 0.4
+        ? JamReward.hearts
+        : y < 0.75 && gift != null
+        ? JamReward.goods
+        : y < 0.88
+        ? JamReward.luck
+        : JamReward.repull;
+    return Jam(k, power, pct: k == JamKind.hearts ? 20 + rng.nextInt(21) : 0, reward: reward, gift: reward == JamReward.goods ? gift : null);
+  }
+
+  /// A goods this gacha is glad of: of the idol it favours, else the one most on the altar; ★3 if there is one.
+  FigureDef? _jamGift() {
+    String? who;
+    var best = 1.0;
+    for (final e in rules.tagWeight.entries) {
+      if (_idols.contains(e.key) && e.value > best) {
+        best = e.value;
+        who = e.key;
+      }
+    }
+    if (who == null) {
+      final count = <String, int>{};
+      for (final f in figs) {
+        for (final m in f.def.cast) {
+          count[m] = (count[m] ?? 0) + 1;
+        }
+      }
+      who = count.isEmpty ? rng.pick(_idols) : (count.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
+    }
+    for (final r in [Rarity.epic, Rarity.rare]) {
+      final pool = [for (final f in _unlocked(r)) if (f.tags.contains(who)) f];
+      if (pool.isNotEmpty) return rng.pick(pool);
+    }
+    return null;
+  }
+
+  /// He was fended off: the reward (a goods comes back for the caller to place).
+  FigureDef? rewardJam(Jam j) {
+    switch (j.reward) {
+      case JamReward.hearts:
+        doubleThisSong = true;
+      case JamReward.goods:
+        return j.gift;
+      case JamReward.luck:
+        luckBonus += 10;
+      case JamReward.repull:
+        repulls++;
+    }
+    return null;
+  }
+
+  /// The 妨害 got through. Returns the cells it emptied.
+  List<int> applyJam(Jam j) {
+    final out = <int>[];
+    switch (j.kind) {
+      case JamKind.steal || JamKind.stealTwo:
+        for (var k = 0; k < (j.kind == JamKind.stealTwo ? 2 : 1); k++) {
+          final goods = [for (var i = 0; i < size; i++) if (cells[i] != null) i];
+          if (goods.isEmpty) break;
+          final at = rng.pick(goods);
+          cells[at] = null;
+          out.add(at);
+        }
+      case JamKind.noRepull:
+        repulls = 0;
+      case JamKind.half:
+        halfThisSong = true;
+      case JamKind.hearts:
+        coins -= (coins * j.pct / 100).round();
+    }
+    return out;
   }
 
   // ── shop ──
@@ -614,26 +839,30 @@ class Run {
       shopBuys = 0;
     }
     Offer use(OfferKind k, int now) => Offer(k, (12 * (now + 1) * _priceScale).round());
-    // three items. One slot goes to a どける or いれかえ upgrade while either can still grow
-    final tools = [
-      if (removeMax < maxUses) use(OfferKind.removeTickets, removeMax),
-      if (swapMax < maxUses) use(OfferKind.swapTicket, swapMax),
-    ];
-    shop = [if (tools.isNotEmpty) rng.pick(tools)];
-    // the rest is completely random
+    // three items, completely random
+    shop = [];
     final pool = <Offer>[
       _figureOffer(),
       _figureOffer(),
       _figureOffer(),
       Offer(OfferKind.luck, (10 * _priceScale).round()),
+      Offer(OfferKind.boost, (12 * _priceScale).round(), null, rng.pick(_idols)),
       if (rules.canExpand && canGrow) Offer(OfferKind.expand, expandPrice),
       if (repullMax < maxRepulls) use(OfferKind.repullTicket, repullMax),
       if (rerollMax < maxUses) use(OfferKind.rerollTicket, rerollMax),
-      for (final t in tools)
-        if (t.kind != shop.firstOrNull?.kind) t,
     ];
     while (shop.length < 3 && pool.isNotEmpty) {
       shop.add(pool.removeAt(rng.nextInt(pool.length)));
+    }
+    // now and then a レア商品 takes one of the places
+    if (shop.isNotEmpty && rng.nextDouble() < rareChance) {
+      final x = rng.nextDouble();
+      final o = x < 0.3 && turnsPerSong < maxTurnsPerSong
+          ? Offer(OfferKind.extraSpin, (45 * _priceScale).round())
+          : x < 0.6
+          ? Offer(OfferKind.rareSong, (30 * _priceScale).round())
+          : Offer(OfferKind.idolSong, (25 * _priceScale).round(), null, rng.pick(_idols));
+      shop[rng.nextInt(shop.length)] = o;
     }
     shop.shuffle(math.Random(rng.nextInt(1 << 30)));
   }
@@ -643,9 +872,10 @@ class Run {
   /// price, and at least a growing share of the coins still in the purse
   /// (40%, 60%, 80%, then all of it).
   static const shopMarkup = 0.5;
+  double rareChance = 0.12; // a レア商品 at about one stall visit in eight
   int shopBuys = 0;
   int priceOf(Offer o) {
-    if (shopBuys == 0) return 0;
+    if (shopBuys == 0) return o.rare ? o.price : 0;
     final marked = (o.price * (1 + shopMarkup * shopBuys)).round();
     final share = (coins * (0.2 + 0.2 * shopBuys)).ceil();
     return math.max(marked, share);
@@ -670,12 +900,8 @@ class Run {
         return o.fig;
       case OfferKind.luck:
         luckBonus += 8;
-      case OfferKind.removeTickets:
-        removeMax = math.min(maxUses, removeMax + 1);
-        removeTickets++;
-      case OfferKind.swapTicket:
-        swapMax = math.min(maxUses, swapMax + 1);
-        swapTickets++;
+      case OfferKind.boost:
+        boost[o.idol!] = (boost[o.idol!] ?? 1) * boostStep;
       case OfferKind.repullTicket:
         repullMax = math.min(maxRepulls, repullMax + 1);
         repulls++;
@@ -684,6 +910,12 @@ class Run {
         rerolls++;
       case OfferKind.expand:
         _expand();
+      case OfferKind.extraSpin:
+        turnsPerSong = math.min(maxTurnsPerSong, turnsPerSong + 1);
+      case OfferKind.rareSong:
+        rareSong = true;
+      case OfferKind.idolSong:
+        idolSong = o.idol;
     }
     return null;
   }
