@@ -533,9 +533,19 @@ class Run {
       f.age++;
     }
     final steps = <Step>[];
-    final gain = <int, int>{};
+    final gain = <int, int>{}; // cell → hearts this turn
+    _shoot(gain, steps);
+    _baseIncome(gain, steps);
+    _buffs(gain, steps);
+    final fused = _multipliers(gain, steps);
+    _copycats(gain, steps);
+    final total = _bank(gain);
+    _afterScoring(fused, steps);
+    return TurnResult(steps, total, gain);
+  }
 
-    // 1. shooters fire first; victims leave before anyone else scores
+  /// 1. shooters fire first; victims leave before anyone else scores
+  void _shoot(Map<int, int> gain, List<Step> steps) {
     for (var i = 0; i < size; i++) {
       final f = cells[i];
       final sh = f?.def.effect<ShootAdjacent>();
@@ -548,8 +558,10 @@ class Run {
       gain[i] = g;
       steps.add(Step(StepKind.shoot, i, amount: g, targets: [v]));
     }
+  }
 
-    // 2. base income in reading order
+  /// 2. base income in reading order
+  void _baseIncome(Map<int, int> gain, List<Step> steps) {
     for (var i = 0; i < size; i++) {
       final f = cells[i];
       if (f == null || gain.containsKey(i) || f.def.has<CopyBestAdjacent>()) continue;
@@ -557,69 +569,63 @@ class Run {
       gain[i] = b;
       if (b != 0) steps.add(Step(StepKind.add, i, amount: b));
     }
+  }
 
-    // 3. row buffs
+  /// 3. buffs: every row buff, then every column buff, then every diagonal one
+  void _buffs(Map<int, int> gain, List<Step> steps) {
+    void buff(int i, int v, List<int> ts) {
+      for (final t in ts) {
+        gain[t] = (gain[t] ?? 0) + v;
+      }
+      if (ts.isNotEmpty) steps.add(Step(StepKind.buff, i, amount: v, targets: ts));
+    }
+
     for (var i = 0; i < size; i++) {
-      final buff = cells[i]?.def.effect<BuffRow>();
-      if (buff == null) continue;
+      final b = cells[i]?.def.effect<BuffRow>();
+      if (b == null) continue;
       final ts = [
         for (var c = 0; c < cols; c++)
           if (rowOf(i) * cols + c != i && cells[rowOf(i) * cols + c] != null) rowOf(i) * cols + c,
       ];
-      final v = buff.v * cells[i]!.stack;
-      for (final t in ts) {
-        gain[t] = (gain[t] ?? 0) + v;
-      }
-      if (ts.isNotEmpty) steps.add(Step(StepKind.buff, i, amount: v, targets: ts));
+      buff(i, b.v * cells[i]!.stack, ts);
     }
-
-    // 3b. column buffs
     for (var i = 0; i < size; i++) {
-      final buff = cells[i]?.def.effect<BuffColumn>();
-      if (buff == null) continue;
+      final b = cells[i]?.def.effect<BuffColumn>();
+      if (b == null) continue;
       final ts = [
         for (var r = 0; r < rows; r++)
           if (r * cols + colOf(i) != i && cells[r * cols + colOf(i)] != null) r * cols + colOf(i),
       ];
-      final v = buff.v * cells[i]!.stack;
-      for (final t in ts) {
-        gain[t] = (gain[t] ?? 0) + v;
-      }
-      if (ts.isNotEmpty) steps.add(Step(StepKind.buff, i, amount: v, targets: ts));
+      buff(i, b.v * cells[i]!.stack, ts);
     }
-
-    // 3c. diagonal buffs
     for (var i = 0; i < size; i++) {
-      final buff = cells[i]?.def.effect<BuffDiagonal>();
-      if (buff == null) continue;
-      final ts = diagonals(i).where((n) => cells[n] != null).toList();
-      final v = buff.v * cells[i]!.stack;
-      for (final t in ts) {
-        gain[t] = (gain[t] ?? 0) + v;
-      }
-      if (ts.isNotEmpty) steps.add(Step(StepKind.buff, i, amount: v, targets: ts));
+      final b = cells[i]?.def.effect<BuffDiagonal>();
+      if (b == null) continue;
+      buff(i, b.v * cells[i]!.stack, diagonals(i).where((n) => cells[n] != null).toList());
     }
+  }
 
-    // 5. local multipliers, then global ones
-    for (var i = 0; i < size; i++) {
-      final m = cells[i]?.def.effect<MultAdjacentTag>();
-      if (m == null) continue;
-      final ts = neighbors(i).where((n) => cells[n] != null && cells[n]!.def.tags.contains(m.tag) && (gain[n] ?? 0) > 0).toList();
-      final f = cells[i]!.factor(m.f);
+  /// 4. multipliers on what has earned so far: local ones (neighbours, diagonals), then one
+  /// member's across the altar, then the whole altar. Returns the fuses that went off.
+  List<int> _multipliers(Map<int, int> gain, List<Step> steps) {
+    void mult(int i, int f, List<int> ts) {
       for (final t in ts) {
         gain[t] = gain[t]! * f;
       }
       if (ts.isNotEmpty) steps.add(Step(StepKind.mult, i, amount: f, targets: ts));
+    }
+
+    for (var i = 0; i < size; i++) {
+      final m = cells[i]?.def.effect<MultAdjacentTag>();
+      if (m == null) continue;
+      final ts = neighbors(i).where((n) => cells[n] != null && cells[n]!.def.tags.contains(m.tag) && (gain[n] ?? 0) > 0).toList();
+      mult(i, cells[i]!.factor(m.f), ts);
     }
     for (var i = 0; i < size; i++) {
       final m = cells[i]?.def.effect<MultDiagonal>();
       if (m == null) continue;
       final ts = diagonals(i).where((n) => cells[n] != null && (gain[n] ?? 0) > 0).toList();
-      final f = cells[i]!.factor(m.f);
-      for (final t in ts) {
-        gain[t] = gain[t]! * f;
-      }
-      if (ts.isNotEmpty) steps.add(Step(StepKind.mult, i, amount: f, targets: ts));
+      mult(i, cells[i]!.factor(m.f), ts);
     }
     for (var i = 0; i < size; i++) {
       final m = cells[i]?.def.effect<MultShelfTag>();
@@ -628,11 +634,7 @@ class Run {
         for (final e in gain.entries)
           if (e.value > 0 && (cells[e.key]?.def.tags.contains(m.tag) ?? false)) e.key,
       ];
-      final f = cells[i]!.factor(m.f);
-      for (final t in ts) {
-        gain[t] = gain[t]! * f;
-      }
-      if (ts.isNotEmpty) steps.add(Step(StepKind.mult, i, amount: f, targets: ts));
+      mult(i, cells[i]!.factor(m.f), ts);
     }
     final fused = <int>[];
     for (var i = 0; i < size; i++) {
@@ -645,19 +647,18 @@ class Run {
         fused.add(i);
       }
       if (factor == null) continue;
-      factor = f.factor(factor);
       final ts = [
         for (final e in gain.entries)
           if (e.value > 0) e.key,
       ];
-      for (final t in ts) {
-        gain[t] = gain[t]! * factor;
-      }
-      if (ts.isNotEmpty) steps.add(Step(StepKind.mult, i, amount: factor, targets: ts));
+      mult(i, f.factor(factor), ts);
     }
+    return fused;
+  }
 
-    // 6. copycats (fox masks) go last, on the final values, and chain: a row of
-    //    masks keeps passing the best number along until they all agree
+  /// 5. copycats (fox masks) go last, on the final values, and chain: a row of
+  ///    masks keeps passing the best number along until they all agree
+  void _copycats(Map<int, int> gain, List<Step> steps) {
     final copycats = [
       for (var i = 0; i < size; i++)
         if (cells[i]?.def.has<CopyBestAdjacent>() == true) i,
@@ -678,7 +679,10 @@ class Run {
     for (final i in copycats) {
       if (gain[i]! != 0) steps.add(Step(StepKind.add, i, amount: gain[i]!));
     }
+  }
 
+  /// 6. the turn's hearts go into the purse; returns how many
+  int _bank(Map<int, int> gain) {
     var total = gain.values.fold(0, (a, b) => a + b);
     // 妨害: this song's hearts come in at half (getting through) or double (fended off)
     if (halfThisSong && total > 0) total = (total / 2).ceil();
@@ -689,8 +693,11 @@ class Run {
     for (final e in gain.entries) {
       cells[e.key]?.lastGain = e.value;
     }
+    return total;
+  }
 
-    // 7. after scoring: fireworks leave, balloons pop, lottery bags spawn
+  /// 7. after scoring: fireworks leave, balloons pop, lottery bags spawn
+  void _afterScoring(List<int> fused, List<Step> steps) {
     for (final i in fused) {
       cells[i] = null;
       steps.add(Step(StepKind.remove, i));
@@ -714,7 +721,6 @@ class Run {
       cells[at] = nf;
       steps.add(Step(StepKind.spawn, at, fig: nf));
     }
-    return TurnResult(steps, total, gain);
   }
 
   // ── payday ──
