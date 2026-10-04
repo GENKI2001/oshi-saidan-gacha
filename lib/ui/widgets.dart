@@ -838,6 +838,28 @@ PreferredSizeWidget ribbonBar(String title, {String? note}) => PreferredSize(
   child: SafeArea(bottom: false, child: ScreenHeader(title, note: note)),
 );
 
+/// A round cream button with an icon (the menu buttons, the sound switches).
+class RoundIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final double size, padding;
+  const RoundIconButton(this.icon, {super.key, this.onTap, this.size = 24, this.padding = 7});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: EdgeInsets.all(padding),
+      decoration: BoxDecoration(
+        color: C.cream,
+        shape: BoxShape.circle,
+        border: Border.all(color: C.ink, width: 3),
+      ),
+      child: Icon(icon, color: C.ink, size: size),
+    ),
+  );
+}
+
 /// A goods stacked on itself: a soft rotating halo of light behind it, brighter and more
 /// colourful with each stack (×2 gold, ×3 pink-gold, ×4 and up rainbow).
 class StackAura extends StatefulWidget {

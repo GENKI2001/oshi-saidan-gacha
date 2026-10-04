@@ -191,15 +191,7 @@ class GameController extends ChangeNotifier {
   }
 
   /// Counts each idol's goods on the altar now (for the 祭壇 achievements).
-  void _noteAltar() {
-    final counts = <String, int>{};
-    for (final f in run.figs) {
-      for (final m in f.def.cast) {
-        counts[m] = (counts[m] ?? 0) + 1;
-      }
-    }
-    meta.noteAltar(counts);
-  }
+  void _noteAltar() => meta.noteAltar(run.castCounts());
   String? songIdol; // who thanks the crowd after a song
   String songLine = '';
   bool _alive = true;
@@ -513,7 +505,7 @@ class GameController extends ChangeNotifier {
       idolSay(sp.$2, pick(idolLines[sp.$2]!.pull));
     } else if (fromCutin) {
       idolOnPull = true; // she stays on as a little bubble over the goods
-    } else if (!_coaching && !fromCutin) {
+    } else if (!_coaching) {
       if (best == Rarity.legend && options.every((o) => o.cast.isEmpty)) say(2, pick(lineLegend));
     }
     fresh = {
@@ -767,13 +759,7 @@ class GameController extends ChangeNotifier {
     jamSaved = null;
     jamTaken = [];
     jamToken++;
-    final count = <String, int>{};
-    for (final f in run.figs) {
-      for (final m in f.def.cast) {
-        count[m] = (count[m] ?? 0) + 1;
-      }
-    }
-    jamIdol = count.isEmpty ? members[math.Random().nextInt(members.length)] : (count.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
+    jamIdol = run.topCast ?? members[math.Random().nextInt(members.length)];
     phase = Phase.jam;
     Sfx.play('siren');
     HapticFeedback.heavyImpact();
@@ -988,7 +974,6 @@ class GameController extends ChangeNotifier {
     for (final s in res.steps) {
       if (!_alive) return;
       if (s.kind == StepKind.remove && shown[s.idx] == null) continue;
-      if (!_alive) return;
       _apply(s);
       // the running count, with a jolt at every round number it passes
       final now = badge.values.fold(0, (a, b) => a + b);
@@ -1106,13 +1091,7 @@ class GameController extends ChangeNotifier {
       say(0, pick(linePayday));
       return;
     }
-    final count = <String, int>{};
-    for (final f in run.figs) {
-      for (final m in f.def.cast) {
-        count[m] = (count[m] ?? 0) + 1;
-      }
-    }
-    songIdol = count.isEmpty ? members[math.Random().nextInt(members.length)] : (count.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
+    songIdol = run.topCast ?? members[math.Random().nextInt(members.length)];
     songLine = pick(idolLines[songIdol!]!.songEnd);
     Voice.say(songIdol!, songLine, delayMs: 500);
     Bgm.play('bgm_clear'); // the curtain call and the stall get their own tune

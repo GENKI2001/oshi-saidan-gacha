@@ -279,6 +279,23 @@ class Run {
   Iterable<Fig> get figs => cells.whereType<Fig>();
   int shelfTag(String tag) => figs.where((f) => f.def.tags.contains(tag)).length;
 
+  /// How many goods on the altar each member is on.
+  Map<String, int> castCounts() {
+    final count = <String, int>{};
+    for (final f in figs) {
+      for (final m in f.def.cast) {
+        count[m] = (count[m] ?? 0) + 1;
+      }
+    }
+    return count;
+  }
+
+  /// The member with the most goods on the altar (null while none is on it).
+  String? get topCast {
+    final count = castCounts();
+    return count.isEmpty ? null : (count.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
+  }
+
   int get luck => luckBonus + figs.fold(0, (s, f) => s + (f.def.effect<Luck>()?.v ?? 0));
 
   // ── payday ──
@@ -788,15 +805,7 @@ class Run {
         who = e.key;
       }
     }
-    if (who == null) {
-      final count = <String, int>{};
-      for (final f in figs) {
-        for (final m in f.def.cast) {
-          count[m] = (count[m] ?? 0) + 1;
-        }
-      }
-      who = count.isEmpty ? rng.pick(_idols) : (count.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
-    }
+    who ??= topCast ?? rng.pick(_idols);
     for (final r in [Rarity.epic, Rarity.rare]) {
       final pool = [for (final f in _unlocked(r)) if (f.tags.contains(who)) f];
       if (pool.isNotEmpty) return rng.pick(pool);

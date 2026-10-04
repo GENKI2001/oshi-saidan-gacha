@@ -18,10 +18,10 @@ import 'jam_widgets.dart';
 import 'juice.dart';
 import 'coach.dart';
 import 'lines.dart';
-import 'voice.dart';
 import 'meta.dart';
 import 'rank_screen.dart';
 import 'sfx.dart';
+import 'sound_toggles.dart';
 import 'title_screen.dart';
 import 'venue.dart';
 import 'widgets.dart';
@@ -87,7 +87,6 @@ class _GameScreenState extends State<GameScreen> {
     return CoachLayer(key: ValueKey(g.coach), targets: keys, text: text, circle: circle, onTap: info ? g.coachNext : null);
   }
 
-  @override
   @override
   Widget build(BuildContext context) => Scaffold(
     body: AnimatedBuilder(
@@ -290,18 +289,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          GestureDetector(
-            onTap: _menu,
-            child: Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: C.cream,
-                shape: BoxShape.circle,
-                border: Border.all(color: C.ink, width: 3),
-              ),
-              child: const Icon(Icons.menu_rounded, color: C.ink, size: 24),
-            ),
-          ),
+          RoundIconButton(Icons.menu_rounded, onTap: _menu),
         ],
       ),
     );
@@ -1730,89 +1718,52 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _soundIcon(IconData icon, VoidCallback toggle, StateSetter set) => GestureDetector(
-    onTap: () {
-      toggle();
-      Sfx.play('toggle');
-      set(() {});
-    },
-    child: Container(
-      padding: const EdgeInsets.all(9),
-      decoration: BoxDecoration(
-        color: C.cream,
-        shape: BoxShape.circle,
-        border: Border.all(color: C.ink, width: 3),
-      ),
-      child: Icon(icon, color: C.ink, size: 26),
-    ),
-  );
-
   /// In-run menu: resume, sound, or quit to the title.
   void _menu() {
     Sfx.play('tap');
     final m = widget.meta;
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, set) => Dialog(
-          backgroundColor: Colors.transparent,
-          child: Panel(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('メニュー', style: outlined(26, C.pink, stroke: C.ink, width: 3)),
-                const SizedBox(height: 8),
-                // sound settings as icons, like on the title
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _soundIcon(m.music ? Icons.music_note_rounded : Icons.music_off_rounded, () {
-                      m.toggleMusic();
-                      Bgm.setEnabled(m.music);
-                    }, set),
-                    const SizedBox(width: 12),
-                    _soundIcon(m.voice ? Icons.record_voice_over_rounded : Icons.voice_over_off_rounded, () {
-                      m.toggleVoice();
-                      Voice.setEnabled(m.voice);
-                    }, set),
-                    const SizedBox(width: 12),
-                    _soundIcon(m.sound ? Icons.volume_up_rounded : Icons.volume_off_rounded, () {
-                      m.toggleSound();
-                      Sfx.enabled = m.sound;
-                    }, set),
-                  ],
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Panel(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('メニュー', style: outlined(26, C.pink, stroke: C.ink, width: 3)),
+              const SizedBox(height: 8),
+              // sound settings as icons, like on the title
+              SoundToggles(m),
+              const SizedBox(height: 14),
+              for (final b in [
+                PopButton('つづける', fontSize: 22, onTap: () => Navigator.of(ctx).pop()),
+                PopButton(
+                  'あそびかた',
+                  fontSize: 18,
+                  color: C.gold,
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => HowToScreen(meta: m)));
+                  },
                 ),
-                const SizedBox(height: 14),
-                for (final b in [
-                  PopButton('つづける', fontSize: 22, onTap: () => Navigator.of(ctx).pop()),
-                  PopButton(
-                    'あそびかた',
-                    fontSize: 18,
-                    color: C.gold,
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => HowToScreen(meta: m)));
-                    },
-                  ),
-                  // ends the run right away and shows the result
-                  PopButton(
-                    'あきらめる',
-                    fontSize: 18,
-                    color: C.red,
-                    onTap: g.canGiveUp
-                        ? () {
-                            Navigator.of(ctx).pop();
-                            g.giveUp();
-                          }
-                        : null,
-                  ),
-                ])
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: SizedBox(width: 240, child: b),
-                  ),
-              ],
-            ),
+                // ends the run right away and shows the result
+                PopButton(
+                  'あきらめる',
+                  fontSize: 18,
+                  color: C.red,
+                  onTap: g.canGiveUp
+                      ? () {
+                          Navigator.of(ctx).pop();
+                          g.giveUp();
+                        }
+                      : null,
+                ),
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SizedBox(width: 240, child: b),
+                ),
+            ],
           ),
         ),
       ),
@@ -1828,53 +1779,53 @@ Future<void> showFigureInfo(BuildContext context, FigureDef d, [Fig? f, Run? run
       padding: const EdgeInsets.all(14),
       child: Panel(
         child: Row(
-          children: [
-            FigureArt(d, size: 110),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    d.name,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: C.ink),
+        children: [
+          FigureArt(d, size: 110),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  d.name,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: C.ink),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Wrap(
+                    spacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      RarityStars(d.rarity, size: 18),
+                      Text(
+                        d.tags.map((t) => '「$t」').join(),
+                        style: const TextStyle(color: C.ink, fontWeight: FontWeight.w900),
+                      ),
+                    ],
                   ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  d.description,
+                  style: const TextStyle(fontSize: 15, height: 1.4, color: C.ink, fontWeight: FontWeight.w600),
+                ),
+                if (f != null && f.stack > 1)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Wrap(
-                      spacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        RarityStars(d.rarity, size: 18),
-                        Text(
-                          d.tags.map((t) => '「$t」').join(),
-                          style: const TextStyle(color: C.ink, fontWeight: FontWeight.w900),
-                        ),
-                      ],
-                    ),
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('重ねて強化中：効果が ×${f.stack}', style: outlined(15, const Color(0xFFE6A700), stroke: Colors.white, width: 3)),
                   ),
-                  const SizedBox(height: 6),
+                if (f != null) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    d.description,
-                    style: const TextStyle(fontSize: 15, height: 1.4, color: C.ink, fontWeight: FontWeight.w600),
+                    '置いてから ${f.age} 回転${f.lastGain != 0 ? '・さっきのハート ${f.lastGain}' : ''}',
+                    style: const TextStyle(color: C.woodDark, fontWeight: FontWeight.w800),
                   ),
-                  if (f != null && f.stack > 1)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text('重ねて強化中：効果が ×${f.stack}', style: outlined(15, const Color(0xFFE6A700), stroke: Colors.white, width: 3)),
-                    ),
-                  if (f != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      '置いてから ${f.age} 回転${f.lastGain != 0 ? '・さっきのハート ${f.lastGain}' : ''}',
-                      style: const TextStyle(color: C.woodDark, fontWeight: FontWeight.w800),
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
-          ],
+          ),
+        ],
         ),
       ),
     ),

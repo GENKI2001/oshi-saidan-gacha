@@ -19,6 +19,7 @@ import 'rank.dart';
 import 'rank_screen.dart';
 import 'member_screen.dart';
 import 'sfx.dart';
+import 'sound_toggles.dart';
 import 'voice.dart';
 import 'widgets.dart';
 
@@ -123,23 +124,6 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
     _c.dispose();
     super.dispose();
   }
-
-  Widget _toggle(IconData icon, VoidCallback f) => GestureDetector(
-    onTap: () {
-      f();
-      Sfx.play('toggle');
-      setState(() {});
-    },
-    child: Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: C.cream,
-        shape: BoxShape.circle,
-        border: Border.all(color: C.ink, width: 3),
-      ),
-      child: Icon(icon, color: C.ink, size: 24),
-    ),
-  );
 
   /// Until the tutorial is done, playing means the guided first game.
   Future<void> _play() async {
@@ -340,24 +324,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                       Positioned(
                         right: 10,
                         top: 10,
-                        child: Row(
-                          children: [
-                            _toggle(m.music ? Icons.music_note_rounded : Icons.music_off_rounded, () {
-                              m.toggleMusic();
-                              Bgm.setEnabled(m.music);
-                            }),
-                            const SizedBox(width: 6),
-                            _toggle(m.voice ? Icons.record_voice_over_rounded : Icons.voice_over_off_rounded, () {
-                              m.toggleVoice();
-                              Voice.setEnabled(m.voice);
-                            }),
-                            const SizedBox(width: 6),
-                            _toggle(m.sound ? Icons.volume_up_rounded : Icons.volume_off_rounded, () {
-                              m.toggleSound();
-                              Sfx.enabled = m.sound;
-                            }),
-                          ],
-                        ),
+                        child: SoundToggles(m, size: 24, padding: 8, gap: 6),
                       ),
                     ],
                   ),
@@ -469,18 +436,7 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
     );
   }
 
-  Widget _menuButton() => GestureDetector(
-    onTap: _menu,
-    child: Container(
-      padding: const EdgeInsets.all(7),
-      decoration: BoxDecoration(
-        color: C.cream,
-        shape: BoxShape.circle,
-        border: Border.all(color: C.ink, width: 3),
-      ),
-      child: const Icon(Icons.menu_rounded, color: C.ink, size: 24),
-    ),
-  );
+  Widget _menuButton() => RoundIconButton(Icons.menu_rounded, onTap: _menu);
 
   /// What one might want before picking a machine, without going back to the title:
   /// sound, the book, the members, achievements, ranking and how to play.
@@ -492,65 +448,32 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
       Navigator.of(context).push(_fade(page));
     }
 
-    Widget sound(IconData icon, VoidCallback toggle, StateSetter set) => GestureDetector(
-      onTap: () {
-        toggle();
-        Sfx.play('toggle');
-        set(() {});
-      },
-      child: Container(
-        padding: const EdgeInsets.all(9),
-        decoration: BoxDecoration(color: C.cream, shape: BoxShape.circle, border: Border.all(color: C.ink, width: 3)),
-        child: Icon(icon, color: C.ink, size: 26),
-      ),
-    );
-
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, set) => Dialog(
-          backgroundColor: Colors.transparent,
-          child: Panel(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // titled like the other screens (あそびかた etc.): on the ribbon
-                const Ribbon('メニュー', width: 200),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    sound(m.music ? Icons.music_note_rounded : Icons.music_off_rounded, () {
-                      m.toggleMusic();
-                      Bgm.setEnabled(m.music);
-                    }, set),
-                    const SizedBox(width: 12),
-                    sound(m.voice ? Icons.record_voice_over_rounded : Icons.voice_over_off_rounded, () {
-                      m.toggleVoice();
-                      Voice.setEnabled(m.voice);
-                    }, set),
-                    const SizedBox(width: 12),
-                    sound(m.sound ? Icons.volume_up_rounded : Icons.volume_off_rounded, () {
-                      m.toggleSound();
-                      Sfx.enabled = m.sound;
-                    }, set),
-                  ],
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Panel(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // titled like the other screens (あそびかた etc.): on the ribbon
+              const Ribbon('メニュー', width: 200),
+              SoundToggles(m),
+              const SizedBox(height: 14),
+              // one column, the colours running warm to cool down the list (no two alike)
+              for (final (label, color, onTap) in <(String, Color, VoidCallback)>[
+                ('図鑑', idolColor['こはる']!, () => open(ctx, BookScreen(meta: m))),
+                ('ランキング', idolColor['もも']!, () => open(ctx, RankScreen(meta: m))),
+                ('実績', idolColor['よる']!, () => open(ctx, AchievementScreen(meta: m))),
+                ('メンバー', idolColor['しずく']!, () => open(ctx, const MemberScreen())),
+                ('あそびかた', const Color(0xFF3FC2A8), () => open(ctx, HowToScreen(meta: m))),
+                ('とじる', const Color(0xFF8A93A8), () => Navigator.of(ctx).pop()),
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 9),
+                  child: SizedBox(width: 240, child: PopButton(label, fontSize: 18, color: color, onTap: onTap)),
                 ),
-                const SizedBox(height: 14),
-                // one column, the colours running warm to cool down the list (no two alike)
-                for (final (label, color, onTap) in <(String, Color, VoidCallback)>[
-                  ('図鑑', idolColor['こはる']!, () => open(ctx, BookScreen(meta: m))),
-                  ('ランキング', idolColor['もも']!, () => open(ctx, RankScreen(meta: m))),
-                  ('実績', idolColor['よる']!, () => open(ctx, AchievementScreen(meta: m))),
-                  ('メンバー', idolColor['しずく']!, () => open(ctx, const MemberScreen())),
-                  ('あそびかた', const Color(0xFF3FC2A8), () => open(ctx, HowToScreen(meta: m))),
-                  ('とじる', const Color(0xFF8A93A8), () => Navigator.of(ctx).pop()),
-                ])
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 9),
-                    child: SizedBox(width: 240, child: PopButton(label, fontSize: 18, color: color, onTap: onTap)),
-                  ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
@@ -565,57 +488,57 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Positioned.fill(child: Panel(
+        Positioned.fill(child: Panel(
         // the art takes a fixed share so every card's text starts at the same height
         child: Column(
-          children: [
-            // how far this machine has been played: cleared or not, best songs, best spin
-            if (open) _records(m),
-            Expanded(
-              flex: 5,
-              child: MachineArt(hue: m.hue, locked: !open),
-            ),
-            const SizedBox(height: 6),
-            Expanded(
-              flex: 3,
-              // a machine with many perks shrinks its text rather than overflow
-              child: LayoutBuilder(
-                builder: (_, bc) => FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.topCenter,
-                  child: SizedBox(
-                    width: bc.maxWidth,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                  FittedBox(fit: BoxFit.scaleDown, child: StickerText(m.name, size: 24)), // the name shows even while locked: something to aim for
-                  const SizedBox(height: 8),
-                  DifficultyBadge(m.difficulty),
-                  const SizedBox(height: 2),
-                  Text(
-                    open ? m.blurb : '解放条件：${m.unlockText}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: C.ink, fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 6),
-                  if (open)
-                    for (final p in m.perks)
-                      Text(
-                        '・$p',
-                        style: const TextStyle(color: C.ink, fontSize: 13, fontWeight: FontWeight.w700),
-                      ),
-                      ],
+        children: [
+          // how far this machine has been played: cleared or not, best songs, best spin
+          if (open) _records(m),
+          Expanded(
+            flex: 5,
+            child: MachineArt(hue: m.hue, locked: !open),
+          ),
+          const SizedBox(height: 6),
+          Expanded(
+            flex: 3,
+            // a machine with many perks shrinks its text rather than overflow
+            child: LayoutBuilder(
+              builder: (_, bc) => FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: bc.maxWidth,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                FittedBox(fit: BoxFit.scaleDown, child: StickerText(m.name, size: 24)), // the name shows even while locked: something to aim for
+                const SizedBox(height: 8),
+                DifficultyBadge(m.difficulty),
+                const SizedBox(height: 2),
+                Text(
+                  open ? m.blurb : '解放条件：${m.unlockText}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: C.ink, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 6),
+                if (open)
+                  for (final p in m.perks)
+                    Text(
+                      '・$p',
+                      style: const TextStyle(color: C.ink, fontSize: 13, fontWeight: FontWeight.w700),
                     ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ],
+          ),
+        ],
         ),
       )),
-          // "このガチャで全国○位": a medal of its own on the corner (it compares with everyone, unlike the records)
-          if (open && Rank.instance.machineRank[m.id] != null)
-            Positioned(right: -8, top: 92, child: _RankMedal(Rank.instance.machineRank[m.id]!)), // beside the machine art
+        // "このガチャで全国○位": a medal of its own on the corner (it compares with everyone, unlike the records)
+        if (open && Rank.instance.machineRank[m.id] != null)
+          Positioned(right: -8, top: 92, child: _RankMedal(Rank.instance.machineRank[m.id]!)), // beside the machine art
         ],
       ),
     ),
