@@ -8,7 +8,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import '../logic/achievements.dart';
-import '../logic/levels.dart';
+import '../logic/defs.dart';
 import '../logic/modes.dart';
 import 'asmr_timing.dart';
 import 'idol_widgets.dart';
@@ -99,29 +99,25 @@ class AchievementToast extends StatelessWidget {
   }
 }
 
-/// The 推し活 level went up: the same toast as a 実績, with what it adds to the gacha.
-class LevelUpToast extends StatelessWidget {
-  final int from, to;
+/// A first clear: the same toast as a 実績, with the goods it brought into the gacha.
+class NewGoodsToast extends StatelessWidget {
+  final MachineDef machine;
+  final List<FigureDef> news;
   final int token;
-  const LevelUpToast(this.from, this.to, {super.key, required this.token});
+  const NewGoodsToast(this.machine, this.news, {super.key, required this.token});
 
   @override
-  Widget build(BuildContext context) {
-    final news = [for (var l = from + 1; l <= to; l++) ...unlockedAt(l)];
-    return _ToastFrame(
-      token: token,
-      icon: Image.asset('assets/ui/lv_badge.png', width: 44, height: 44),
-      title: '推し活レベル UP！ Lv$from → Lv$to',
-      body: news.isEmpty
-          ? const Text('ハートを集めて どんどん上げよう', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.ink))
-          : Row(
-              children: [
-                Text('新しく ${news.length} 種がガチャに ', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.ink)),
-                for (final f in news.take(5)) FigureArt(f, size: 22),
-              ],
-            ),
-    );
-  }
+  Widget build(BuildContext context) => _ToastFrame(
+    token: token,
+    icon: Image.asset('assets/ui/ui_medal.png', width: 44, height: 44),
+    title: '${machine.name} 初クリア！',
+    body: Row(
+      children: [
+        Text('新しく ${news.length} 種がガチャに ', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.ink)),
+        for (final f in news.take(5)) FigureArt(f, size: 22),
+      ],
+    ),
+  );
 }
 
 /// The frame the top-of-screen toasts share: slides down, stays, fades.

@@ -13,7 +13,6 @@ import 'figure_info.dart';
 import 'game_screen.dart';
 import 'howto_screen.dart';
 import 'idol_widgets.dart';
-import 'level_card.dart';
 import 'lines.dart';
 import 'meta.dart';
 import 'rank.dart';

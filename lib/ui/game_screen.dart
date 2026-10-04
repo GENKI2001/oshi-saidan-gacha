@@ -153,7 +153,7 @@ class _GameScreenState extends State<GameScreen> {
                   child: IgnorePointer(
                     child: switch (t) {
                       TopToast(achievements: final a?) => AchievementToast(a, token: g.toastToken),
-                      TopToast(level: (final from, final to)?) => LevelUpToast(from, to, token: g.toastToken),
+                      TopToast(figures: (final m, final f)?) => NewGoodsToast(m, f, token: g.toastToken),
                       TopToast(machines: final m?) => UnlockToast(m, token: g.toastToken),
                       _ => const SizedBox(),
                     },
@@ -314,7 +314,8 @@ class _GameScreenState extends State<GameScreen> {
               children: [
                 Positioned.fill(
                   child: GestureDetector(
-                    onTap: g.turnHandle,
+                    // the machine itself shows what is inside it (spinning is the 回す！ button)
+                    onTap: _lineup,
                     child: Shake(
                       token: g.phase == Phase.dropping ? 1 : 0,
                       px: 5,

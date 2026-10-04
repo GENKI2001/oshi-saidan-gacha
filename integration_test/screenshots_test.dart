@@ -37,10 +37,7 @@ void main() {
     Sfx.enabled = false;
     final meta = Meta();
     await meta.load();
-    meta
-      ..tutorialDone = true
-      ..level = 8
-      ..levelInto = 600;
+    meta.tutorialDone = true;
     for (final f in figures.take(58)) {
       meta.see(f.id);
     }

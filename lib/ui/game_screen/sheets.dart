@@ -3,6 +3,121 @@
 part of '../game_screen.dart';
 
 extension on _GameScreenState {
+  /// The machine's 中身: what can drop now and how likely each one is, each ★ in its own colour.
+  void _lineup() {
+    Sfx.play('tap');
+    final r = g.run;
+    final list = r.lineup();
+    String pct(double p) => p >= 0.1 ? '${(p * 100).toStringAsFixed(0)}%' : (p >= 0.01 ? '${(p * 100).toStringAsFixed(1)}%' : '${(p * 100).toStringAsFixed(2)}%');
+    final later = figures.where((f) => !(r.rules.open?.contains(f.id) ?? true)).length;
+    const rarities = [Rarity.legend, Rarity.epic, Rarity.rare, Rarity.normal];
+    Color tint(Rarity x) => RarityStars.colors[x.index];
+    final luck = r.luck + r.paydaysPaid * Run.paydayLuck;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.8),
+          child: Panel(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FittedBox(fit: BoxFit.scaleDown, child: StickerText('${g.machine.name}の中身', size: 22)),
+                const SizedBox(height: 6),
+                // each rarity's share in all
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 4,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (final rar in rarities)
+                      if (list.any((e) => e.def.rarity == rar))
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            RarityStars(rar, size: 13),
+                            const SizedBox(width: 3),
+                            Text(
+                              pct(list.where((e) => e.def.rarity == rar).fold(0.0, (a, e) => a + e.p)),
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: C.ink),
+                            ),
+                          ],
+                        ),
+                  ],
+                ),
+                if (luck > 0 || r.rareSong || r.idolSong != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      [
+                        if (luck > 0) '運 +$luck% こみ',
+                        if (r.rareSong) 'この曲は ★2以上だけ',
+                        if (r.idolSong != null) 'この曲は「${r.idolSong}」のグッズだけ',
+                      ].join('　'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.woodDark),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      for (final rar in rarities)
+                        for (final e in list.where((e) => e.def.rarity == rar).toList()..sort((a, b) => b.p.compareTo(a.p)))
+                          // each rarity in its star's colour, so the rare ones stand out
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Color.lerp(tint(rar), Colors.white, 0.72),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: tint(rar), width: 2),
+                            ),
+                            child: Row(
+                              children: [
+                                FigureArt(e.def, size: 34),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(e.def.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: C.ink)),
+                                ),
+                                RarityStars(rar, size: 12),
+                                SizedBox(
+                                  width: 58,
+                                  child: Text(
+                                    pct(e.p),
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color.lerp(tint(rar), C.ink, 0.45)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                    ],
+                  ),
+                ),
+                if (later > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      'ほかのガチャを クリアすると あと $later 種 入るよ',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.woodDark),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                PopButton('とじる', fontSize: 16, color: Colors.blueGrey, onTap: () => Navigator.of(ctx).pop()),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _info(FigureDef d, [Fig? f]) => showFigureInfo(context, d, f, g.run);
 
   /// Shows what would be lost before writing over it.

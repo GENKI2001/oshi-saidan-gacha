@@ -3,6 +3,8 @@ import 'package:oshi_saidan/logic/defs.dart';
 import 'package:oshi_saidan/logic/figures.dart';
 import 'package:oshi_saidan/logic/run.dart';
 
+FigureDef _plain(String tag) => FigureDef(id: 'test_$tag', name: tag, emoji: '', rarity: Rarity.normal, tags: [tag], effects: const [Add(2)]);
+
 void main() {
   test('lucky cat doubles the ひなた goods next to it', () {
     final r = Run(seed: 3)..coins = 0;
@@ -11,27 +13,19 @@ void main() {
     expect(r.endTurn().total, 1 * 2 + 1);
   });
 
-  test('daikoku doubles everything after additions', () {
-    final r = Run(seed: 3)..coins = 0;
-    r.place(figureById['koharu_keyholder']!, 0);
-    r.place(figureById['yoru_penlight']!, 1);
-    r.place(figureById['unit_panel']!, 15);
-    // takoyaki 2 + drum buff 2 = 4, ×2
-    expect(r.endTurn().total, 8);
-  });
-
   test('cotton candy grows each turn', () {
     final r = Run(seed: 3)..coins = 0;
     r.place(figureById['koharu_badge']!, 5);
     expect([r.endTurn().total, r.endTurn().total, r.endTurn().total], [0, 1, 2]);
   });
 
-  test('fireworks go off on turn 3 and leave', () {
+  test('the silver tape goes off on turn 3: only よる goods ×4, then it leaves', () {
     final r = Run(seed: 3)..coins = 0;
-    r.place(figureById['koharu_keyholder']!, 0);
-    r.place(figureById['yoru_tape']!, 5);
-    expect([r.endTurn().total, r.endTurn().total, r.endTurn().total], [2, 2, 6]);
-    expect(r.cells[5], isNull);
+    r.place(figureById['koharu_keyholder']!, 0); // こはる +2: untouched
+    r.place(_plain('よる'), 2); // よる +2: ×4 on turn 3
+    r.place(figureById['yoru_tape']!, 10);
+    expect([r.endTurn().total, r.endTurn().total, r.endTurn().total], [4, 4, 2 + 8]);
+    expect(r.cells[10], isNull);
   });
 
   test('payday takes coins, fails when short, and can be postponed once', () {

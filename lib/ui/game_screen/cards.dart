@@ -293,7 +293,7 @@ extension on _GameScreenState {
                 wide(
                   Row(
                     children: [
-                      Image.asset('assets/ui/boss_${r.cleared || g.levelUps.isNotEmpty ? 1 : 0}.png', height: 76),
+                      Image.asset('assets/ui/boss_${r.cleared ? 1 : 0}.png', height: 76),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Container(

@@ -59,10 +59,6 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
               child: Column(
                 children: [
                   ScreenHeader('ガチャをえらぶ', trailing: _menuButton()),
-                  FractionallySizedBox(
-                    widthFactor: _cardFraction,
-                    child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: LevelCard(meta)),
-                  ),
                   Expanded(
                     child: ListenableBuilder(
                       listenable: Rank.instance,
@@ -148,64 +144,92 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
     duration: const Duration(milliseconds: 200),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-        Positioned.fill(child: Panel(
-        // the art takes a fixed share so every card's text starts at the same height
-        child: Column(
-        children: [
-          // how far this machine has been played: cleared or not, best songs, best spin
-          if (open) _records(m),
-          Expanded(
-            flex: 5,
-            child: MachineArt(hue: m.hue, locked: !open),
-          ),
-          const SizedBox(height: 6),
-          Expanded(
-            flex: 3,
-            // a machine with many perks shrinks its text rather than overflow
-            child: LayoutBuilder(
-              builder: (_, bc) => FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.topCenter,
-                child: SizedBox(
-                  width: bc.maxWidth,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                FittedBox(fit: BoxFit.scaleDown, child: StickerText(m.name, size: 24)), // the name shows even while locked: something to aim for
-                const SizedBox(height: 8),
-                DifficultyBadge(m.difficulty),
-                const SizedBox(height: 2),
-                Text(
-                  open ? m.blurb : '解放条件：${m.unlockText}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: C.ink, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 6),
-                if (open)
-                  for (final p in m.perks)
-                    Text(
-                      '・$p',
-                      style: const TextStyle(color: C.ink, fontSize: 13, fontWeight: FontWeight.w700),
+      // as tall as what is on it (not the whole page), the same parts in the same places on every card
+      child: Center(
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Panel(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // how far this machine has been played: cleared or not, best songs, best spin
+                  if (open) _records(m),
+                  SizedBox(height: 200, child: MachineArt(hue: m.hue, locked: !open)),
+                  const SizedBox(height: 6),
+                  // the name shows even while locked: something to aim for
+                  FittedBox(fit: BoxFit.scaleDown, child: StickerText(m.name, size: 24)),
+                  const SizedBox(height: 4),
+                  // its one big feature (or, while locked, how to open it)
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      open ? m.feature : '解放条件：${m.unlockText}',
+                      style: TextStyle(fontSize: 15, color: open ? C.ink : const Color(0xFFB4501A), fontWeight: FontWeight.w900),
                     ),
-                    ],
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  DifficultyBadge(m.difficulty),
+                  _prizes(m),
+                ],
               ),
             ),
-          ),
-        ],
+            // "このガチャで全国○位": a medal of its own on the corner (it compares with everyone, unlike the records)
+            if (open && Rank.instance.machineRank[m.id] != null)
+              Positioned(right: -8, top: 92, child: _RankMedal(Rank.instance.machineRank[m.id]!)), // beside the machine art
+          ],
         ),
-      )),
-        // "このガチャで全国○位": a medal of its own on the corner (it compares with everyone, unlike the records)
-        if (open && Rank.instance.machineRank[m.id] != null)
-          Positioned(right: -8, top: 92, child: _RankMedal(Rank.instance.machineRank[m.id]!)), // beside the machine art
-        ],
       ),
     ),
   );
+
+  /// The goods this machine's first clear brings into the gacha, in a box: in colour once cleared,
+  /// silhouettes until then.
+  Widget _prizes(MachineDef m) {
+    final goods = widget.meta.broughtBy(m.id);
+    final done = widget.meta.clearedOn.contains(m.id);
+    final lit = done && goods.isNotEmpty;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
+      decoration: BoxDecoration(
+        color: lit ? const Color(0xFFFFF3C4) : const Color(0xFFFCEAF3),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: lit ? C.gold : C.pinkLine, width: 2),
+      ),
+      child: Column(
+        children: [
+          Text(
+            done ? 'クリアで 解放されたグッズ' : 'クリアで 解放されるグッズ',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: done ? const Color(0xFFB4501A) : C.ink),
+          ),
+          const SizedBox(height: 3),
+          // room for two rows on every card, so the cards stay one size
+          SizedBox(
+            height: 60,
+            child: goods.isEmpty
+                ? const SizedBox()
+                : Center(
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 2,
+                      runSpacing: 2,
+                      children: [
+                        for (final f in goods)
+                          done
+                              ? FigureArt(f, size: 28)
+                              // not yet: just its shape
+                              : ColorFiltered(colorFilter: const ColorFilter.mode(Color(0xFF5A4A6A), BlendMode.srcIn), child: FigureArt(f, size: 28)),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
 
   /// A little strip on top of a card: a medal once cleared, the most songs met and the best spin.
   Widget _records(MachineDef m) {

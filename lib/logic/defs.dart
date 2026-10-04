@@ -104,20 +104,30 @@ class MultAdjacentTag extends Effect {
   String describe() => 'となりの「$tag」を ×$f';
 }
 
-/// 棚の全駒を ×f
-class MultAll extends Effect {
+/// 箱推し: 祭壇に5人全員のグッズがあれば、棚の全駒を ×f
+class MultIfAllMembers extends Effect {
   final int f;
-  const MultAll(this.f);
+  const MultIfAllMembers(this.f);
   @override
-  String describe() => '祭壇の全部のグッズを ×$f（この手の×グッズは祭壇に4つまで）';
+  String describe() => '祭壇に5人全員のグッズがそろっていれば 祭壇の全部を ×$f';
 }
 
-/// n回転目に棚の全駒を ×f して消える
+/// 単推し: 棚の駒が全部 [tags] のどれかなら、棚の全駒を ×f
+class MultIfOnly extends Effect {
+  final List<String> tags;
+  final int f;
+  const MultIfOnly(this.tags, this.f);
+  @override
+  String describe() => '祭壇のグッズが全部「${tags.join('」か「')}」なら 全部 ×$f';
+}
+
+/// n回転目に棚の [tags] の駒を ×f して消える
 class Fuse extends Effect {
   final int n, f;
-  const Fuse(this.n, this.f);
+  final List<String> tags;
+  const Fuse(this.n, this.f, this.tags);
   @override
-  String describe() => '$n回転目に 盛り上がりMAX！ 祭壇の全部を ×$f（消える。この手の×グッズは祭壇に4つまで）';
+  String describe() => '$n回転目に 盛り上がりMAX！ 祭壇の「${tags.join('」と「')}」を全部 ×$f（消える）';
 }
 
 /// n回転で消える
@@ -242,13 +252,13 @@ class RandomAdd extends Effect {
   String describe() => '毎回 +$lo〜+$hi のどれか';
 }
 
-/// 棚の [tag] をすべて ×f
-class MultShelfTag extends Effect {
+/// 棚に [tag] が n 個以上あれば、棚の [tag] をすべて ×f
+class MultShelfTagIfCount extends Effect {
   final String tag;
-  final int f;
-  const MultShelfTag(this.tag, this.f);
+  final int n, f;
+  const MultShelfTagIfCount(this.tag, this.n, this.f);
   @override
-  String describe() => '祭壇の「$tag」を全部 ×$f（この手の×グッズは祭壇に4つまで）';
+  String describe() => '祭壇に「$tag」が$n個以上あれば「$tag」を全部 ×$f';
 }
 
 /// ななめの [tag] 1つにつき +v
@@ -298,8 +308,8 @@ class FigureDef {
   final List<String> tags;
   final List<Effect> effects;
 
-  /// 推し活レベルがこの値になるとガチャから出るようになる
-  final int level;
+  /// The machine whose first clear (完済) brings this into the gacha; null: in it from the start.
+  final String? from;
 
   /// The idols who appear (and speak) when this comes out of a capsule.
   final List<String> cast;
@@ -310,7 +320,7 @@ class FigureDef {
     required this.rarity,
     required this.tags,
     required this.effects,
-    this.level = 1,
+    this.from,
     this.cast = const [],
   });
 

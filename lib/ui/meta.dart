@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../logic/achievements.dart';
+import '../logic/defs.dart';
 import '../logic/figures.dart';
-import '../logic/levels.dart';
 import '../logic/modes.dart';
 
 class Meta extends ChangeNotifier {
@@ -18,9 +18,12 @@ class Meta extends ChangeNotifier {
   bool voice = true; // character voices
   String lastMachine = 'pripare';
   int totalEarned = 0; // every coin ever earned (a record)
-  // 推し活レベル: coins fill the gauge (capped when full); a full gauge levels up when a run ends
-  int level = 1, levelInto = 0;
-  int get levelNeedNow => levelNeed(level);
+  // There is no level: goods come into the gacha with the first clear of a machine ([FigureDef.from]),
+  // and machines open by clearing another one or by a record ([MachineDef.unlock]).
+  bool figureOpen(FigureDef f) => f.from == null || clearedOn.contains(f.from);
+  Set<String> get openFigures => {for (final f in figures) if (figureOpen(f)) f.id};
+  /// The goods a first clear of [machine] brings into the gacha.
+  List<FigureDef> broughtBy(String machine) => [for (final f in figures) if (f.from == machine) f];
   bool tutorialDone = false; // the guided first game was finished
   double? mashRate; // how fast this player mashes まもれ！ (taps a second, a running average; null = not seen yet)
 
@@ -46,7 +49,7 @@ class Meta extends ChangeNotifier {
     jamWins: jamWins,
     maxStack: maxStack,
     totalEarned: totalEarned,
-    level: level,
+    open: openFigures.length,
   );
 
   int jamWins = 0; // 妨害 fended off, ever
@@ -95,8 +98,12 @@ class Meta extends ChangeNotifier {
     return newTurn;
   }
 
-  void clearedMachine(String id) {
-    if (clearedOn.add(id)) _save();
+  /// Records a clear on [id]; true the first time (its goods come into the gacha, see [broughtBy]).
+  bool clearedMachine(String id) {
+    if (!clearedOn.add(id)) return false;
+    _save();
+    notifyListeners();
+    return true;
   }
 
   void star4() {
@@ -141,24 +148,14 @@ class Meta extends ChangeNotifier {
     _save();
   }
 
-  /// Adds coins to the lifetime total and the level gauge.
+  /// Adds coins to the lifetime total (a record).
   void addEarned(int n) {
     if (n <= 0) return;
     totalEarned += n;
-    levelInto = (levelInto + n).clamp(0, levelNeedNow);
     _save();
     notifyListeners();
   }
 
-  /// At the end of a run: a full gauge gives one level. Returns the new level if it went up.
-  int? finishRun() {
-    if (levelInto < levelNeedNow) return null;
-    level++;
-    levelInto = 0;
-    _save();
-    notifyListeners();
-    return level;
-  }
 
   Future<void> load() async {
     try {
@@ -175,8 +172,6 @@ class Meta extends ChangeNotifier {
       voice = p.getBool('voice') ?? true;
       lastMachine = p.getString('lastMachine') ?? 'pripare';
       totalEarned = p.getInt('totalEarned') ?? 0;
-      level = p.getInt('level') ?? 1;
-      levelInto = p.getInt('levelInto') ?? 0;
       tutorialDone = p.getBool('tutorialDone') ?? false;
       mashRate = p.getDouble('mashRate');
       achieved = (p.getStringList('achieved') ?? []).toSet();
@@ -207,8 +202,6 @@ class Meta extends ChangeNotifier {
     p.setBool('voice', voice);
     p.setString('lastMachine', lastMachine);
     p.setInt('totalEarned', totalEarned);
-    p.setInt('level', level);
-    p.setInt('levelInto', levelInto);
     p.setBool('tutorialDone', tutorialDone);
     if (mashRate case final r?) p.setDouble('mashRate', r);
     p.setStringList('achieved', achieved.toList());
@@ -283,13 +276,14 @@ class Meta extends ChangeNotifier {
       if (m.unlock == UnlockKind.none) m.id,
   };
 
-  bool unlocked(MachineDef m) => switch (m.unlock) {
+  // a machine once opened stays open (saves from the 推し活レベル days keep theirs)
+  bool unlocked(MachineDef m) => machinesShown.contains(m.id) || switch (m.unlock) {
     UnlockKind.none => true,
+    UnlockKind.machine => clearedOn.contains(m.unlockId),
     UnlockKind.seen => seen.length >= m.unlockN,
     UnlockKind.bestTurn => bestTurn >= m.unlockN,
     UnlockKind.paydays => bestPaydays >= m.unlockN,
     UnlockKind.clears => clears >= m.unlockN,
-    UnlockKind.level => level >= m.unlockN,
   };
 
   /// Machines unlocked since we last announced; marks them announced.

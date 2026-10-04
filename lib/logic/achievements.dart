@@ -7,7 +7,7 @@ import 'modes.dart';
 /// The records achievements are judged on (kept in Meta).
 class Stats {
   final int runs, clears, bestPaydays, bestTurn, seen;
-  final int jamWins, maxStack, totalEarned, level; // 妨害 fended off, highest stack, every heart ever, 推し活 level
+  final int jamWins, maxStack, totalEarned, open; // 妨害 fended off, highest stack, every heart ever, goods in the gacha
   final Map<String, int> placed; // goods of each idol ever put on the altar
   final Map<String, int> altarPeak; // most goods of each idol on the altar at once
   final Set<String> clearedOn; // machines a live was cleared on
@@ -25,7 +25,7 @@ class Stats {
     this.jamWins = 0,
     this.maxStack = 1,
     this.totalEarned = 0,
-    this.level = 1,
+    this.open = 0,
   });
 }
 
@@ -93,7 +93,7 @@ final achievements = <Achievement>[
   Achievement('stack5', '限界突破', '同じグッズを重ねて ×5 まで強化する', (s) => (s.maxStack, 5)),
   Achievement('earned10k', '推し活貯金', 'ハートを 合計10000 集める', (s) => (s.totalEarned, 10000)),
   Achievement('earned100k', '推しに捧げた10万', 'ハートを 合計100000 集める', (s) => (s.totalEarned, 100000)),
-  Achievement('level15', '推し活マスター', '推し活レベルを 15 にする', (s) => (s.level, 15)),
+  Achievement('open_all', '推し活マスター', 'すべてのグッズを ガチャに出るようにする', (s) => (s.open, figures.length)),
   for (final m in ['ひなた', 'しずく', 'こはる', 'よる', 'もも']) ...[
     Achievement('${_idolId[m]}_place100', '$mにガチ恋', '「$m」のグッズを 合計100個 祭壇に置く', (s) => (s.placed[m] ?? 0, 100)),
     Achievement('${_idolId[m]}_altar10', '$m一色', '祭壇に「$m」のグッズを 同時に10個 並べる', (s) => (s.altarPeak[m] ?? 0, 10)),

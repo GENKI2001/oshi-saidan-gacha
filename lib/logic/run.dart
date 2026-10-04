@@ -240,6 +240,7 @@ class Run {
       ..bestTurn = bestTurn
       ..turnsPerSong = turnsPerSong
       ..songTurn = songTurn
+      ..shelfMultsUsed = shelfMultsUsed
       ..rareSong = rareSong
       ..idolSong = idolSong
       .._uid = _uid;
@@ -331,19 +332,28 @@ class Run {
     final capped = figs.where((f) => f.def.has<PaydayDiscount>()).length >= maxDiscounts;
     final multsFull = shelfMultsFull;
     return figures
-        .where((f) => f.rarity == r && f.level <= rules.level && !(capped && f.has<PaydayDiscount>()) && !(multsFull && isShelfMult(f)))
+        .where((f) => f.rarity == r && (rules.open?.contains(f.id) ?? true) && !(capped && f.has<PaydayDiscount>()) && !(multsFull && isShelfMult(f)))
         .toList();
   }
 
   static const maxDiscounts = 2;
 
-  /// Goods that multiply everything on the altar, or all of one member's: ぷりパレ全員の等身大パネル
-  /// (×all), 祭壇の「○○」を全部 ×N, and the one-shot ×all ([Fuse]). At most [maxShelfMults] on the altar.
-  static bool isShelfMult(FigureDef f) => f.effects.any((e) => e is MultAll || e is MultShelfTag || e is Fuse);
+  /// Goods that multiply across the whole altar (the deck payoffs: 箱推し, 単推し, a tag once there are
+  /// enough of it, the one-shot [Fuse]). A live uses at most [maxShelfMults] of them in all, stacking
+  /// included and taking one off giving nothing back, so they can't snowball.
+  static bool isShelfMult(FigureDef f) =>
+      f.effects.any((e) => e is MultIfAllMembers || e is MultIfOnly || e is MultShelfTagIfCount || e is Fuse);
   static const maxShelfMults = 4;
-  bool get shelfMultsFull => figs.where((f) => isShelfMult(f.def)).length >= maxShelfMults;
+  int shelfMultsUsed = 0; // placed or stacked this live
+  bool get shelfMultsFull => shelfMultsUsed >= maxShelfMults;
 
-  /// A stall offer that can't be bought right now: a shelf-wide × goods when the altar already has [maxShelfMults].
+  void _usedShelfMult(FigureDef d) {
+    if (!isShelfMult(d)) return;
+    shelfMultsUsed++;
+    if (shelfMultsFull) _dropShelfMultOffers();
+  }
+
+  /// A stall offer that can't be bought right now: a shelf-wide × goods once [maxShelfMults] have been used.
   /// (They are taken off the stall as the altar fills, so this is only a safety net.)
   bool canBuy(Offer o) => !(o.kind == OfferKind.figure && isShelfMult(o.fig!) && shelfMultsFull);
 
@@ -369,7 +379,7 @@ class Run {
 
   /// Goods that multiply (×) come out less often than the rest: a few of them snowball a run.
   static double multWeight = 0.5;
-  static bool isMultiplier(FigureDef f) => f.effects.any((e) => e is MultAdjacentTag || e is MultShelfTag || e is MultAll || e is MultDiagonal || e is Fuse);
+  static bool isMultiplier(FigureDef f) => f.effects.any((e) => e is MultAdjacentTag || e is MultDiagonal) || isShelfMult(f);
 
   FigureDef pullOne({Rarity maxRarity = Rarity.legend, Rarity minRarity = Rarity.normal}) {
     final w = rarityWeights;
@@ -409,6 +419,40 @@ class Run {
     return pool.last;
   }
 
+  /// What a normal spin can drop right now and how likely each one is (for the machine's 中身 sheet).
+  /// The same odds as [pullOne]: luck, R-only songs, member-only songs, boosts and the × goods' lower weight.
+  List<({FigureDef def, double p})> lineup() {
+    final w = rarityWeights;
+    final lo = rareSong ? Rarity.rare.index : 0;
+    List<FigureDef> avail(int k) => [for (final f in _unlocked(Rarity.values[k])) if (idolSong == null || f.cast.contains(idolSong)) f];
+    final share = List<double>.generate(4, (k) => k < lo ? 0 : w[k]);
+    final sum = share.fold(0.0, (a, b) => a + b);
+    for (var k = 0; k < 4; k++) {
+      share[k] /= sum;
+    }
+    // a rarity with nothing in it passes its share down (or up, at the bottom), like pullOne
+    for (var k = 3; k > 0; k--) {
+      if (avail(k).isEmpty) {
+        share[k - 1] += share[k];
+        share[k] = 0;
+      }
+    }
+    for (var k = 0; k < 3 && avail(k).isEmpty; k++) {
+      share[k + 1] += share[k];
+      share[k] = 0;
+    }
+    final out = <({FigureDef def, double p})>[];
+    for (var k = 3; k >= 0; k--) {
+      final pool = avail(k);
+      if (pool.isEmpty || share[k] == 0) continue;
+      final tw = pool.fold(0.0, (a, f) => a + _weight(f));
+      for (final f in pool) {
+        out.add((def: f, p: share[k] * _weight(f) / tw));
+      }
+    }
+    return out;
+  }
+
   /// Pulling again after seeing what came out is free:
   /// 1 use per payday to start, raised at the stall up to [maxRepulls].
   int repullMax = 1;
@@ -439,7 +483,7 @@ class Run {
     assert(cells[idx] == null);
     final steps = <Step>[];
     cells[idx] = _newFig(d);
-    if (isShelfMult(d) && shelfMultsFull) _dropShelfMultOffers();
+    _usedShelfMult(d);
     final bonus = d.effect<GainOnPlaced>();
     if (bonus != null) {
       coins += bonus.v;
@@ -492,6 +536,7 @@ class Run {
     if (stacksOn(d, idx)) {
       seen.add(d.id);
       cells[idx]!.stack++;
+      _usedShelfMult(d);
       return const [];
     }
     cells[idx] = null;
@@ -605,8 +650,8 @@ class Run {
     }
   }
 
-  /// 4. multipliers on what has earned so far: local ones (neighbours, diagonals), then one
-  /// member's across the altar, then the whole altar. Returns the fuses that went off.
+  /// 4. multipliers on what has earned so far: local ones (neighbours, diagonals), then a tag across
+  /// the altar, then the deck payoffs on the whole altar. Returns the fuses that went off.
   List<int> _multipliers(Map<int, int> gain, List<Step> steps) {
     void mult(int i, int f, List<int> ts) {
       for (final t in ts) {
@@ -627,31 +672,36 @@ class Run {
       final ts = diagonals(i).where((n) => cells[n] != null && (gain[n] ?? 0) > 0).toList();
       mult(i, cells[i]!.factor(m.f), ts);
     }
+    List<int> tagged(List<String> tags) => [
+      for (final e in gain.entries)
+        if (e.value > 0 && (cells[e.key]?.def.tags.any(tags.contains) ?? false)) e.key,
+    ];
     for (var i = 0; i < size; i++) {
-      final m = cells[i]?.def.effect<MultShelfTag>();
-      if (m == null) continue;
-      final ts = [
-        for (final e in gain.entries)
-          if (e.value > 0 && (cells[e.key]?.def.tags.contains(m.tag) ?? false)) e.key,
-      ];
-      mult(i, cells[i]!.factor(m.f), ts);
+      final m = cells[i]?.def.effect<MultShelfTagIfCount>();
+      if (m == null || shelfTag(m.tag) < m.n) continue;
+      mult(i, cells[i]!.factor(m.f), tagged([m.tag]));
     }
     final fused = <int>[];
     for (var i = 0; i < size; i++) {
       final f = cells[i];
+      final fuse = f?.def.effect<Fuse>();
+      if (fuse == null || f!.age < fuse.n) continue;
+      fused.add(i);
+      mult(i, f.factor(fuse.f), tagged(fuse.tags));
+    }
+    // the deck payoffs last, on the whole altar: 箱推し (all five there) or 単推し (nothing else there)
+    final everyone = [
+      for (final e in gain.entries)
+        if (e.value > 0) e.key,
+    ];
+    final members = {for (final f in figs) ...f.def.tags.where(_idols.contains)};
+    for (var i = 0; i < size; i++) {
+      final f = cells[i];
       if (f == null) continue;
-      var factor = f.def.effect<MultAll>()?.f;
-      final fuse = f.def.effect<Fuse>();
-      if (fuse != null && f.age >= fuse.n) {
-        factor = fuse.f;
-        fused.add(i);
-      }
-      if (factor == null) continue;
-      final ts = [
-        for (final e in gain.entries)
-          if (e.value > 0) e.key,
-      ];
-      mult(i, f.factor(factor), ts);
+      final all = f.def.effect<MultIfAllMembers>();
+      if (all != null && members.length == _idols.length) mult(i, f.factor(all.f), everyone);
+      final only = f.def.effect<MultIfOnly>();
+      if (only != null && figs.every((g) => g.def.tags.any(only.tags.contains))) mult(i, f.factor(only.f), everyone);
     }
     return fused;
   }
@@ -825,7 +875,7 @@ class Run {
       case JamReward.hearts:
         doubleThisSong = true;
       case JamReward.goods:
-        // chosen when he came; if the altar has filled up with ×-all goods since, another goods
+        // chosen when he came; if the live has used up its ×-all goods since, another goods
         // (or the hearts when there is none)
         if (isShelfMult(j.gift!) && shelfMultsFull) {
           final other = _jamGift();

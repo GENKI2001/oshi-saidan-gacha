@@ -71,9 +71,9 @@ enum Coach {
 /// One piece of news for the top of the screen.
 class TopToast {
   final List<Achievement>? achievements;
-  final (int, int)? level; // from, to
+  final (MachineDef, List<FigureDef>)? figures; // a first clear: the goods it brings into the gacha
   final List<MachineDef>? machines;
-  const TopToast({this.achievements, this.level, this.machines});
+  const TopToast({this.achievements, this.figures, this.machines});
 }
 
 class GameController extends ChangeNotifier {
@@ -152,7 +152,7 @@ class GameController extends ChangeNotifier {
 
   int burstToken = 0; // confetti
 
-  // ── news at the top of the screen: 実績, a level up, a new gacha — one at a time ──
+  // ── news at the top of the screen: 実績, new goods in the gacha, a new gacha — one at a time ──
   TopToast? toast;
   int toastToken = 0;
   final List<TopToast> _toasts = [];
@@ -224,11 +224,10 @@ class GameController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── festival level ──
+  // ── lifetime hearts (a record) ──
   int _counted = 0; // run.earned already added to the lifetime total
-  List<int> levelUps = []; // levels reached during this run
 
-  /// Moves this run's new earnings into the lifetime total and the level gauge.
+  /// Moves this run's new earnings into the lifetime total.
   void _countEarned() {
     meta.addEarned(run.earned - _counted);
     _counted = run.earned;
@@ -243,7 +242,7 @@ class GameController extends ChangeNotifier {
 
   void newRun() {
     // the pool is fixed for the run: figures unlocked mid-run drop from the next one
-    run = Run(seed: DateTime.now().microsecondsSinceEpoch, rules: rulesFor(machine)..level = meta.level);
+    run = Run(seed: DateTime.now().microsecondsSinceEpoch, rules: rulesFor(machine)..open = meta.openFigures);
     // `--dart-define=JAM_DEMO=true`: a 妨害 every turn, to check its screens
     if (const bool.fromEnvironment('JAM_DEMO')) run.rules.jamRate = 1;
     // `--dart-define=STACK_DEMO=true`: a few goods already on the altar and the gacha drops only
@@ -267,7 +266,6 @@ class GameController extends ChangeNotifier {
       run.rules.jamRate = 0;
     }
     _counted = 0;
-    levelUps = [];
     for (final f in run.figs) {
       meta.see(f.def.id);
     }
@@ -1069,7 +1067,10 @@ class GameController extends ChangeNotifier {
     meta.recordPaydays(run.paydaysPaid);
     meta.recordMachine(machine.id, songs: run.paydaysPaid);
     if (run.cleared && run.paydaysPaid == Run.clearPaydays) {
-      meta.clearedMachine(machine.id);
+      // the first clear of this machine brings its goods into the gacha (from the next live)
+      if (meta.clearedMachine(machine.id) && meta.broughtBy(machine.id).isNotEmpty) {
+        _pushToast(TopToast(figures: (machine, meta.broughtBy(machine.id))));
+      }
       phase = Phase.cleared;
       Sfx.play('clear');
       say(1, pick(lineClear));
@@ -1130,8 +1131,6 @@ class GameController extends ChangeNotifier {
     if (tutorial) meta.finishTutorial();
     Bgm.play('bgm_result');
     _countEarned();
-    // the level goes up (by one at most) when the run is over; celebrated on the result screen
-    if (meta.finishRun() case final up?) levelUps.add(up);
     phase = Phase.over;
     // how far the run got, extensions included
     if (run.paydaysPaid > 0) Rank.instance.submit(Board.paydays, run.paydaysPaid);
@@ -1140,12 +1139,11 @@ class GameController extends ChangeNotifier {
     _checkAchievements();
     if (turnRecord) _fetchTurnRank();
     newMachines = meta.takeNewMachines();
-    if (levelUps.isNotEmpty) _pushToast(TopToast(level: (levelUps.first - 1, levelUps.last)));
     if (newMachines.isNotEmpty) _pushToast(TopToast(machines: newMachines));
     // a jingle only for a cleared live; giving up stays quiet (the result BGM is enough)
     if (run.cleared) Sfx.play('jingle');
-    // つむぎ sums it up (a level-up is the bigger news)
-    overLine = pick(levelUps.isNotEmpty ? lineLevelUp : (run.cleared ? lineOverWin : lineOverLose));
+    // つむぎ sums it up
+    overLine = pick(run.cleared ? lineOverWin : lineOverLose);
     notifyListeners();
   }
 

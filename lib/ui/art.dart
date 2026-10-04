@@ -35,12 +35,13 @@ class RarityStars extends StatelessWidget {
   final double size;
   const RarityStars(this.rarity, {super.key, this.size = 20});
 
-  static const _fill = [Color(0xFF9FD8FF), Color(0xFFFF8FC0), Color(0xFFC79BFF), Color(0xFFFFD34D)];
+  /// Each rarity's star colour (★ light blue, ★★ pink, ★★★ purple, ★★★★ gold), also used to colour-code lists.
+  static const colors = [Color(0xFF9FD8FF), Color(0xFFFF8FC0), Color(0xFFC79BFF), Color(0xFFFFD34D)];
 
   @override
   Widget build(BuildContext context) {
     final n = rarity.index + 1;
-    final col = _fill[rarity.index];
+    final col = colors[rarity.index];
     Widget star(bool on) => SizedBox(
       width: size,
       height: size,

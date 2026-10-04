@@ -7,7 +7,7 @@ import 'package:oshi_saidan/logic/run.dart';
 
 void main() {
   test('once 4 ×-all goods are on the altar, no more drop or can be bought', () {
-    final r = Run(seed: 5, rules: Rules()..level = 99);
+    final r = Run(seed: 5, rules: Rules());
     for (var i = 0; i < r.size; i++) {
       r.cells[i] = null;
     }
@@ -29,8 +29,26 @@ void main() {
     expect(r.coins, 999);
   });
 
+  test('the 4 count every one used in the live: stacking counts, taking one off gives nothing back', () {
+    final r = Run(seed: 5, rules: Rules());
+    for (var i = 0; i < r.size; i++) {
+      r.cells[i] = null;
+    }
+    final panel = figureById['unit_panel']!;
+    r.place(panel, 0);
+    r.overwrite(panel, 0); // stacked on itself: 2 used
+    expect(r.shelfMultsUsed, 2);
+    r.cells[0] = null; // gone (stolen, sold, …)
+    r.place(panel, 1);
+    expect(r.shelfMultsFull, isFalse);
+    r.overwrite(panel, 1);
+    expect(r.shelfMultsUsed, 4);
+    expect(r.shelfMultsFull, isTrue);
+    expect(r.figs.where((f) => Run.isShelfMult(f.def)).length, 1);
+  });
+
   test('the 4th ×-all goods on the altar takes the others off the stall', () {
-    final r = Run(seed: 5, rules: Rules()..level = 99);
+    final r = Run(seed: 5, rules: Rules());
     for (var i = 0; i < r.size; i++) {
       r.cells[i] = null;
     }

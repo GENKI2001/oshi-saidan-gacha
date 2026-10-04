@@ -47,13 +47,18 @@ class BookScreen extends StatelessWidget {
                           children: [
                             ColorFiltered(
                               colorFilter: ColorFilter.mode(
-                                f.level > meta.level ? const Color(0xFF3A2D52) : const Color(0xFF5A4A6A),
+                                !meta.figureOpen(f) ? const Color(0xFF3A2D52) : const Color(0xFF5A4A6A),
                                 BlendMode.srcIn,
                               ),
                               child: FigureArt(f, size: 100),
                             ),
-                            // not in the gacha yet: show the level that unlocks it
-                            if (f.level > meta.level) Text('Lv${f.level}', style: outlined(18, Colors.white, width: 3)),
+                            // not in the gacha yet: the machine whose first clear brings it in
+                            if (!meta.figureOpen(f))
+                              Text(
+                                '${machineById[f.from]!.name}\nでクリア',
+                                textAlign: TextAlign.center,
+                                style: outlined(12, Colors.white, width: 3),
+                              ),
                           ],
                         ),
                 ),
