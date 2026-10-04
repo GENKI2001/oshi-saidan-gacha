@@ -26,7 +26,7 @@ void main() {
     expect(r.cells[0]!.def.id, 'koharu_keyholder');
   });
 
-  test('the shelf grows to 6x6 and no further, each step dearer', () {
+  test('the shelf grows to 5x5 and no further, each step dearer', () {
     final r = Run(seed: 4)..coins = 1 << 30;
     var last = 0;
     while (r.canGrow) {
@@ -35,7 +35,7 @@ void main() {
       r.buy(Offer(OfferKind.expand, r.expandPrice));
       r.shopBuys = 0;
     }
-    expect([r.cols, r.rows], [6, 6]);
+    expect([r.cols, r.rows], [5, 5]);
   });
 
   test('もう一回ひく is free: one use per payday, up to 3 with upgrades', () {

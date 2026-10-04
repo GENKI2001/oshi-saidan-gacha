@@ -79,6 +79,7 @@ class Sfx {
 
   static final Map<String, int> _cutAt = {};
   static final Map<String, List<Future<void> Function()>> _live = {};
+  static final Map<String, int> _starting = {}; // plays waiting for a free player
 
   static void play(String name, {double volume = 1}) {
     Bgm.kick();
@@ -89,8 +90,22 @@ class Sfx {
         final pool = await _pool(name);
         // cut off (see [cut]) while it was still on its way: it never starts
         if ((_cutAt[name] ?? 0) > asked) return;
-        // levelled against the music (art/sfx_levels.py); [volume] is on top of that
-        final stop = await pool.start(volume: volume * (sfxGain[name] ?? 1));
+        // a sound asked for faster than it can start (mashing) is dropped, not queued:
+        // a backlog kept thumping on after the mashing was over
+        if ((_starting[name] ?? 0) >= 2) return;
+        _starting[name] = (_starting[name] ?? 0) + 1;
+        final Future<void> Function() stop;
+        try {
+          // levelled against the music (art/sfx_levels.py); [volume] is on top of that
+          stop = await pool.start(volume: volume * (sfxGain[name] ?? 1));
+        } finally {
+          _starting[name] = (_starting[name] ?? 1) - 1;
+        }
+        // cut while it was starting: stop it straight away
+        if ((_cutAt[name] ?? 0) > asked) {
+          unawaited(stop().catchError((_) {}));
+          return;
+        }
         final live = _live[name] ??= [];
         live.add(stop);
         if (live.length > 8) live.removeAt(0);

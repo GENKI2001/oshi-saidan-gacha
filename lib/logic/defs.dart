@@ -109,7 +109,7 @@ class MultAll extends Effect {
   final int f;
   const MultAll(this.f);
   @override
-  String describe() => '祭壇の全部のグッズを ×$f';
+  String describe() => '祭壇の全部のグッズを ×$f（この手の×グッズは祭壇に4つまで）';
 }
 
 /// n回転目に棚の全駒を ×f して消える
@@ -117,7 +117,7 @@ class Fuse extends Effect {
   final int n, f;
   const Fuse(this.n, this.f);
   @override
-  String describe() => '$n回転目に 盛り上がりMAX！ 祭壇の全部を ×$f（消える）';
+  String describe() => '$n回転目に 盛り上がりMAX！ 祭壇の全部を ×$f（消える。この手の×グッズは祭壇に4つまで）';
 }
 
 /// n回転で消える
@@ -248,7 +248,7 @@ class MultShelfTag extends Effect {
   final int f;
   const MultShelfTag(this.tag, this.f);
   @override
-  String describe() => '祭壇の「$tag」を全部 ×$f';
+  String describe() => '祭壇の「$tag」を全部 ×$f（この手の×グッズは祭壇に4つまで）';
 }
 
 /// ななめの [tag] 1つにつき +v

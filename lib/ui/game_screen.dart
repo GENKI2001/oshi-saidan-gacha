@@ -537,7 +537,7 @@ class _GameScreenState extends State<GameScreen> {
                               SizedBox(
                                 width: cell,
                                 height: cell,
-                                // numbers in the corner scale with the cell (shelves grow up to 6x6)
+                                // numbers in the corner scale with the cell (shelves grow up to 5x5)
                                 child: KeyedSubtree(
                                   key: _cellKey(y * cols + x),
                                   child: RepaintBoundary(child: _cell(y * cols + x, cell)),
@@ -1162,7 +1162,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _offer(Offer o) {
-    final can = !o.sold && g.run.coins >= g.run.priceOf(o);
+    final can = !o.sold && g.run.coins >= g.run.priceOf(o) && g.run.canBuy(o);
     final icon = switch (o.kind) {
       OfferKind.figure => FigureArt(o.fig!, size: 60),
       OfferKind.luck => FigureArt(figureById['gacha_charm']!, size: 60),

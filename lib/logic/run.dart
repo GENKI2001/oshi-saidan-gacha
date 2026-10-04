@@ -186,7 +186,7 @@ class Run {
   int bestTurn = 0;
   int turnsPerSong = turnsPerPayday; // spins in a song (アンコールの魔法 adds one)
   int songTurn = 0; // spins done in this song
-  static const maxTurnsPerSong = 7;
+  static const maxTurnsPerSong = turnsPerPayday + 1; // the extra spin can be bought once
   bool rareSong = false; // キラキラ確定チケット: this song drops R and up only
   String? idolSong; // ○○確定チケット: this song drops only her goods
   int _uid = 0;
@@ -308,13 +308,35 @@ class Run {
   }
 
   /// What can drop now. Goods that cut the quota stop dropping (and leave the stall) once
-  /// [maxDiscounts] of them are on the altar.
+  /// [maxDiscounts] of them are on the altar; goods that multiply the whole altar once
+  /// [maxShelfMults] of them are.
   List<FigureDef> _unlocked(Rarity r) {
     final capped = figs.where((f) => f.def.has<PaydayDiscount>()).length >= maxDiscounts;
-    return figures.where((f) => f.rarity == r && f.level <= rules.level && !(capped && f.has<PaydayDiscount>())).toList();
+    final multsFull = shelfMultsFull;
+    return figures
+        .where((f) => f.rarity == r && f.level <= rules.level && !(capped && f.has<PaydayDiscount>()) && !(multsFull && isShelfMult(f)))
+        .toList();
   }
 
   static const maxDiscounts = 2;
+
+  /// Goods that multiply everything on the altar, or all of one member's: ぷりパレ全員の等身大パネル
+  /// (×all), 祭壇の「○○」を全部 ×N, and the one-shot ×all ([Fuse]). At most [maxShelfMults] on the altar.
+  static bool isShelfMult(FigureDef f) => f.effects.any((e) => e is MultAll || e is MultShelfTag || e is Fuse);
+  static const maxShelfMults = 4;
+  bool get shelfMultsFull => figs.where((f) => isShelfMult(f.def)).length >= maxShelfMults;
+
+  /// A stall offer that can't be bought right now: a shelf-wide × goods when the altar already has [maxShelfMults].
+  /// (They are taken off the stall as the altar fills, so this is only a safety net.)
+  bool canBuy(Offer o) => !(o.kind == OfferKind.figure && isShelfMult(o.fig!) && shelfMultsFull);
+
+  /// The altar has just filled up with ×-all goods: those still on the stall make way for other goods.
+  void _dropShelfMultOffers() {
+    for (var i = 0; i < shop.length; i++) {
+      final o = shop[i];
+      if (o.kind == OfferKind.figure && !o.sold && isShelfMult(o.fig!)) shop[i] = _figureOffer();
+    }
+  }
 
   // ── 出現率UP (bought at the stall): each one doubles an idol's goods, for the rest of the live ──
   static const boostStep = 2.0;
@@ -400,6 +422,7 @@ class Run {
     assert(cells[idx] == null);
     final steps = <Step>[];
     cells[idx] = _newFig(d);
+    if (isShelfMult(d) && shelfMultsFull) _dropShelfMultOffers();
     final bonus = d.effect<GainOnPlaced>();
     if (bonus != null) {
       coins += bonus.v;
@@ -787,6 +810,13 @@ class Run {
       case JamReward.hearts:
         doubleThisSong = true;
       case JamReward.goods:
+        // chosen when he came; if the altar has filled up with ×-all goods since, another goods
+        // (or the hearts when there is none)
+        if (isShelfMult(j.gift!) && shelfMultsFull) {
+          final other = _jamGift();
+          if (other == null) doubleThisSong = true;
+          return other;
+        }
         return j.gift;
       case JamReward.luck:
         luckBonus += 10;
@@ -872,7 +902,7 @@ class Run {
   /// price, and at least a growing share of the coins still in the purse
   /// (40%, 60%, 80%, then all of it).
   static const shopMarkup = 0.5;
-  double rareChance = 0.12; // a レア商品 at about one stall visit in eight
+  double rareChance = 0.08; // a レア商品 at about one stall visit in twelve
   int shopBuys = 0;
   int priceOf(Offer o) {
     if (shopBuys == 0) return o.rare ? o.price : 0;
@@ -891,7 +921,7 @@ class Run {
   /// Buys an offer. A bought figure is returned so the caller can place it.
   FigureDef? buy(Offer o) {
     final price = priceOf(o);
-    if (o.sold || coins < price) return null;
+    if (o.sold || coins < price || !canBuy(o)) return null;
     coins -= price;
     o.sold = true;
     shopBuys++;
@@ -920,8 +950,8 @@ class Run {
     return null;
   }
 
-  /// Shelf upgrades grow it one column or row at a time, up to 6x6.
-  static const maxSide = 6;
+  /// Shelf upgrades grow it one column or row at a time, up to 5x5 (6x6 made play heavy).
+  static const maxSide = 5;
   int expansions = 0;
   bool get canGrow => cols < maxSide || rows < maxSide;
 
