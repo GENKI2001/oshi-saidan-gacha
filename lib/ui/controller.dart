@@ -1123,7 +1123,8 @@ class GameController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The menu's あきらめる: not while a spin or the coin count is playing out.
+  /// The menu's おわる: ends the live where it is and goes to the result (judged on how far it got:
+  /// ライブ成功 once the 4th song is done). Not while a spin or the coin count is playing out.
   bool get canGiveUp => phase != Phase.dropping && phase != Phase.scoring && phase != Phase.over;
 
   void giveUp() {

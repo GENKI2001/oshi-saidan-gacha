@@ -241,6 +241,7 @@ class Run {
       ..turnsPerSong = turnsPerSong
       ..songTurn = songTurn
       ..shelfMultsUsed = shelfMultsUsed
+      ..took.addAll(took)
       ..rareSong = rareSong
       ..idolSong = idolSong
       .._uid = _uid;
@@ -304,7 +305,18 @@ class Run {
   bool get paydayNow => songTurn >= turnsPerSong;
   bool get cleared => paydaysPaid >= clearPaydays;
 
-  int baseDue(int i) => (firstDue * math.pow(dueGrowth, i)).round();
+  /// The quota of song i+1: ×[dueGrowth] a song up to the 4th, then from the アンコール the growth
+  /// itself goes up ×[encoreGrowth] a song (×5.9, ×8.9, ×13.3, …), so a strong altar (about ×6 a
+  /// song) keeps up for an encore or so and then can't.
+  int baseDue(int i) {
+    var due = firstDue * math.pow(dueGrowth, math.min(i, clearPaydays - 1));
+    for (var k = 1; k <= i - (clearPaydays - 1); k++) {
+      due *= dueGrowth * math.pow(encoreGrowth, k);
+    }
+    return due.round();
+  }
+
+  static const encoreGrowth = 1.5;
 
   int get due {
     var f = 1.0;
@@ -332,7 +344,7 @@ class Run {
     final capped = figs.where((f) => f.def.has<PaydayDiscount>()).length >= maxDiscounts;
     final multsFull = shelfMultsFull;
     return figures
-        .where((f) => f.rarity == r && (rules.open?.contains(f.id) ?? true) && !(capped && f.has<PaydayDiscount>()) && !(multsFull && isShelfMult(f)))
+        .where((f) => f.rarity == r && (rules.open?.contains(f.id) ?? true) && !(capped && f.has<PaydayDiscount>()) && !(multsFull && isShelfMult(f)) && !_tookOnly(f))
         .toList();
   }
 
@@ -348,20 +360,29 @@ class Run {
   bool get shelfMultsFull => shelfMultsUsed >= maxShelfMults;
 
   void _usedShelfMult(FigureDef d) {
+    if (onePerLive.contains(d.id) && took.add(d.id)) _dropShelfMultOffers();
     if (!isShelfMult(d)) return;
     shelfMultsUsed++;
     if (shelfMultsFull) _dropShelfMultOffers();
   }
 
+  /// Goods a live can have only one of (ぷりパレ全員の等身大パネル): once taken, they drop no more.
+  static const onePerLive = {'unit_panel'};
+  final Set<String> took = {};
+  bool _tookOnly(FigureDef f) => onePerLive.contains(f.id) && took.contains(f.id);
+
+  /// Goods that can't come any more this live: a ×-all goods once [maxShelfMults] are used, a one-per-live one once taken.
+  bool _blocked(FigureDef f) => (isShelfMult(f) && shelfMultsFull) || _tookOnly(f);
+
   /// A stall offer that can't be bought right now: a shelf-wide × goods once [maxShelfMults] have been used.
   /// (They are taken off the stall as the altar fills, so this is only a safety net.)
-  bool canBuy(Offer o) => !(o.kind == OfferKind.figure && isShelfMult(o.fig!) && shelfMultsFull);
+  bool canBuy(Offer o) => !(o.kind == OfferKind.figure && _blocked(o.fig!));
 
   /// The altar has just filled up with ×-all goods: those still on the stall make way for other goods.
   void _dropShelfMultOffers() {
     for (var i = 0; i < shop.length; i++) {
       final o = shop[i];
-      if (o.kind == OfferKind.figure && !o.sold && isShelfMult(o.fig!)) shop[i] = _figureOffer();
+      if (o.kind == OfferKind.figure && !o.sold && _blocked(o.fig!)) shop[i] = _figureOffer();
     }
   }
 
@@ -877,7 +898,7 @@ class Run {
       case JamReward.goods:
         // chosen when he came; if the live has used up its ×-all goods since, another goods
         // (or the hearts when there is none)
-        if (isShelfMult(j.gift!) && shelfMultsFull) {
+        if (_blocked(j.gift!)) {
           final other = _jamGift();
           if (other == null) doubleThisSong = true;
           return other;

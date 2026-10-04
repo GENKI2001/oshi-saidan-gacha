@@ -56,10 +56,11 @@ String? _focus(Run r) {
 
 const _members = ['ひなた', 'しずく', 'こはる', 'よる', 'もも'];
 
-({bool cleared, int paydays, Set<String> used, int earned}) play(int seed, Bot bot, [Rules Function()? rules]) {
+({bool cleared, int paydays, Set<String> used, int earned}) play(int seed, Bot bot, [Rules Function()? rules, void Function(int song, int earned, int due)? onSong]) {
   final r = Run(seed: seed, rules: rules?.call());
   final rnd = math.Random(seed);
   final used = <String>{};
+  var songStart = 0;
 
   void put(List<FigureDef> opts) {
     final empty = r.emptyCells;
@@ -113,7 +114,9 @@ const _members = ['ひなた', 'しずく', 'こはる', 'よる', 'もも'];
     }
     r.endTurn();
     if (!r.paydayNow) continue;
+    onSong?.call(r.paydaysPaid, r.earned - songStart, r.due);
     final p = r.payday();
+    songStart = r.earned;
     if (!p.paid) return (cleared: false, paydays: r.paydaysPaid, used: used, earned: r.earned);
     if (r.cleared) return (cleared: true, paydays: r.paydaysPaid, used: used, earned: r.earned);
     if (bot.expert) {
@@ -197,6 +200,24 @@ void main(List<String> args) {
         'all ${[for (final b in bots) pct(rate(m, b, () => rulesFor(mc)))].join(' ')}');
   }
   if (args.contains('machines')) return; // dart run tool/sim.dart 400 machines: just the table above
+  if (args.contains('growth')) {
+    // dart run tool/sim.dart 400 growth: per song, what the expert earns in it against the quota (ぷりパレガチャ)
+    final earned = List.generate(6, (_) => <int>[]), dues = List.generate(6, (_) => <int>[]);
+    for (var s = 1; s <= n; s++) {
+      play(s * 7919, bots[3], () => rulesFor(machines.first)..open = _openWhen(machines.first), (song, e, d) {
+        if (song < 6) {
+          earned[song].add(e);
+          dues[song].add(d);
+        }
+      });
+    }
+    int med(List<int> xs) => xs.isEmpty ? 0 : (List.of(xs)..sort())[xs.length ~/ 2];
+    for (var k = 0; k < 6; k++) {
+      if (earned[k].isEmpty) continue;
+      print('   song ${k + 1}: reached ${earned[k].length}  earned (median) ${med(earned[k])}  quota ${med(dues[k])}  paid ${earned[k].length - (k + 1 < 6 ? earned[k + 1].length : 0)}');
+    }
+    return;
+  }
   for (final bot in bots) {
     var wins = 0;
     final died = List.filled(Run.clearPaydays + 1, 0);

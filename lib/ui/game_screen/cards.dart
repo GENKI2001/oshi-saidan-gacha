@@ -158,7 +158,7 @@ extension on _GameScreenState {
           const SizedBox(height: 12),
           if (kAdsEnabled && g.run.canPostpone) _wide(PopButton('▶ 広告を見て延長！', onTap: g.watchAdToPostpone, color: C.mint, fontSize: 17)),
           const SizedBox(height: 10),
-          _wide(PopButton('あきらめる', onTap: g.giveUp, color: Colors.blueGrey, fontSize: 16)),
+          _wide(PopButton('おわる', onTap: g.giveUp, color: Colors.blueGrey, fontSize: 16)),
         ],
       ),
     );

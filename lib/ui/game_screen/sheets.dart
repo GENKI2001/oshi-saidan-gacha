@@ -362,9 +362,9 @@ extension on _GameScreenState {
                 ),
                 // ends the run right away and shows the result
                 PopButton(
-                  'あきらめる',
+                  'おわる',
                   fontSize: 18,
-                  color: C.red,
+                  color: Colors.blueGrey,
                   onTap: g.canGiveUp
                       ? () {
                           Navigator.of(ctx).pop();

@@ -79,7 +79,7 @@ void main() {
     expect(jams, greaterThan(0), reason: 'the 転売ヤー machine should have had a 妨害');
   });
 
-  testWidgets('あきらめる from the menu goes straight to the result, also mid-capsule', (t) async {
+  testWidgets('おわる from the menu goes straight to the result, also mid-capsule', (t) async {
     Sfx.enabled = false;
     final meta = Meta();
     final g = GameController(meta);

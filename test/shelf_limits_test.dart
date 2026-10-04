@@ -11,7 +11,7 @@ void main() {
     for (var i = 0; i < r.size; i++) {
       r.cells[i] = null;
     }
-    final panel = figureById['unit_panel']!;
+    final panel = figureById['hinata_dress']!; // a ×-all goods (the life-size panel is one per live)
     for (var i = 0; i < 3; i++) {
       r.place(panel, i);
     }
@@ -52,7 +52,7 @@ void main() {
     for (var i = 0; i < r.size; i++) {
       r.cells[i] = null;
     }
-    final panel = figureById['unit_panel']!;
+    final panel = figureById['hinata_dress']!;
     for (var i = 0; i < 3; i++) {
       r.place(panel, i);
     }
@@ -61,6 +61,30 @@ void main() {
     expect(r.shop.where((o) => o.kind == OfferKind.figure && Run.isShelfMult(o.fig!)), isEmpty);
     expect(r.shop.length, 3);
     expect(r.shop[2].kind, OfferKind.luck);
+  });
+
+  test('only one life-size panel a live: once taken it drops no more and leaves the stall', () {
+    final r = Run(seed: 5, rules: Rules());
+    for (var i = 0; i < r.size; i++) {
+      r.cells[i] = null;
+    }
+    final panel = figureById['unit_panel']!;
+    r.shop = [Offer(OfferKind.figure, 10, panel), Offer(OfferKind.luck, 10)];
+    r.place(panel, 0);
+    expect(r.shop.any((o) => o.kind == OfferKind.figure && o.fig!.id == 'unit_panel'), isFalse);
+    expect(r.canBuy(Offer(OfferKind.figure, 10, panel)), isFalse);
+    for (var k = 0; k < 3000; k++) {
+      expect(r.pullOne().id, isNot('unit_panel'));
+    }
+  });
+
+  test('the quota grows ×3.95 a song up to the 4th, then the growth itself ×1.5 each アンコール', () {
+    final r = Run(seed: 1);
+    final d = [for (var k = 0; k < 7; k++) r.baseDue(k)];
+    expect(d.take(4), [17, 67, 265, 1048]);
+    expect(d[4] / d[3], closeTo(3.95 * 1.5, 0.01));
+    expect(d[5] / d[4], closeTo(3.95 * 1.5 * 1.5, 0.01));
+    expect(d[6] / d[5], closeTo(3.95 * 1.5 * 1.5 * 1.5, 0.01));
   });
 
   test('the extra spin can be bought only once', () {
