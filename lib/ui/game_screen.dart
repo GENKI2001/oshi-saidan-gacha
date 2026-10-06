@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../logic/defs.dart';
 import '../logic/figures.dart';
 import '../logic/modes.dart';
@@ -83,6 +84,10 @@ class _GameScreenState extends State<GameScreen> {
       Coach.place2 => ([_kPlace], coachLines[Coach.place2.name]!, false, false),
       Coach.cell2 => ([_cellKey(GameController.tutorialCell2)], coachLines[Coach.cell2.name]!, false, false),
       Coach.doubled => ([_cellKey(GameController.tutorialCell1), _cellKey(GameController.tutorialCell2)], coachLines[Coach.doubled.name]!, false, true),
+      Coach.spin3 => ([_kSpin], coachLines[Coach.spin3.name]!, true, false),
+      Coach.place3 => ([_kPlace], coachLines[Coach.place3.name]!, false, false),
+      Coach.cell3 => ([_cellKey(GameController.tutorialCell2)], coachLines[Coach.cell3.name]!, false, false),
+      Coach.stacked => ([_cellKey(GameController.tutorialCell2)], coachLines[Coach.stacked.name]!, false, true),
       Coach.go => ([_kSpin], coachLines[Coach.go.name]!, true, false),
       _ => (const <GlobalKey>[], '', false, false),
     };
@@ -161,6 +166,7 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               // the hearts of this spin stay on top, even over a toast
               KeyedSubtree(key: const ValueKey('total'), child: _total()),
+              KeyedSubtree(key: const ValueKey('quota'), child: QuotaCutIn(token: g.quotaToken, song: g.quotaSong)),
             ],
           ),
         ),
@@ -225,11 +231,11 @@ class _GameScreenState extends State<GameScreen> {
 
   /// What this live has been tuned with (and a 妨害's spell), stacked up the left side above the altar.
   List<Widget> get _chips => [
-    if (g.run.luck > 0) _chip('運 +${g.run.luck}%', const Color(0xFF1E9E7E)),
+    if (g.run.luck > 0) _chip(en ? 'Luck +${g.run.luck}%' : '運 +${g.run.luck}%', const Color(0xFF1E9E7E)),
     // 出現率UP bought at the stall
-    for (final e in g.run.boost.entries) _chip('${e.key} 出現率×${e.value.round()}', idolColor[e.key]!),
-    if (g.run.doubleThisSong) _chip('この曲 ハート×2', const Color(0xFFE6A700)),
-    if (g.run.halfThisSong) _chip('この曲 ハート半分', C.red),
+    for (final e in g.run.boost.entries) _chip(en ? '${tr(e.key)} rate ×${e.value.round()}' : '${e.key} 出現率×${e.value.round()}', idolColor[e.key]!),
+    if (g.run.doubleThisSong) _chip(tr('この曲 ハート×2'), const Color(0xFFE6A700)),
+    if (g.run.halfThisSong) _chip(tr('この曲 ハート半分'), C.red),
   ];
 
   /// Clear of the altar's name tab.
@@ -373,7 +379,7 @@ class _GameScreenState extends State<GameScreen> {
 
   /// The boss's speech bubble: the next payday on top (what he's here to
   /// collect), his line below, and a tail pointing down at him.
-  String get _chipText => '${g.machine.name}・難易度 ${g.machine.difficultyText}';
+  String get _chipText => en ? '${g.machine.name} · ${tr(g.machine.difficultyText)}' : '${g.machine.name}・難易度 ${g.machine.difficultyText}';
 
   /// From the right edge to the left edge of the gacha-name chip in the top bar:
   /// menu button (46) + gap (8) + chip (text + 24 padding + 3 border).
@@ -426,7 +432,7 @@ class _GameScreenState extends State<GameScreen> {
                         ),
                       ),
                       Container(height: 2, color: const Color(0x33F59AC3)),
-                      Padding(padding: const EdgeInsets.fromLTRB(10, 6, 10, 7), child: _TwoLines(g.bossLine)),
+                      Padding(padding: const EdgeInsets.fromLTRB(10, 6, 10, 7), child: _TwoLines(tr(g.bossLine))),
                     ],
                   ),
                 ),
@@ -470,7 +476,7 @@ class _GameScreenState extends State<GameScreen> {
               children: [
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(full ? '上書きするグッズをタップ' : '置く場所をタップ（上書きもOK）', style: outlined(14, Colors.white, width: 2)),
+                  child: Text(tr(full ? '上書きするグッズをタップ' : '置く場所をタップ（上書きもOK）'), style: outlined(14, Colors.white, width: 2)),
                 ),
                 const SizedBox(height: 4),
                 PopButton(
@@ -490,7 +496,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   /// "品がえ" for a single use, "品がえ 2/3" once the stall has added more.
-  String _uses(String name, int left, int max) => max <= 1 ? name : '$name $left/$max';
+  String _uses(String name, int left, int max) => max <= 1 ? tr(name) : '${tr(name)} $left/$max';
 
   /// The rewarded ad (only where ads run).
   Widget _bottomBar() => Padding(
@@ -550,7 +556,7 @@ class _GameScreenState extends State<GameScreen> {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: C.ink.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(12)),
-      child: Text('▶▶ ${g.speed}倍速', style: outlined(15, C.gold, width: 2)),
+      child: Text(en ? '▶▶ ×${g.speed} speed' : '▶▶ ${g.speed}倍速', style: outlined(15, C.gold, width: 2)),
     ),
   );
 

@@ -48,6 +48,23 @@ void main() {
     // the アクスタ doubled the アクキー next to it
     expect(g.run.cells[GameController.tutorialCell1]!.lastGain, 4);
     g.coachNext();
+    expect(g.coach, Coach.spin3);
+
+    // the 3rd spin: the same アクスタ, stacked on the first one (進化)
+    g.turnHandle();
+    await settle(Coach.place3);
+    expect(g.options.single.id, 'koharu_acsta');
+    g.choose(g.options.single);
+    expect(g.coach, Coach.cell3);
+    await g.tapCell(GameController.tutorialCell1); // not the highlighted cell: ignored
+    expect(g.run.cells[GameController.tutorialCell1]!.def.id, 'koharu_keyholder');
+    g.tapCell(GameController.tutorialCell2);
+    await settle(Coach.stacked);
+    expect(g.run.cells[GameController.tutorialCell2]!.stack, 2);
+    // stacked twice, the アクスタ quadruples the アクキー
+    expect(g.run.cells[GameController.tutorialCell1]!.lastGain, 8);
+    expect(meta.tutorialDone, isFalse);
+    g.coachNext();
     expect(g.coach, Coach.go);
     // 回す！ on that last step: the tutorial is over, the game carries on
     g.turnHandle();

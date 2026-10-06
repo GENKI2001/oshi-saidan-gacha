@@ -76,3 +76,64 @@
 
 ## スクリーンショットの並び（store/ios_6.9, store/android_phone）
 1. タイトル 2. ★4 カットイン 3. ★4 のグッズ 4. 盛り上がる会場と祭壇 5. メンバーのひと言 6. 1曲ごとのノルマ 7. 曲の大成功 8. 物販ブース 9. メンバー紹介 11. 実績（ささやきボイス）
+
+---
+
+# English (App Store: add "English (U.S.)" / "English (U.K.)" localizations in App Store Connect)
+
+## App name (30 chars)
+Oshi Altar Gacha
+
+## Subtitle (30 chars)
+Fully voiced idol roguelite
+
+## Promotional text (170 chars)
+Pull your oshi's goods, build the perfect altar and make the live a smash hit! Five idols, fully voiced in Japanese with English subtitles.
+
+## Description (4000 chars)
+Make your oshi's live a smash hit!
+Pull goods of the idol unit "Prism☆Palette" from the gacha and line them up on your altar.
+Put your favourite's goods side by side, find the combos, and watch the Hearts pour in.
+The more Hearts you collect, the wilder the hall gets: a sea of penlights, roaring cheers and confetti!
+Every 5 spins is one song. Can you meet manager Tsumugi's Heart quota for all 4 songs?
+
+■ Fully voiced (Japanese voices, English subtitles)
+・When an idol's goods come out of a capsule, she talks to you
+・Pull a ★3 or ★4 and your oshi cuts in across the whole screen!
+・Hundreds of lines, so your oshi always has something new to say
+・The crowd cheers with every Heart, and calls her name when you place her goods
+
+■ Achievements and Situation Voices
+・Clear achievements to unlock each member's "Situation Voice" (15 in all, 3 per member)
+・Best heard with headphones: she whispers right by your ear
+・Tap a member on the title screen and she'll say something
+
+■ Prism☆Palette
+・Hinata Amane (red) ... the ever-energetic center
+・Shizuku Minase (blue) ... the cool, polite songstress
+・Koharu Haruno (yellow) ... soft, fluffy and always snacking
+・Yoru Yomiya (purple) ... the teasing little devil
+・Momo Momose (pink) ... the sweet, spoiled one
+・Manager Tsumugi (green) ... strict about the quota
+
+■ How to play
+・Tap "Spin!" and place the goods you pull on any space of your altar
+・Every goods earns Hearts each spin, each with its own effect: "×2 to the Koharu goods next to it", "+3 if there are 3 Shizuku goods on the altar"...
+・Place the same goods on top of itself to stack it and power it up
+・5 spins make a song. Miss the quota and the live is over!
+・Meet it and shop at Tsumugi's merch booth for goods, a bigger altar and handy items (the first one is free)
+・Clear 4 songs for a successful live, then keep going in the encore and climb the rankings
+・Watch out for Kaishime the scalper: mash "Push back!" to guard your altar
+
+■ Features
+・Over 100 kinds of oshi-katsu goods: button badges, acrylic stands, plushies, life-size panels...
+・5–10 minute runs, and a different altar every time
+・Clearing gachas brings new goods and new gacha machines
+・Gacha machines with their own twists, from the ShizuMomo gacha to the Dome Tour gacha
+・Compete on Game Center / Google Play leaderboards
+
+* The gacha in this app is played with in-game Hearts only. There are no in-app purchases.
+* All characters are fictional and 20 years of age or older.
+
+## Keywords (100 chars, comma separated)
+idol,oshi,gacha,anime,voiced,roguelite,ASMR,live,penlight,collect,puzzle,strategy,cute,japanese

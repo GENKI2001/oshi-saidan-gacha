@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
+
 import 'idol_widgets.dart';
 import 'lines.dart';
 import 'sfx.dart';
@@ -65,8 +67,8 @@ class _MemberScreenState extends State<MemberScreen> {
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 110),
                 children: [
                   // the header scrolls away with the list
-                  const ScreenHeader('メンバー'),
-                  Center(child: Text('ぷりずむ☆パレット', style: outlined(24, Colors.white, stroke: C.pink, width: 4))),
+                  ScreenHeader(tr('メンバー')),
+                  Center(child: Text(tr('ぷりずむ☆パレット'), style: outlined(24, Colors.white, stroke: C.pink, width: 4))),
                   const SizedBox(height: 6),
                   for (final p in _profiles) _card(p),
                 ],
@@ -76,7 +78,7 @@ class _MemberScreenState extends State<MemberScreen> {
                   left: 12,
                   right: 12,
                   bottom: 16,
-                  child: IgnorePointer(child: IdolToast(who: _who!, line: _line, token: _token)),
+                  child: IgnorePointer(child: IdolToast(who: _who!, line: tr(_line), token: _token)),
                 ),
             ],
           ),
@@ -124,10 +126,10 @@ class _MemberScreenState extends State<MemberScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(p.full, style: outlined(22, col, stroke: Colors.white, width: 4)),
-                  Text(p.role, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: C.ink)),
+                  Text(tr(p.full), style: outlined(22, col, stroke: Colors.white, width: 4)),
+                  Text(tr(p.role), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: C.ink)),
                   const SizedBox(height: 4),
-                  Text(p.text, style: const TextStyle(fontSize: 12.5, height: 1.4, fontWeight: FontWeight.w700, color: C.ink)),
+                  Text(tr(p.text), style: const TextStyle(fontSize: 12.5, height: 1.4, fontWeight: FontWeight.w700, color: C.ink)),
                   // only the idols have voices (つむぎ just talks in a bubble)
                   if (idolLines.containsKey(p.who)) ...[
                     const SizedBox(height: 6),
@@ -137,7 +139,7 @@ class _MemberScreenState extends State<MemberScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.volume_up_rounded, size: 16, color: col),
-                          Text(' タップで ボイス', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: col)),
+                          Text(tr(' タップで ボイス'), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: col)),
                         ],
                       ),
                     ),

@@ -420,6 +420,13 @@ const figures = <FigureDef>[
   FigureDef(id: 'hinakoha_bingo', name: 'ひなこはのビンゴカード', emoji: '🎯', rarity: Rarity.rare, tags: ['ひなた', 'こはる'], cast: ['ひなた', 'こはる'], from: 'koharu', effects: [Add(1), AddIfDiagonalFull(16)]),
   FigureDef(id: 'cross_penlight', name: 'クロスペンライト', emoji: '🔦', rarity: Rarity.epic, tags: ['応援'], from: 'pripare', effects: [MultDiagonal(3)]),
   FigureDef(id: 'unit_diamond', name: 'ぷりパレのダイヤ型ステージ模型', emoji: '💎', rarity: Rarity.legend, tags: ['ファン'], cast: ['ひなた', 'しずく', 'こはる', 'よる', 'もも'], from: 'premium', effects: [Add(4), MultDiagonal(4)]),
+  // ぱれにゃん × idol: a ぱれにゃん deck gets its own payoffs (half of them from the start)
+  FigureDef(id: 'nyan_parade', name: 'ひなたとぱれにゃん大行進', emoji: '🥁', rarity: Rarity.rare, tags: ['ぱれにゃん', 'ひなた'], cast: ['ひなた'], effects: [AddPerAdjacentTag('ぱれにゃん', 3)]),
+  FigureDef(id: 'nyan_cushion', name: 'しずくのぱれにゃんクッション', emoji: '☁️', rarity: Rarity.normal, tags: ['ぱれにゃん', 'しずく'], cast: ['しずく'], effects: [Add(1), AddPerShelfTag('ぱれにゃん', 1)]),
+  FigureDef(id: 'nyan_house', name: 'こはるのぱれにゃんハウス', emoji: '🏠', rarity: Rarity.epic, tags: ['ぱれにゃん', 'こはる'], cast: ['こはる'], from: 'nyan', effects: [MultAdjacentTag('ぱれにゃん', 3)]),
+  FigureDef(id: 'nyan_crown', name: 'よるとぱれにゃんの王冠', emoji: '👑', rarity: Rarity.epic, tags: ['ぱれにゃん', 'よる'], cast: ['よる'], from: 'nyan', effects: [AddIfShelfTag('ぱれにゃん', 5, 30)]),
+  FigureDef(id: 'nyan_friends', name: 'ももとぱれにゃんのなかまたち', emoji: '🧸', rarity: Rarity.rare, tags: ['ぱれにゃん', 'もも'], cast: ['もも'], effects: [AddPerShelfTag('ぱれにゃん', 3)]),
+  FigureDef(id: 'nyan_gold', name: 'つむぎのゴールドぱれにゃん', emoji: '🏆', rarity: Rarity.legend, tags: ['ぱれにゃん'], from: 'nyan', effects: [MultShelfTagIfCount('ぱれにゃん', 6, 3)]),
 ];
 
 final figureById = {for (final f in figures) f.id: f};

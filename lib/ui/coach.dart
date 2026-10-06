@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import 'widgets.dart';
 
 class CoachLayer extends StatefulWidget {
@@ -129,14 +130,14 @@ class _CoachLayerState extends State<CoachLayer> with SingleTickerProviderStateM
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    widget.text,
+                                    tr(widget.text),
                                     style: const TextStyle(fontSize: 15, height: 1.45, fontWeight: FontWeight.w800, color: C.ink),
                                   ),
                                   if (widget.onTap != null)
-                                    const Align(
+                                    Align(
                                       alignment: Alignment.centerRight,
                                       child: Text(
-                                        'タップでつぎへ ▶',
+                                        tr('タップでつぎへ ▶'),
                                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: C.woodDark),
                                       ),
                                     ),

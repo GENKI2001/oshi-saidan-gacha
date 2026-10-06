@@ -75,7 +75,7 @@ extension on _GameScreenState {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: C.ink, width: 2),
                 ),
-                child: Text('♡ 推し祭壇 ♡', style: outlined(12, Colors.white, stroke: C.ink, width: 2.5)),
+                child: Text(tr('♡ 推し祭壇 ♡'), style: outlined(12, Colors.white, stroke: C.ink, width: 2.5)),
               ),
             ),
           ),

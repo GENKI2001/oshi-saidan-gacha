@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../logic/defs.dart';
 import '../logic/run.dart';
 import 'widgets.dart';
@@ -34,7 +35,7 @@ Future<void> showFigureInfo(BuildContext context, FigureDef d, [Fig? f, Run? run
                     children: [
                       RarityStars(d.rarity, size: 18),
                       Text(
-                        d.tags.map((t) => '「$t」').join(),
+                        en ? d.tags.map(tr).join(' · ') : d.tags.map((t) => '「$t」').join(),
                         style: const TextStyle(color: C.ink, fontWeight: FontWeight.w900),
                       ),
                     ],
@@ -48,12 +49,14 @@ Future<void> showFigureInfo(BuildContext context, FigureDef d, [Fig? f, Run? run
                 if (f != null && f.stack > 1)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Text('重ねて強化中：効果が ×${f.stack}', style: outlined(15, const Color(0xFFE6A700), stroke: Colors.white, width: 3)),
+                    child: Text(en ? 'Stacked: effects ×${f.stack}' : '重ねて強化中：効果が ×${f.stack}', style: outlined(15, const Color(0xFFE6A700), stroke: Colors.white, width: 3)),
                   ),
                 if (f != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    '置いてから ${f.age} 回転${f.lastGain != 0 ? '・さっきのハート ${f.lastGain}' : ''}',
+                    en
+                        ? 'On the altar for ${f.age} spins${f.lastGain != 0 ? ' · last spin ${f.lastGain} Hearts' : ''}'
+                        : '置いてから ${f.age} 回転${f.lastGain != 0 ? '・さっきのハート ${f.lastGain}' : ''}',
                     style: const TextStyle(color: C.woodDark, fontWeight: FontWeight.w800),
                   ),
                 ],

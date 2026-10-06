@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../logic/defs.dart';
 import '../logic/modes.dart';
 import 'theme.dart';
@@ -60,7 +61,7 @@ class RarityStars extends StatelessWidget {
       ),
     );
     return Semantics(
-      label: '星$n',
+      label: en ? '$n stars' : '星$n',
       child: Row(mainAxisSize: MainAxisSize.min, children: [for (var k = 0; k < 4; k++) star(k < n)]),
     );
   }
@@ -186,11 +187,11 @@ class DifficultyBadge extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Text('難易度 ', style: TextStyle(fontSize: size * 0.8, fontWeight: FontWeight.w900, color: C.ink)),
+      Text(tr('難易度 '), style: TextStyle(fontSize: size * 0.8, fontWeight: FontWeight.w900, color: C.ink)),
       for (var i = 1; i <= 5; i++)
         Icon(i <= level ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: size, color: i <= level ? colors[level] : const Color(0xFFD9C3D8)),
       const SizedBox(width: 4),
-      Text(difficultyLabel[level], style: outlined(size, colors[level], stroke: Colors.white, width: 3)),
+      Text(tr(difficultyLabel[level]), style: outlined(size, colors[level], stroke: Colors.white, width: 3)),
     ],
   );
 }

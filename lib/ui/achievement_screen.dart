@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../logic/achievements.dart';
 import '../logic/defs.dart';
 import '../logic/modes.dart';
@@ -83,9 +84,9 @@ class AchievementToast extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('実績解除！ ${a.title}${got.length > 1 ? ' ほか${got.length - 1}件' : ''}', style: outlined(15, C.pink, stroke: Colors.white, width: 3)),
+                  Text(en ? 'Achievement! ${a.title}${got.length > 1 ? ' +${got.length - 1} more' : ''}' : '実績解除！ ${a.title}${got.length > 1 ? ' ほか${got.length - 1}件' : ''}', style: outlined(15, C.pink, stroke: Colors.white, width: 3)),
                   if (track != null)
-                    _withIcon(Icons.record_voice_over_rounded, '${track.who}のシチュエーションボイスが 聞けるように！', C.ink)
+                    _withIcon(Icons.record_voice_over_rounded, en ? "${tr(track.who)}'s Situation Voice unlocked!" : '${track.who}のシチュエーションボイスが 聞けるように！', C.ink)
                   else
                     Text(a.text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.ink)),
                 ],
@@ -110,10 +111,10 @@ class NewGoodsToast extends StatelessWidget {
   Widget build(BuildContext context) => _ToastFrame(
     token: token,
     icon: Image.asset('assets/ui/ui_medal.png', width: 44, height: 44),
-    title: '${machine.name} 初クリア！',
+    title: en ? '${machine.name} first clear!' : '${machine.name} 初クリア！',
     body: Row(
       children: [
-        Text('新しく ${news.length} 種がガチャに ', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.ink)),
+        Text(en ? '${news.length} new goods in the gacha ' : '新しく ${news.length} 種がガチャに ', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.ink)),
         for (final f in news.take(5)) FigureArt(f, size: 22),
       ],
     ),
@@ -178,7 +179,7 @@ class UnlockToast extends StatelessWidget {
     return _ToastFrame(
       token: token,
       icon: MachineArt(hue: m.hue, height: 44),
-      title: 'ガチャ解放！ ${m.name}${got.length > 1 ? ' ほか${got.length - 1}台' : ''}',
+      title: en ? 'Gacha unlocked! ${m.name}${got.length > 1 ? ' +${got.length - 1} more' : ''}' : 'ガチャ解放！ ${m.name}${got.length > 1 ? ' ほか${got.length - 1}台' : ''}',
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -220,7 +221,7 @@ class _AchievementScreenState extends State<AchievementScreen> {
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
               children: [
                 // the header scrolls away with the list
-                ScreenHeader('実績', note: '$done / ${achievements.length}'),
+                ScreenHeader(tr('実績'), note: '$done / ${achievements.length}'),
                 Container(
                   padding: const EdgeInsets.all(10),
                   margin: const EdgeInsets.only(bottom: 10),
@@ -229,10 +230,10 @@ class _AchievementScreenState extends State<AchievementScreen> {
                     children: [
                       const Icon(Icons.record_voice_over_rounded, color: C.pink, size: 28),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          '実績を達成すると、メンバーの「シチュエーションボイス」が聞けるようになるよ。あなただけの特別なひとときを！',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: C.ink, height: 1.4),
+                          tr('実績を達成すると、メンバーの「シチュエーションボイス」が聞けるようになるよ。あなただけの特別なひとときを！'),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: C.ink, height: 1.4),
                         ),
                       ),
                     ],
@@ -282,7 +283,9 @@ class _AchievementScreenState extends State<AchievementScreen> {
                 if (track != null)
                   _withIcon(
                     got ? Icons.record_voice_over_rounded : Icons.lock_rounded,
-                    got ? '${track.who}「${track.title}」' : '${track.who}のシチュエーションボイス',
+                    en
+                        ? (got ? '${tr(track.who)}: "${tr(track.title)}"' : "${tr(track.who)}'s Situation Voice")
+                        : (got ? '${track.who}「${track.title}」' : '${track.who}のシチュエーションボイス'),
                     got ? col : const Color(0xFF9A8FA2),
                   ),
               ],
@@ -291,7 +294,7 @@ class _AchievementScreenState extends State<AchievementScreen> {
           if (track != null)
             got
                 ? PopButton(
-                    '聞く',
+                    tr('聞く'),
                     key: ValueKey('listen-${track.id}'),
                     color: col,
                     fontSize: 15,
@@ -379,7 +382,7 @@ class _AsmrScreenState extends State<AsmrScreen> {
     final face = line == null ? 'a' : _expression(line);
     return Scaffold(
       backgroundColor: const Color(0xFF1A1230),
-      appBar: AppBar(backgroundColor: Colors.transparent, foregroundColor: Colors.white, title: Text(t.title, style: outlined(20, Colors.white, stroke: col, width: 3))),
+      appBar: AppBar(backgroundColor: Colors.transparent, foregroundColor: Colors.white, title: Text(tr(t.title), style: outlined(20, Colors.white, stroke: col, width: 3))),
       extendBodyBehindAppBar: true,
       body: Stack(
         fit: StackFit.expand,
@@ -437,12 +440,12 @@ class _AsmrScreenState extends State<AsmrScreen> {
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
                       transitionBuilder: (c, a) => ScaleTransition(scale: Tween(begin: 0.9, end: 1.0).animate(CurvedAnimation(parent: a, curve: Curves.easeOutBack)), child: FadeTransition(opacity: a, child: c)),
-                      child: _bubble(t.who, line ?? '……', col, key: ValueKey(cur)),
+                      child: _bubble(tr(t.who), line == null ? (en ? '...' : '……') : tr(line), col, key: ValueKey(cur)),
                     ),
                   ),
                 ),
                 const SizedBox(height: 10),
-                PopButton(_playing ? 'もう一度はじめから' : '▶ 聞く', color: col, fontSize: 18, onTap: _play),
+                PopButton(tr(_playing ? 'もう一度はじめから' : '▶ 聞く'), color: col, fontSize: 18, onTap: _play),
                 const SizedBox(height: 20),
               ],
             ),

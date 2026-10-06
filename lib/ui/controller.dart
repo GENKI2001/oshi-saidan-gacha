@@ -65,6 +65,10 @@ enum Coach {
   place2,
   cell2,
   doubled,
+  spin3,
+  place3,
+  cell3,
+  stacked,
   go,
 }
 
@@ -89,6 +93,8 @@ class GameController extends ChangeNotifier {
   // ── juice ──
   // the running count while the hearts come in (the top-left badge grows with it)
   int liveTotal = 0, milestoneToken = 0;
+  int quotaToken = 0, quotaSong = 1; // 「♪ N曲目 ノルマ達成！」 cut-in
+  int _quotaCutFor = -1;
   final List<Beam> beams = [];
   int rareToken = 0; // a レア商品 came in at the stall
   final Map<int, int> badge = {};
@@ -206,8 +212,9 @@ class GameController extends ChangeNotifier {
   final bool tutorial;
   Coach coach = Coach.none;
   int _pulls = 0;
-  static const tutorialCell1 = 6, tutorialCell2 = 7; // こはるのアクキー, then こはるのアクスタ to its right
-  static const _tutorialPulls = ['koharu_keyholder', 'momo_badge', 'koharu_acsta'];
+  static const tutorialCell1 = 6, tutorialCell2 = 5; // こはるのアクキー, then こはるのアクスタ to its left
+  // the 4th pull (the 3rd spin) is the same アクスタ again: put on top of the first, it stacks (進化)
+  static const _tutorialPulls = ['koharu_keyholder', 'momo_badge', 'koharu_acsta', 'koharu_acsta'];
 
   /// The info steps move on with a tap anywhere.
   void coachNext() {
@@ -217,7 +224,8 @@ class GameController extends ChangeNotifier {
       Coach.item => Coach.tags,
       Coach.tags => Coach.effect,
       Coach.effect => Coach.place2,
-      Coach.doubled => Coach.go,
+      Coach.doubled => Coach.spin3,
+      Coach.stacked => Coach.go,
       final c => c,
     };
     if (coach == Coach.none) meta.finishTutorial();
@@ -393,7 +401,7 @@ class GameController extends ChangeNotifier {
     badge.clear();
     heartPop.clear(); // (a later rebuild must not pop old hearts again)
     gave.clear();
-    if (const [Coach.spin1, Coach.spin2].contains(coach)) coach = Coach.wait;
+    if (const [Coach.spin1, Coach.spin2, Coach.spin3].contains(coach)) coach = Coach.wait;
     // the last guided step: spinning on from here is the game itself
     if (coach == Coach.go) {
       coach = Coach.none;
@@ -486,7 +494,7 @@ class GameController extends ChangeNotifier {
       coach = switch (options.first.id) {
         'koharu_keyholder' => Coach.place1,
         'momo_badge' => Coach.repull,
-        'koharu_acsta' => Coach.item,
+        'koharu_acsta' => _pulls > 3 ? Coach.place3 : Coach.item,
         _ => Coach.wait,
       };
     }
@@ -528,6 +536,7 @@ class GameController extends ChangeNotifier {
     phase = Phase.place;
     if (coach == Coach.place1) coach = Coach.cell1;
     if (coach == Coach.place2) coach = Coach.cell2;
+    if (coach == Coach.place3) coach = Coach.cell3;
     notifyListeners();
   }
 
@@ -545,7 +554,9 @@ class GameController extends ChangeNotifier {
     // the tutorial wants a particular cell
     if (coach == Coach.cell1 && i != tutorialCell1) return;
     if (coach == Coach.cell2 && i != tutorialCell2) return;
-    if (const [Coach.cell1, Coach.cell2].contains(coach)) coach = Coach.wait;
+    // the same アクスタ goes on top of the one already there
+    if (coach == Coach.cell3 && i != tutorialCell2) return;
+    if (const [Coach.cell1, Coach.cell2, Coach.cell3].contains(coach)) coach = Coach.wait;
     // the new figure can go over an old one
     if (run.cells[i] != null && !run.canOverwrite(i)) return;
     final over = run.cells[i] != null;
@@ -553,12 +564,13 @@ class GameController extends ChangeNotifier {
     final stacking = over && run.stacksOn(d, i);
     final steps = over ? run.overwrite(d, i) : run.place(d, i);
     // the same goods on itself: it powers up (×2, ×3, …) and puts on an aura
+    Future<void>? poweringUp;
     if (stacking) {
       meta.noteStack(run.cells[i]!.stack);
       powerUp[i] = (powerUp[i] ?? 0) + 1; // ギュイーン… ピカーン (PowerUpBurst)
       Sfx.play('omen');
       HapticFeedback.lightImpact();
-      () async {
+      poweringUp = () async {
         await _wait(620);
         Sfx.play('mult_big');
         HapticFeedback.heavyImpact();
@@ -615,6 +627,8 @@ class GameController extends ChangeNotifier {
     coinsShown = run.coins;
     notifyListeners();
     await _wait(steps.isEmpty ? 120 : 300);
+    // the power-up plays out first: a 妨害 cutting in must not have its flash and ×N go off over him
+    if (poweringUp != null) await poweringUp;
     _afterPlace();
   }
 
@@ -887,6 +901,19 @@ class GameController extends ChangeNotifier {
 
   void _apply(Step s) {
     switch (s.kind) {
+      // a copycat: a beam from the neighbour it copies, then it earns the same
+      case StepKind.copy:
+        if (s.targets.isNotEmpty) {
+          final b = Beam(s.targets.first, [s.idx], true, s.amount);
+          beams.add(b);
+          Future.delayed(const Duration(milliseconds: 750), () {
+            beams.remove(b);
+            if (_alive) notifyListeners();
+          });
+        }
+        Sfx.play('buff');
+        notifyListeners();
+        return;
       case StepKind.add:
         badge[s.idx] = (badge[s.idx] ?? 0) + s.amount;
         pulse[s.idx]++;
@@ -964,6 +991,7 @@ class GameController extends ChangeNotifier {
     badge.clear();
     _step = 0;
     liveTotal = 0;
+    final coinsBefore = run.coins;
     final res = run.endTurn();
     notifyListeners();
     await _wait(200);
@@ -973,6 +1001,13 @@ class GameController extends ChangeNotifier {
       if (!_alive) return;
       if (s.kind == StepKind.remove && shown[s.idx] == null) continue;
       _apply(s);
+      // a copycat's beam lands first, then it earns what it copied
+      if (s.kind == StepKind.copy) {
+        await _wait(340);
+        if (!_alive) return;
+        hit[s.idx]++;
+        _apply(Step(StepKind.add, s.idx, amount: s.amount));
+      }
       // the running count, with a jolt at every round number it passes
       final now = badge.values.fold(0, (a, b) => a + b);
       for (final m in const [100, 500, 1000, 5000, 10000]) {
@@ -990,6 +1025,15 @@ class GameController extends ChangeNotifier {
     }
     lastTotal = res.total;
     totalToken++;
+    // the hearts just reached this song's quota (with spins still to go): a cut-in, once a song
+    if (coinsBefore < run.due && run.coins >= run.due && !run.paydayNow && _quotaCutFor != run.paydaysPaid && !_coaching) {
+      _quotaCutFor = run.paydaysPaid;
+      quotaSong = run.paydaysPaid + 1;
+      quotaToken++;
+      Sfx.play('pay_ok');
+      Crowd.cheer();
+      HapticFeedback.mediumImpact();
+    }
     final big = res.total >= 40 && res.total >= run.due ~/ 3;
     if (res.total > 0) Sfx.play(big ? 'total_big' : 'total_small');
     // the idols on the altar cheer a big turn now and then; つむぎ can't believe it
@@ -1034,7 +1078,8 @@ class GameController extends ChangeNotifier {
       if (coach == Coach.wait) {
         coach = switch (run.turn) {
           1 => Coach.coins,
-          _ => Coach.doubled,
+          2 => Coach.doubled,
+          _ => Coach.stacked,
         };
       }
     }
@@ -1087,7 +1132,17 @@ class GameController extends ChangeNotifier {
   /// thanks the crowd (her line, her voice, the curtain-call tune) over the gauge brimming past the
   /// quota. Short of it: つむぎ says so over the gauge.
   void _curtainCall() {
-    if (run.coins < run.due) {
+    // the 「曲の終わりに +N」 goods chip in now, where you can see it (paid in with the quota)
+    final bonus = run.paydayBonus;
+    for (var i = 0; i < run.size; i++) {
+      final v = run.cells[i]?.def.effect<OnPaydayGain>()?.v;
+      if (v == null) continue;
+      _float(i, '+$v', 0);
+      heartPop[i] = (heartPop[i] ?? 0) + 1;
+      pulse[i]++;
+    }
+    if (bonus > 0) Sfx.play('total_small');
+    if (run.coins + bonus < run.due) {
       songIdol = null;
       say(0, pick(linePayday));
       return;

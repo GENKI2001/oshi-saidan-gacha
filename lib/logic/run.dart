@@ -4,6 +4,7 @@
 
 import 'dart:math' as math;
 
+import '../l10n/l10n.dart';
 import 'defs.dart';
 import 'figures.dart';
 import 'modes.dart';
@@ -42,7 +43,7 @@ class Fig {
   int factor(int f) => f * stack;
 }
 
-enum StepKind { add, buff, mult, shoot, remove, spawn, instant }
+enum StepKind { add, buff, mult, shoot, remove, spawn, instant, copy }
 
 /// One beat of the scoring animation. [idx] is the acting cell.
 class Step {
@@ -81,20 +82,35 @@ class Jam {
   final FigureDef? gift;
   const Jam(this.kind, this.power, {this.pct = 0, this.reward = JamReward.hearts, this.gift});
 
-  String get rewardText => switch (reward) {
-    JamReward.hearts => 'この曲のハートが ×2',
-    JamReward.goods => '★${gift!.rarity.index + 1}「${gift!.name}」がもらえる',
-    JamReward.luck => '運が +10%',
-    JamReward.repull => '「もう一回ひく」が +1',
-  };
+  String get rewardText => en
+      ? switch (reward) {
+          JamReward.hearts => 'Hearts ×2 for this song',
+          JamReward.goods => 'You get ★${gift!.rarity.index + 1} "${gift!.name}"',
+          JamReward.luck => 'Luck +10%',
+          JamReward.repull => 'Re-pull +1',
+        }
+      : switch (reward) {
+          JamReward.hearts => 'この曲のハートが ×2',
+          JamReward.goods => '★${gift!.rarity.index + 1}「${gift!.name}」がもらえる',
+          JamReward.luck => '運が +10%',
+          JamReward.repull => '「もう一回ひく」が +1',
+        };
 
-  String get text => switch (kind) {
-    JamKind.steal => 'グッズを1つ 持っていかれる',
-    JamKind.stealTwo => 'グッズを2つ 持っていかれる',
-    JamKind.noRepull => 'この曲は「もう一回ひく」が使えない',
-    JamKind.half => 'この曲のハートが 半分になる',
-    JamKind.hearts => 'ハートを $pct% 持っていかれる',
-  };
+  String get text => en
+      ? switch (kind) {
+          JamKind.steal => 'He steals one of your goods',
+          JamKind.stealTwo => 'He steals two of your goods',
+          JamKind.noRepull => 'No Re-pull for this song',
+          JamKind.half => 'Hearts halved for this song',
+          JamKind.hearts => 'He takes $pct% of your Hearts',
+        }
+      : switch (kind) {
+          JamKind.steal => 'グッズを1つ 持っていかれる',
+          JamKind.stealTwo => 'グッズを2つ 持っていかれる',
+          JamKind.noRepull => 'この曲は「もう一回ひく」が使えない',
+          JamKind.half => 'この曲のハートが 半分になる',
+          JamKind.hearts => 'ハートを $pct% 持っていかれる',
+        };
 }
 
 class TurnResult {
@@ -131,32 +147,56 @@ class Offer {
   bool sold = false;
   Offer(this.kind, this.price, [this.fig, this.idol]);
 
-  String get title => switch (kind) {
-    OfferKind.figure => fig!.name,
-    OfferKind.luck => 'つむぎのおまじない',
-    OfferKind.boost => '$idolの出現率UP',
-    OfferKind.repullTicket => 'もう一回ひく +1',
-    OfferKind.rerollTicket => '品がえ +1',
-    OfferKind.expand => '祭壇を広げる',
-    OfferKind.extraSpin => 'アンコールの魔法',
-    OfferKind.rareSong => 'キラキラ確定チケット',
-    OfferKind.idolSong => '$idol確定チケット',
-  };
+  String get title => en
+      ? switch (kind) {
+          OfferKind.figure => fig!.name,
+          OfferKind.luck => "Tsumugi's Good-Luck Charm",
+          OfferKind.boost => '${tr(idol!)} Rate-Up',
+          OfferKind.repullTicket => 'Re-pull +1',
+          OfferKind.rerollTicket => 'Restock +1',
+          OfferKind.expand => 'Bigger Altar',
+          OfferKind.extraSpin => 'Encore Magic',
+          OfferKind.rareSong => 'Sparkle Ticket',
+          OfferKind.idolSong => '${tr(idol!)} Ticket',
+        }
+      : switch (kind) {
+          OfferKind.figure => fig!.name,
+          OfferKind.luck => 'つむぎのおまじない',
+          OfferKind.boost => '$idolの出現率UP',
+          OfferKind.repullTicket => 'もう一回ひく +1',
+          OfferKind.rerollTicket => '品がえ +1',
+          OfferKind.expand => '祭壇を広げる',
+          OfferKind.extraSpin => 'アンコールの魔法',
+          OfferKind.rareSong => 'キラキラ確定チケット',
+          OfferKind.idolSong => '$idol確定チケット',
+        };
 
   /// A レア商品 (shown with its own badge).
   bool get rare => kind == OfferKind.extraSpin || kind == OfferKind.rareSong || kind == OfferKind.idolSong;
 
-  String get text => switch (kind) {
-    OfferKind.figure => fig!.description,
-    OfferKind.luck => 'R以上が出やすくなる（+8%）',
-    OfferKind.boost => '「$idol」のグッズが よく出る（×${Run.boostStep.round()}）',
-    OfferKind.repullTicket => '「もう一回ひく」が1回ふえる（最大5回）',
-    OfferKind.rerollTicket => '「品がえ」が1回ふえる（最大3回）',
-    OfferKind.expand => '祭壇のマスが増える',
-    OfferKind.extraSpin => '1曲で回せる回数が ずっと +1',
-    OfferKind.rareSong => '次の曲のあいだ R以上しか出ない',
-    OfferKind.idolSong => '次の曲のあいだ「$idol」のグッズしか出ない',
-  };
+  String get text => en
+      ? switch (kind) {
+          OfferKind.figure => fig!.description,
+          OfferKind.luck => '★2+ comes more often (+8%)',
+          OfferKind.boost => '${tr(idol!)} goods come more often (×${Run.boostStep.round()})',
+          OfferKind.repullTicket => 'One more Re-pull per song (up to 5)',
+          OfferKind.rerollTicket => 'One more Restock per visit (up to 3)',
+          OfferKind.expand => 'Adds cells to the altar',
+          OfferKind.extraSpin => '+1 spin every song, for the rest of the live',
+          OfferKind.rareSong => 'Next song: only ★2+ comes out',
+          OfferKind.idolSong => 'Next song: only ${tr(idol!)} goods come out',
+        }
+      : switch (kind) {
+          OfferKind.figure => fig!.description,
+          OfferKind.luck => 'R以上が出やすくなる（+8%）',
+          OfferKind.boost => '「$idol」のグッズが よく出る（×${Run.boostStep.round()}）',
+          OfferKind.repullTicket => '「もう一回ひく」が1回ふえる（最大5回）',
+          OfferKind.rerollTicket => '「品がえ」が1回ふえる（最大3回）',
+          OfferKind.expand => '祭壇のマスが増える',
+          OfferKind.extraSpin => '1曲で回せる回数が ずっと +1',
+          OfferKind.rareSong => '次の曲のあいだ R以上しか出ない',
+          OfferKind.idolSong => '次の曲のあいだ「$idol」のグッズしか出ない',
+        };
 }
 
 const _idols = ['ひなた', 'しずく', 'こはる', 'よる', 'もも'];
@@ -165,6 +205,8 @@ class Run {
   static const turnsPerPayday = 5;
   // 取り立て grows by the same factor every time
   static const firstDue = 17; // raised from 14 with the diagonal goods, stacking and the レア商品 (random ~10%, good play ~40%)
+  /// Every quota ×0.9: the whole game made about 10% easier (2026-10).
+  static const ease = 0.9;
   static const dueGrowth = 3.95;
   static const clearPaydays = 4;
 
@@ -274,6 +316,18 @@ class Run {
     return out;
   }
 
+  /// The ビンゴ line of [AddIfDiagonalFull]: [i] and the cells up and to the right of it, four in all
+  /// (shorter when it runs off the altar). Works on any width: it steps one row up, one column right.
+  List<int> bingoLine(int i) {
+    final out = <int>[];
+    for (var k = 0; k < 4; k++) {
+      final r = rowOf(i) - k, c = colOf(i) + k;
+      if (r < 0 || c >= cols) break;
+      out.add(r * cols + c);
+    }
+    return out;
+  }
+
   List<int> get emptyCells => [
     for (var i = 0; i < size; i++)
       if (cells[i] == null) i,
@@ -309,7 +363,7 @@ class Run {
   /// itself goes up ×[encoreGrowth] a song (×5.9, ×8.9, ×13.3, …), so a strong altar (about ×6 a
   /// song) keeps up for an encore or so and then can't.
   int baseDue(int i) {
-    var due = firstDue * math.pow(dueGrowth, math.min(i, clearPaydays - 1));
+    var due = firstDue * ease * math.pow(dueGrowth, math.min(i, clearPaydays - 1));
     for (var k = 1; k <= i - (clearPaydays - 1); k++) {
       due *= dueGrowth * math.pow(encoreGrowth, k);
     }
@@ -585,7 +639,7 @@ class Run {
         RandomAdd() => e.lo + rng.nextInt(e.hi - e.lo + 1),
         AddPerDiagonalTag() => diagonals(i).where((n) => cells[n]?.def.tags.contains(e.tag) ?? false).length * e.v,
         AddPerDiagonalFigures() => diagonals(i).where((n) => cells[n] != null).length * e.v,
-        AddIfDiagonalFull() => diagonals(i).length == 4 && diagonals(i).every((n) => cells[n] != null) ? e.v : 0,
+        AddIfDiagonalFull() => bingoLine(i).length == 4 && bingoLine(i).every((n) => cells[n] != null) ? e.v : 0,
         _ => 0,
       };
     }
@@ -747,8 +801,11 @@ class Run {
         }
       }
     }
+    // each one shows where its number came from: the neighbour it copied ([Step.targets])
     for (final i in copycats) {
-      if (gain[i]! != 0) steps.add(Step(StepKind.add, i, amount: gain[i]!));
+      if (gain[i]! == 0) continue;
+      final from = neighbors(i).where((n) => (gain[n] ?? 0) == gain[i]).firstOrNull;
+      steps.add(Step(StepKind.copy, i, amount: gain[i]!, targets: [?from]));
     }
   }
 
@@ -795,12 +852,12 @@ class Run {
   }
 
   // ── payday ──
+  /// What the 「曲の終わりに +N」 goods add when the song ends.
+  int get paydayBonus => figs.fold(0, (a, f) => a + (f.def.effect<OnPaydayGain>()?.v ?? 0));
+
   PaydayResult payday() {
     final before = coins;
-    var bonus = 0;
-    for (final f in figs) {
-      bonus += f.def.effect<OnPaydayGain>()?.v ?? 0;
-    }
+    final bonus = paydayBonus;
     coins += bonus;
     final d = due;
     if (coins < d) return PaydayResult(d, bonus, before, false);

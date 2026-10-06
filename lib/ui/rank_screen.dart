@@ -1,6 +1,7 @@
 // In-game leaderboard screen (data from Game Center / Play Games via rank.dart).
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import 'idol_widgets.dart';
 import 'meta.dart';
 import 'rank.dart';
@@ -67,13 +68,13 @@ class _RankScreenState extends State<RankScreen> {
                           onPressed: () => Navigator.of(context).pop(),
                           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 30),
                         ),
-                        const Expanded(child: Center(child: Ribbon('ランキング', width: 210))),
+                        Expanded(child: Center(child: Ribbon(tr('ランキング'), width: 210))),
                         // as wide as the arrow, so the ribbon sits in the middle
                         const SizedBox(width: 48),
                       ],
                     ),
                   ),
-                  if (Rank.demo) Text('デモ表示', style: outlined(12, C.red, stroke: Colors.white, width: 2)),
+                  if (Rank.demo) Text(tr('デモ表示'), style: outlined(12, C.red, stroke: Colors.white, width: 2)),
                   const SizedBox(height: 4),
                   // which board, then 全国 / フレンド
                   Padding(
@@ -102,7 +103,7 @@ class _RankScreenState extends State<RankScreen> {
     ),
   );
 
-  String _storeName(BuildContext context) => Theme.of(context).platform == TargetPlatform.iOS ? 'Game Center で見る' : 'Play ゲームで見る';
+  String _storeName(BuildContext context) => Theme.of(context).platform == TargetPlatform.iOS ? tr('Game Center で見る') : tr('Play ゲームで見る');
 
   void _pick(Board b) {
     Sfx.play('toggle');
@@ -141,7 +142,7 @@ class _RankScreenState extends State<RankScreen> {
           Flexible(
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(boards[b]!.title, style: on ? outlined(15, Colors.white, stroke: C.ink, width: 3) : const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: C.ink)),
+              child: Text(tr(boards[b]!.title), style: on ? outlined(15, Colors.white, stroke: C.ink, width: 3) : const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: C.ink)),
             ),
           ),
         ],
@@ -179,7 +180,7 @@ class _RankScreenState extends State<RankScreen> {
                   behavior: HitTestBehavior.opaque,
                   onTap: () => _scope(f),
                   child: Center(
-                    child: Text(label, style: _friends == f ? const TextStyle(fontWeight: FontWeight.w900, color: C.ink) : const TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+                    child: Text(tr(label), style: _friends == f ? const TextStyle(fontWeight: FontWeight.w900, color: C.ink) : const TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
                   ),
                 ),
               ),
@@ -192,13 +193,13 @@ class _RankScreenState extends State<RankScreen> {
   Widget _body() {
     if (r.state == RankState.signingIn) return _msg('ログイン中…', null);
     if (!r.ready) {
-      return _msg(r.error ?? 'ランキングを見るにはログインしてね', PopButton('ログインする', onTap: r.signIn));
+      return _msg(r.error ?? 'ランキングを見るにはログインしてね', PopButton(tr('ログインする'), onTap: r.signIn));
     }
     return FutureBuilder<List<RankEntry>>(
       future: _rows,
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) return _msg('よみこみ中…', null);
-        if (snap.hasError) return _msg('ランキングを読めませんでした', PopButton('もう一回', onTap: _reload));
+        if (snap.hasError) return _msg('ランキングを読めませんでした', PopButton(tr('もう一回'), onTap: _reload));
         final rows = snap.data ?? const [];
         if (rows.isEmpty) return _msg(_friends ? 'フレンドのスコアはまだないよ' : 'まだ誰もいない。一番乗りのチャンス！', null);
         final info = boards[_board]!;
@@ -248,11 +249,11 @@ class _RankScreenState extends State<RankScreen> {
               ],
             ),
             const SizedBox(height: 6),
-            Text(e.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: outlined(13, Colors.white, width: 3)),
+            Text(tr(e.name), maxLines: 1, overflow: TextOverflow.ellipsis, style: outlined(13, Colors.white, width: 3)),
             Text.rich(
               TextSpan(children: [
                 TextSpan(text: '${e.score}', style: outlined(e.rank == 1 ? 24 : 19, C.gold, width: 4)),
-                TextSpan(text: ' ${info.unit}', style: outlined(11, Colors.white, width: 2)),
+                TextSpan(text: ' ${tr(info.unit)}', style: outlined(11, Colors.white, width: 2)),
               ]),
             ),
             const SizedBox(height: 4),
@@ -294,7 +295,7 @@ class _RankScreenState extends State<RankScreen> {
   Widget _meTag() => Container(
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
     decoration: BoxDecoration(color: C.pink, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white, width: 2)),
-    child: const Text('あなた', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white)),
+    child: Text(tr('あなた'), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white)),
   );
 
   /// 4th and below: a card each, yours glowing pink.
@@ -322,13 +323,13 @@ class _RankScreenState extends State<RankScreen> {
         Expanded(
           child: Row(
             children: [
-              Flexible(child: Text(e.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: C.ink))),
+              Flexible(child: Text(tr(e.name), overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: C.ink))),
               if (e.me) ...[const SizedBox(width: 4), _meTag()],
             ],
           ),
         ),
         Text('${e.score}', style: outlined(21, C.gold, width: 3)),
-        Text(' ${info.unit}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: C.ink)),
+        Text(' ${tr(info.unit)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: C.ink)),
       ],
     ),
   );
@@ -340,7 +341,7 @@ class _RankScreenState extends State<RankScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Image.asset('assets/ui/boss_0.png', height: 90),
-          Text(t, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: C.ink)),
+          Text(tr(t), textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: C.ink)),
           if (action != null) ...[const SizedBox(height: 10), action],
         ],
       ),

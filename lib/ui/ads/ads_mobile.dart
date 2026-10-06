@@ -23,7 +23,8 @@ class Ads {
   bool _loading = false;
   bool get ready => _ad != null;
 
-  /// Consent (GDPR form where required), then the tracking prompt, then the SDK.
+  /// Consent (Google's form only where the law requires it, e.g. the EEA / UK), then the iOS
+  /// tracking prompt (its reason is NSUserTrackingUsageDescription, in Japanese), then the SDK.
   Future<void> start() async {
     if (!enabled) return;
     try {
@@ -39,11 +40,18 @@ class Ads {
     }
   }
 
+  /// Google's consent form only where a privacy-options entry is legally required (GDPR areas).
+  /// Elsewhere it would just be a generic English pre-prompt for tracking (Google's sample one while
+  /// the test ids are in); iOS's own prompt is enough.
   Future<void> _consent() {
     final done = Completer<void>();
     ConsentInformation.instance.requestConsentInfoUpdate(
       ConsentRequestParameters(),
-      () => ConsentForm.loadAndShowConsentFormIfRequired((_) => done.complete()),
+      () async {
+        final gdpr = await ConsentInformation.instance.getPrivacyOptionsRequirementStatus() == PrivacyOptionsRequirementStatus.required;
+        if (!gdpr) return done.complete();
+        ConsentForm.loadAndShowConsentFormIfRequired((_) => done.complete());
+      },
       (_) => done.complete(),
     );
     return done.future;

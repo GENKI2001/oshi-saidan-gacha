@@ -19,7 +19,7 @@ extension on _GameScreenState {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (g.phase == Phase.capsule) Text(g.omen ? 'な、なんか光ってる…！' : 'タップしてあける！', style: outlined(24, Colors.white)),
+                    if (g.phase == Phase.capsule) Text(tr(g.omen ? 'な、なんか光ってる…！' : 'タップしてあける！'), style: outlined(24, Colors.white)),
                     if (g.phase == Phase.reveal && g.idol != null && g.idolOnPull)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),

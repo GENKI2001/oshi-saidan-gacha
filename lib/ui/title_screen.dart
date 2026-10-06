@@ -5,6 +5,8 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/l10n.dart';
+import '../logic/achievements.dart';
 import '../logic/figures.dart';
 import '../logic/modes.dart';
 import '../logic/run.dart';
@@ -13,6 +15,7 @@ import 'figure_info.dart';
 import 'game_screen.dart';
 import 'howto_screen.dart';
 import 'idol_widgets.dart';
+import 'juice.dart';
 import 'lines.dart';
 import 'meta.dart';
 import 'rank.dart';
@@ -63,18 +66,23 @@ class TitleScreen extends StatefulWidget {
 class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStateMixin, RouteAware {
   // a tap on one of the five in the key visual: she says something, and hearts pop where you tapped
   static const _kvOrder = ['こはる', 'しずく', 'ひなた', 'よる', 'もも']; // left to right in the picture
+  static const _kvSplit = [0.19, 0.37, 0.59, 0.81]; // where one ends and the next begins (fractions of the width)
+  final _kvKey = GlobalKey();
   Offset? _tapAt;
   int _tapToken = 0;
 
-  void _tapIdol(TapUpDetails d, Size box) {
-    final fx = d.localPosition.dx / box.width, fy = d.localPosition.dy / box.height;
-    if (fy < 0.36 || fy > 0.97) return; // the logo and the sky are nobody
-    final who = _kvOrder[(fx * _kvOrder.length).floor().clamp(0, _kvOrder.length - 1)];
-    final l = idolLines[who]!;
-    Voice.say(who, pick([...l.talk, ...l.pull, ...l.sr]), delayMs: 0);
+  /// A tap anywhere over the key visual (the talk area lies on top of it): the one under the finger talks.
+  void _tapIdol(Offset global) {
+    final box = _kvKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+    final at = box.globalToLocal(global);
+    final fx = at.dx / box.size.width, fy = at.dy / box.size.height;
+    if (fx < 0 || fx > 1 || fy < 0.36 || fy > 0.97) return; // the logo, the sky and the edges are nobody
+    final k = _kvSplit.indexWhere((x) => fx < x);
+    _talk(who: _kvOrder[k < 0 ? _kvOrder.length - 1 : k]);
     HapticFeedback.selectionClick();
     setState(() {
-      _tapAt = d.localPosition;
+      _tapAt = at;
       _tapToken++;
     });
   }
@@ -147,8 +155,8 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
   int _token = 0;
   int _taps = 0;
 
-  void _talk() {
-    final who = members[math.Random().nextInt(members.length)];
+  void _talk({String? who}) {
+    who ??= members[math.Random().nextInt(members.length)];
     final l = idolLines[who]!;
     final line = _taps++ == 0 ? pick(l.title) : pick([...l.title, ...l.talk, ...l.pull]);
     Voice.say(who, line, delayMs: 120);
@@ -188,22 +196,21 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                     stops: [0, 0.08, 0.9, 1],
                   ).createShader(r),
                   blendMode: BlendMode.dstIn,
-                  child: LayoutBuilder(
-                    builder: (_, bc) => GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTapUp: (d) => _tapIdol(d, bc.biggest),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned.fill(child: Image.asset('assets/ui/title_bg.jpg', fit: BoxFit.fill)),
-                          if (_tapAt case final at?)
-                            Positioned(
-                              left: at.dx - 70,
-                              top: at.dy - 70,
-                              child: Sparkles(token: _tapToken, size: 140, colors: const [Color(0xFFFF6FA8), Colors.white, Color(0xFFFFE14D)], count: 14),
-                            ),
-                        ],
-                      ),
+                  child: GestureDetector(
+                    key: _kvKey,
+                    behavior: HitTestBehavior.opaque,
+                    onTapUp: (d) => _tapIdol(d.globalPosition),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned.fill(child: Image.asset('assets/ui/title_bg.jpg', fit: BoxFit.fill)),
+                        if (_tapAt case final at?)
+                          Positioned(
+                            left: at.dx - 70,
+                            top: at.dy - 70,
+                            child: Sparkles(token: _tapToken, size: 140, colors: const [Color(0xFFFF6FA8), Colors.white, Color(0xFFFFE14D)], count: 14),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -224,15 +231,15 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                             builder: (_, c) => Transform.translate(offset: Offset(0, -5 * Curves.easeInOut.transform(_c.value)), child: c),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 30),
-                              child: Image.asset('assets/ui/title.png', semanticLabel: '推し祭壇ガチャ'),
+                              child: Image.asset('assets/ui/title.png', semanticLabel: tr('推し祭壇ガチャ')),
                             ),
                           ),
-                          // the idols on the key visual: tap them and someone talks
+                          // the idols on the key visual: tap one and she talks
                           Expanded(
                             child: GestureDetector(
                               key: const ValueKey('idols'),
                               behavior: HitTestBehavior.opaque,
-                              onTap: _talk,
+                              onTapUp: (d) => _tapIdol(d.globalPosition),
                               child: Stack(
                                 children: [
                                   if (_who != null)
@@ -240,7 +247,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                                       left: 14,
                                       right: 14,
                                       bottom: 10,
-                                      child: IgnorePointer(child: IdolToast(who: _who!, line: _line, token: _token)),
+                                      child: IgnorePointer(child: IdolToast(who: _who!, line: tr(_line), token: _token)),
                                     ),
                                   if (_who == null)
                                     Positioned(
@@ -249,7 +256,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                                       child: AnimatedBuilder(
                                         animation: _c,
                                         builder: (_, c) => Opacity(opacity: 0.55 + 0.45 * _c.value, child: c),
-                                        child: Text('タップすると しゃべるよ', style: outlined(13, Colors.white, stroke: C.pink, width: 3)),
+                                        child: Text(tr('タップすると しゃべるよ'), style: outlined(13, Colors.white, stroke: C.pink, width: 3)),
                                       ),
                                     ),
                                 ],
@@ -258,20 +265,23 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                           ),
                           // the very first time it is the tutorial; afterwards it just plays
                           // coloured after the members on the key visual above them: ひなた in the middle …
-                          PopButton(m.tutorialDone ? 'あそぶ' : 'チュートリアル', fontSize: m.tutorialDone ? 32 : 26, color: idolColor['ひなた']!, onTap: _play),
+                          PopButton(tr(m.tutorialDone ? 'あそぶ' : 'チュートリアル'), fontSize: m.tutorialDone ? 32 : 26, color: idolColor['ひなた']!, onTap: _play),
                           const SizedBox(height: 12),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Row(
                               children: [
                                 // … and left to right こはる, しずく, よる, もも, as they stand
-                                for (final (label, color, page) in [
-                                  ('図鑑', idolColor['こはる']!, BookScreen(meta: m) as Widget),
+                                for (final (ja, color, page) in [
+                                  ('コレクション', idolColor['こはる']!, CollectionScreen(meta: m) as Widget),
                                   ('メンバー', idolColor['しずく']!, const MemberScreen()),
                                   ('実績', idolColor['よる']!, AchievementScreen(meta: m) as Widget),
                                   ('ランキング', idolColor['もも']!, RankScreen(meta: m)),
                                 ])
+                                  // widths follow the labels, so 「コレクション」 stays on one line
+                                  if (tr(ja) case final label)
                                   Expanded(
+                                    flex: label.length + 3,
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(horizontal: 3),
                                       child: PopButton(
@@ -308,14 +318,14 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(color: C.ink, width: 3),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.help_rounded, color: C.ink, size: 22),
-                                SizedBox(width: 4),
+                                const Icon(Icons.help_rounded, color: C.ink, size: 22),
+                                const SizedBox(width: 4),
                                 Text(
-                                  'あそびかた',
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: C.ink),
+                                  tr('あそびかた'),
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: C.ink),
                                 ),
                               ],
                             ),
@@ -325,7 +335,23 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                       Positioned(
                         right: 10,
                         top: 10,
-                        child: SoundToggles(m, size: 24, padding: 8, gap: 6),
+                        child: Row(
+                          children: [
+                            // 日本語 ⇄ English (the voices stay Japanese)
+                            RoundIconButton(
+                              Icons.translate_rounded,
+                              key: const ValueKey('lang'),
+                              size: 24,
+                              padding: 8,
+                              onTap: () {
+                                Sfx.play('toggle');
+                                setState(m.toggleLang);
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            SoundToggles(m, size: 24, padding: 8, gap: 6),
+                          ],
+                        ),
                       ),
                     ],
                   ),

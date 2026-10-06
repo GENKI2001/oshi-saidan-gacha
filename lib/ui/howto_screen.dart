@@ -2,6 +2,8 @@
 // screenshot in a polaroid frame and a member (or つむぎ) explaining it in bubbles.
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
+
 import 'idol_widgets.dart';
 import 'lines.dart';
 import 'meta.dart';
@@ -103,7 +105,7 @@ class _HowToScreenState extends State<HowToScreen> {
                           onPressed: () => Navigator.of(context).pop(),
                           icon: const Icon(Icons.close_rounded, color: Colors.white, size: 30),
                         ),
-                        const Expanded(child: Center(child: Ribbon('あそびかた', width: 210))),
+                        Expanded(child: Center(child: Ribbon(tr('あそびかた'), width: 210))),
                         const SizedBox(width: 48),
                       ],
                     ),
@@ -135,7 +137,7 @@ class _HowToScreenState extends State<HowToScreen> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  SizedBox(width: 260, child: PopButton(_i < _pages.length - 1 ? 'つぎへ' : 'とじる', fontSize: 22, onTap: _next)),
+                  SizedBox(width: 260, child: PopButton(tr(_i < _pages.length - 1 ? 'つぎへ' : 'とじる'), fontSize: 22, onTap: _next)),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -159,7 +161,7 @@ class _HowToScreenState extends State<HowToScreen> {
             children: [
               StickerBadge(i + 1),
               const SizedBox(width: 10),
-              Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: StickerText(p.title, size: 24))),
+              Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: StickerText(tr(p.title), size: 24))),
             ],
           ),
           const SizedBox(height: 12),
@@ -198,7 +200,7 @@ class _HowToScreenState extends State<HowToScreen> {
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: idolColor[p.who]!, width: 2.5),
                       ),
-                      child: Text(l, style: const TextStyle(fontSize: 14, height: 1.4, fontWeight: FontWeight.w800, color: C.ink)),
+                      child: Text(tr(l), style: const TextStyle(fontSize: 14, height: 1.4, fontWeight: FontWeight.w800, color: C.ink)),
                     ),
                   ),
                 ],

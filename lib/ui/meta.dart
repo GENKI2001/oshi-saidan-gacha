@@ -3,6 +3,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../l10n/l10n.dart';
 import '../logic/achievements.dart';
 import '../logic/defs.dart';
 import '../logic/figures.dart';
@@ -16,6 +17,7 @@ class Meta extends ChangeNotifier {
   bool sound = true;
   bool music = true;
   bool voice = true; // character voices
+  String? lang; // 'ja' / 'en' once switched on the title; null: follow the device
   String lastMachine = 'pripare';
   int totalEarned = 0; // every coin ever earned (a record)
   // There is no level: goods come into the gacha with the first clear of a machine ([FigureDef.from]),
@@ -170,6 +172,7 @@ class Meta extends ChangeNotifier {
       sound = p.getBool('sound') ?? true;
       music = p.getBool('music') ?? true;
       voice = p.getBool('voice') ?? true;
+      lang = p.getString('lang');
       lastMachine = p.getString('lastMachine') ?? 'pripare';
       totalEarned = p.getInt('totalEarned') ?? 0;
       tutorialDone = p.getBool('tutorialDone') ?? false;
@@ -200,6 +203,7 @@ class Meta extends ChangeNotifier {
     p.setBool('sound', sound);
     p.setBool('music', music);
     p.setBool('voice', voice);
+    if (lang case final l?) p.setString('lang', l);
     p.setString('lastMachine', lastMachine);
     p.setInt('totalEarned', totalEarned);
     p.setBool('tutorialDone', tutorialDone);
@@ -217,6 +221,14 @@ class Meta extends ChangeNotifier {
 
   void toggleMusic() {
     music = !music;
+    _save();
+    notifyListeners();
+  }
+
+  /// Japanese ⇄ English (the text only: the voices stay Japanese).
+  void toggleLang() {
+    en = !en;
+    lang = en ? 'en' : 'ja';
     _save();
     notifyListeners();
   }

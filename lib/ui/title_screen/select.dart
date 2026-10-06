@@ -58,7 +58,7 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
               constraints: const BoxConstraints(maxWidth: 480),
               child: Column(
                 children: [
-                  ScreenHeader('ガチャをえらぶ', trailing: _menuButton()),
+                  ScreenHeader(tr('ガチャをえらぶ'), trailing: _menuButton()),
                   Expanded(
                     child: ListenableBuilder(
                       listenable: Rank.instance,
@@ -75,7 +75,7 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
                   ),
                   const SizedBox(height: 4),
                   PopButton(
-                    open ? 'はじめる！' : 'まだ遊べない',
+                    tr(open ? 'はじめる！' : 'まだ遊べない'),
                     fontSize: 28,
                     sound: 'handle',
                     onTap: open
@@ -116,12 +116,12 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
             mainAxisSize: MainAxisSize.min,
             children: [
               // titled like the other screens (あそびかた etc.): on the ribbon
-              const Ribbon('メニュー', width: 200),
+              Ribbon(tr('メニュー'), width: 200),
               SoundToggles(m),
               const SizedBox(height: 14),
               // one column, the colours running warm to cool down the list (no two alike)
               for (final (label, color, onTap) in <(String, Color, VoidCallback)>[
-                ('図鑑', idolColor['こはる']!, () => open(ctx, BookScreen(meta: m))),
+                ('コレクション', idolColor['こはる']!, () => open(ctx, CollectionScreen(meta: m))),
                 ('ランキング', idolColor['もも']!, () => open(ctx, RankScreen(meta: m))),
                 ('実績', idolColor['よる']!, () => open(ctx, AchievementScreen(meta: m))),
                 ('メンバー', idolColor['しずく']!, () => open(ctx, const MemberScreen())),
@@ -130,7 +130,7 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
               ])
                 Padding(
                   padding: const EdgeInsets.only(bottom: 9),
-                  child: SizedBox(width: 240, child: PopButton(label, fontSize: 18, color: color, onTap: onTap)),
+                  child: SizedBox(width: 240, child: PopButton(tr(label), fontSize: 18, color: color, onTap: onTap)),
                 ),
             ],
           ),
@@ -156,7 +156,8 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
                 children: [
                   // how far this machine has been played: cleared or not, best songs, best spin
                   if (open) _records(m),
-                  SizedBox(height: 200, child: MachineArt(hue: m.hue, locked: !open)),
+                  // the picture gives way on a short screen (iPhone SE, an iPad running the iPhone layout)
+                  Flexible(child: SizedBox(height: 200, child: MachineArt(hue: m.hue, locked: !open))),
                   const SizedBox(height: 6),
                   // the name shows even while locked: something to aim for
                   FittedBox(fit: BoxFit.scaleDown, child: StickerText(m.name, size: 24)),
@@ -165,7 +166,7 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      open ? m.feature : '解放条件：${m.unlockText}',
+                      open ? m.feature : (en ? 'To unlock: ${m.unlockText}' : '解放条件：${m.unlockText}'),
                       style: TextStyle(fontSize: 15, color: open ? C.ink : const Color(0xFFB4501A), fontWeight: FontWeight.w900),
                     ),
                   ),
@@ -175,6 +176,8 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
                 ],
               ),
             ),
+            // cleared: a cute stamp on the card's top-right corner
+            if (widget.meta.clearedOn.contains(m.id)) Positioned(right: -30, top: -38, child: ClearStamp(machine: m.id, size: 92)),
             // "このガチャで全国○位": a medal of its own on the corner (it compares with everyone, unlike the records)
             if (open && Rank.instance.machineRank[m.id] != null)
               Positioned(right: -8, top: 92, child: _RankMedal(Rank.instance.machineRank[m.id]!)), // beside the machine art
@@ -202,7 +205,7 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
       child: Column(
         children: [
           Text(
-            done ? 'クリアで 解放されたグッズ' : 'クリアで 解放されるグッズ',
+            tr(done ? 'クリアで 解放されたグッズ' : 'クリアで 解放されるグッズ'),
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: done ? const Color(0xFFB4501A) : C.ink),
           ),
           const SizedBox(height: 3),
@@ -234,7 +237,6 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
   /// A little strip on top of a card: a medal once cleared, the most songs met and the best spin.
   Widget _records(MachineDef m) {
     final meta = widget.meta;
-    final cleared = meta.clearedOn.contains(m.id);
     final songs = meta.machineSongs[m.id] ?? 0;
     final turn = meta.machineTurn[m.id] ?? 0;
     Widget pill(Widget icon, String text, Color color) => Container(
@@ -251,24 +253,13 @@ class _SelectScreenState extends State<SelectScreen> with RouteAware {
     );
     return Padding(
       padding: const EdgeInsets.only(top: 2, bottom: 8),
-      // クリア on its own row, the two bests side by side under it
-      child: Column(
+      // the two bests side by side, short enough to stay clear of the stamp on the corner
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          cleared
-              ? pill(Image.asset('assets/ui/ui_medal.png', width: 20, height: 20), 'クリア！', const Color(0xFFE6A700))
-              : pill(const Icon(Icons.lock_open_rounded, size: 16, color: Color(0xFFB9A8C8)), 'まだクリアしてない', const Color(0xFFB9A8C8)),
-          const SizedBox(height: 8),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                pill(Image.asset('assets/ui/ui_note.png', width: 18, height: 18), '最高 $songs/${Run.clearPaydays}曲', C.lilac),
-                const SizedBox(width: 6),
-                pill(const HeartIcon(size: 18), '最高 $turn', C.pink),
-              ],
-            ),
-          ),
+          pill(Image.asset('assets/ui/ui_note.png', width: 18, height: 18), en ? '$songs/${Run.clearPaydays} songs' : '$songs/${Run.clearPaydays}曲', C.lilac),
+          const SizedBox(width: 6),
+          pill(const HeartIcon(size: 18), '$turn', C.pink),
         ],
       ),
     );
@@ -332,14 +323,14 @@ class _RankMedalState extends State<_RankMedal> with SingleTickerProviderStateMi
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('全国', style: outlined(12, Colors.white, stroke: C.ink, width: 2.5).copyWith(height: 1)),
+                        Text(tr('全国'), style: outlined(12, Colors.white, stroke: C.ink, width: 2.5).copyWith(height: 1)),
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text.rich(
                             TextSpan(
                               children: [
-                                TextSpan(text: '$r', style: outlined(r < 100 ? 28 : 22, Colors.white, stroke: C.ink, width: 4)),
-                                TextSpan(text: '位', style: outlined(13, Colors.white, stroke: C.ink, width: 3)),
+                                TextSpan(text: en ? '#$r' : '$r', style: outlined(r < 100 ? 28 : 22, Colors.white, stroke: C.ink, width: 4)),
+                                if (!en) TextSpan(text: '位', style: outlined(13, Colors.white, stroke: C.ink, width: 3)),
                               ],
                             ),
                             textHeightBehavior: const TextHeightBehavior(applyHeightToFirstAscent: false, applyHeightToLastDescent: false),

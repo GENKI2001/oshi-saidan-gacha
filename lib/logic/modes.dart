@@ -2,6 +2,7 @@
 // in [Rules]; run.dart reads Rules and never knows which machine produced
 // them, so tool/sim.dart can balance any of them.
 
+import '../l10n/l10n.dart';
 import 'figures.dart';
 
 /// The altar every live starts with (and the size of its frame on screen).
@@ -62,11 +63,14 @@ class Rules {
 
 enum UnlockKind { none, machine, seen, bestTurn, paydays, clears }
 
-/// How hard a machine is, 1..5 (from tool/sim.dart's clear rates).
+/// How hard a machine is, 1..5 (from tool/sim.dart's clear rates). Japanese: show it through tr().
 const difficultyLabel = ['', 'かんたん', 'ふつう', 'むずかしい', 'げきむず', 'おに'];
 
 class MachineDef {
-  final String id, name, blurb;
+  final String id;
+  final String nameJa, blurbJa; // the Japanese (keys for the English)
+  String get name => tr(nameJa);
+  String get blurb => tr(blurbJa);
   final double hue; // tint of the machine art, degrees
   final int difficulty; // 1..5
   final String bgm; // assets/bgm/bgm_<bgm>.m4a
@@ -74,34 +78,47 @@ class MachineDef {
   final int unlockN;
   final String? unlockId; // UnlockKind.machine: the machine to clear
   final void Function(Rules r) apply;
-  final List<String> perks; // shown on the select screen
+  final List<String> perksJa; // shown on the select screen
+  List<String> get perks => [for (final p in perksJa) tr(p)];
   const MachineDef({
     required this.id,
-    required this.name,
-    required this.blurb,
+    required String name,
+    required String blurb,
     required this.hue,
     required this.difficulty,
     required this.apply,
-    required this.perks,
+    required List<String> perks,
     String? bgm,
     this.unlock = UnlockKind.none,
     this.unlockN = 0,
     this.unlockId,
-  }) : bgm = bgm ?? id;
+  }) : nameJa = name,
+       blurbJa = blurb,
+       perksJa = perks,
+       bgm = bgm ?? id;
 
-  String get difficultyText => difficultyLabel[difficulty];
+  String get difficultyText => tr(difficultyLabel[difficulty]);
 
   /// The one thing that sets it apart (the card's subtitle).
-  String get feature => perks.first;
+  String get feature => tr(perksJa.first);
 
-  String get unlockText => switch (unlock) {
-    UnlockKind.none => '',
-    UnlockKind.machine => '${machineById[unlockId]!.name}で クリアする',
-    UnlockKind.seen => '図鑑を$unlockN種あつめる',
-    UnlockKind.bestTurn => '1回転でハートを$unlockN以上集める',
-    UnlockKind.paydays => '1回のライブで$unlockN曲成功する',
-    UnlockKind.clears => 'どのガチャでもいいので $unlockN回 クリアする',
-  };
+  String get unlockText => en
+      ? switch (unlock) {
+          UnlockKind.none => '',
+          UnlockKind.machine => 'Clear ${machineById[unlockId]!.name}',
+          UnlockKind.seen => 'Collect $unlockN kinds of goods',
+          UnlockKind.bestTurn => 'Get $unlockN+ Hearts in one spin',
+          UnlockKind.paydays => 'Clear $unlockN songs in one live',
+          UnlockKind.clears => 'Clear any gacha $unlockN times',
+        }
+      : switch (unlock) {
+          UnlockKind.none => '',
+          UnlockKind.machine => '${machineById[unlockId]!.name}で クリアする',
+          UnlockKind.seen => 'グッズを$unlockN種あつめる',
+          UnlockKind.bestTurn => '1回転でハートを$unlockN以上集める',
+          UnlockKind.paydays => '1回のライブで$unlockN曲成功する',
+          UnlockKind.clears => 'どのガチャでもいいので $unlockN回 クリアする',
+        };
 }
 
 final machines = <MachineDef>[

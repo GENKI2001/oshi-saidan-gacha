@@ -4,10 +4,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import 'sfx.dart';
 import 'theme.dart';
 
-/// Chunky candy button.
+/// Chunky candy button. Its label is shown through [tr] (a fixed Japanese label turns English by itself),
+/// and in English it shrinks to fit rather than wrapping or overflowing.
 class PopButton extends StatefulWidget {
   final String label;
   final VoidCallback? onTap;
@@ -73,20 +75,25 @@ class _PopButtonState extends State<PopButton> {
               stops: const [0, 0.55, 1],
             ),
           ),
-          child: widget.trailing == null
-              ? Text(widget.label, textAlign: TextAlign.center, style: outlined(widget.fontSize, Colors.white, stroke: Color.lerp(col, C.ink, 0.6)!, width: 3))
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(widget.label, style: outlined(widget.fontSize, Colors.white, stroke: Color.lerp(col, C.ink, 0.6)!, width: 3)),
-                    widget.trailing!,
-                  ],
-                ),
+          child: _fit(
+            widget.trailing == null
+                ? Text(tr(widget.label), textAlign: TextAlign.center, style: outlined(widget.fontSize, Colors.white, stroke: Color.lerp(col, C.ink, 0.6)!, width: 3))
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(tr(widget.label), style: outlined(widget.fontSize, Colors.white, stroke: Color.lerp(col, C.ink, 0.6)!, width: 3)),
+                      widget.trailing!,
+                    ],
+                  ),
+          ),
         ),
       ),
     );
   }
+
+  /// English runs longer: one line, scaled down to the room there is (Japanese lays out as before).
+  Widget _fit(Widget w) => en ? FittedBox(fit: BoxFit.scaleDown, child: w) : w;
 }
 
 /// A soft pink card: plum outline, a pink lace rim inside, tiny hearts in the
@@ -158,7 +165,7 @@ class Ribbon extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           Image.asset('assets/ui/ui_ribbon.png', fit: BoxFit.fill),
-          CustomPaint(painter: _ArcTextPainter(text, style)),
+          CustomPaint(painter: _ArcTextPainter(tr(text), style)),
         ],
       ),
     );

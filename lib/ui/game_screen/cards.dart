@@ -66,7 +66,7 @@ extension on _GameScreenState {
             children: [
               Bounce(token: g.bossToken, amount: 0.1, child: Image.asset('assets/ui/boss_${g.bossMood}.png', height: 170)),
               Text(
-                g.bossLine,
+                tr(g.bossLine),
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16, color: C.ink, fontWeight: FontWeight.w800, height: 1.4),
               ),
@@ -79,6 +79,21 @@ extension on _GameScreenState {
     ),
   );
 
+  /// The 「曲の終わりに +N」 goods' share, counted in with the hearts.
+  Widget _bonusNote(int bonus) => bonus <= 0
+      ? const SizedBox()
+      : Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(tr('曲の終わりのおまけ '), style: outlined(14, C.ink, stroke: Colors.white, width: 3)),
+              const HeartIcon(size: 18),
+              Text('+$bonus', style: heartNumber(18)),
+            ],
+          ),
+        );
+
   Widget _payday() {
     final r = g.run;
     final song = r.paydaysPaid + 1;
@@ -86,10 +101,11 @@ extension on _GameScreenState {
     // short of the quota: つむぎ's card with the gauge; met: the curtain call (below)
     if (who == null) {
       return _bossCard(
-        ribbon: '♪ $song曲目 おわり！',
+        ribbon: en ? '♪ Song $song is over!' : '♪ $song曲目 おわり！',
         body: Column(
           children: [
-            SizedBox(width: 260, child: QuotaFill(key: ValueKey('quota-${r.paydaysPaid}'), hearts: r.coins, quota: r.due)),
+            _bonusNote(r.paydayBonus),
+            SizedBox(width: 260, child: QuotaFill(key: ValueKey('quota-${r.paydaysPaid}'), hearts: r.coins + r.paydayBonus, quota: r.due)),
             const SizedBox(height: 10),
             _wide(PopButton('ハートを届ける！', onTap: g.pay, fontSize: 22)),
           ],
@@ -112,7 +128,7 @@ extension on _GameScreenState {
             children: [
               Sparkles(token: g.burstToken, size: 420, colors: [C.gold, C.pink, col, Colors.white], count: 50),
               Panel(
-                ribbon: '♪ $song曲目 大成功！',
+                ribbon: en ? '♪ Song $song: a hit!' : '♪ $song曲目 大成功！',
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -128,13 +144,14 @@ extension on _GameScreenState {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(who, style: outlined(14, col, stroke: Colors.white, width: 3)),
-                          Text(g.songLine, style: const TextStyle(fontSize: 15, height: 1.35, color: C.ink, fontWeight: FontWeight.w800)),
+                          Text(tr(who), style: outlined(14, col, stroke: Colors.white, width: 3)),
+                          Text(tr(g.songLine), style: const TextStyle(fontSize: 15, height: 1.35, color: C.ink, fontWeight: FontWeight.w800)),
                         ],
                       ),
                     ),
                     const SizedBox(height: 12),
-                    SizedBox(width: 260, child: QuotaFill(key: ValueKey('quota-${r.paydaysPaid}'), hearts: r.coins, quota: r.due)),
+                    _bonusNote(r.paydayBonus),
+                    SizedBox(width: 260, child: QuotaFill(key: ValueKey('quota-${r.paydaysPaid}'), hearts: r.coins + r.paydayBonus, quota: r.due)),
                     const SizedBox(height: 10),
                     _wide(PopButton('ハートを届ける！', onTap: g.pay, fontSize: 22)),
                   ],
@@ -154,7 +171,7 @@ extension on _GameScreenState {
       ribbon: 'ノルマ未達成…',
       body: Column(
         children: [
-          Text('ハートが あと $short 足りない…', style: outlined(22, C.red, stroke: Colors.white)),
+          FittedBox(fit: BoxFit.scaleDown, child: Text(en ? '$short Hearts short...' : 'ハートが あと $short 足りない…', style: outlined(22, C.red, stroke: Colors.white))),
           const SizedBox(height: 12),
           if (kAdsEnabled && g.run.canPostpone) _wide(PopButton('▶ 広告を見て延長！', onTap: g.watchAdToPostpone, color: C.mint, fontSize: 17)),
           const SizedBox(height: 10),
@@ -194,7 +211,7 @@ extension on _GameScreenState {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (r.shopBuys == 0) Text('最初の1品は タダ！', style: outlined(16, C.pink, stroke: Colors.white, width: 3)),
+              if (r.shopBuys == 0) Text(tr('最初の1品は タダ！'), style: outlined(16, C.pink, stroke: Colors.white, width: 3)),
               const SizedBox(height: 10),
               Column(children: [for (final o in r.shop) _offer(o)]),
               const SizedBox(height: 8),
@@ -281,14 +298,17 @@ extension on _GameScreenState {
     Widget wide(Widget b) => SizedBox(width: double.infinity, child: b);
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        padding: const EdgeInsets.fromLTRB(0, 34, 0, 20),
         child: SizedBox(
           width: _shelfW,
-          child: Panel(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+          Panel(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(r.cleared ? 'ライブ成功！' : 'ライブ終了', style: outlined(36, C.pink, stroke: Colors.white, width: 5)),
+                FittedBox(fit: BoxFit.scaleDown, child: Text(tr(r.cleared ? 'ライブ成功！' : 'ライブ終了'), style: outlined(36, C.pink, stroke: Colors.white, width: 5))),
                 // つむぎ sums the run up
                 wide(
                   Row(
@@ -304,7 +324,7 @@ extension on _GameScreenState {
                             border: Border.all(color: C.ink, width: 2),
                           ),
                           child: Text(
-                            g.overLine,
+                            tr(g.overLine),
                             style: const TextStyle(fontSize: 13, height: 1.35, color: C.ink, fontWeight: FontWeight.w800),
                           ),
                         ),
@@ -317,24 +337,24 @@ extension on _GameScreenState {
                 wide(
                   Row(
                     children: [
-                      _stat('成功した曲', '${r.paydaysPaid}/${Run.clearPaydays}'),
-                      _stat('一回の最高', '${r.bestTurn}'),
-                      _stat('図鑑', '${widget.meta.seen.length}/${figures.length}'),
+                      _stat(tr('成功した曲'), '${r.paydaysPaid}/${Run.clearPaydays}'),
+                      _stat(tr('一回の最高'), '${r.bestTurn}'),
+                      _stat(tr('グッズ'), '${widget.meta.seen.length}/${figures.length}'),
                     ],
                   ),
                 ),
-                if (g.newRecord) Text('自己ベスト更新！', style: outlined(20, C.gold)),
+                if (g.newRecord) Text(tr('自己ベスト更新！'), style: outlined(20, C.pink, stroke: Colors.white, width: 4)),
                 if (g.turnRank != null)
                   TweenAnimationBuilder<double>(
                     tween: Tween(begin: 0, end: 1),
                     duration: const Duration(milliseconds: 700),
                     curve: Curves.elasticOut,
                     builder: (_, t, c) => Transform.scale(scale: t, child: c),
-                    child: Text('最高ハート 全国 ${g.turnRank} 位！', style: outlined(24, C.pink, stroke: Colors.white, width: 4)),
+                    child: FittedBox(fit: BoxFit.scaleDown, child: Text(en ? 'Best spin: #${g.turnRank} worldwide!' : '最高ハート 全国 ${g.turnRank} 位！', style: outlined(24, C.pink, stroke: Colors.white, width: 4))),
                   ),
                 const SizedBox(height: 10),
                 Text(
-                  'このライブで集めたハート ${r.earned}',
+                  en ? 'Hearts this live: ${r.earned}' : 'このライブで集めたハート ${r.earned}',
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: C.ink),
                 ),
                 const SizedBox(height: 14),
@@ -359,6 +379,10 @@ extension on _GameScreenState {
               ],
             ),
           ),
+              // 成功 / 失敗 stamped on the top-right corner
+              Positioned(right: -10, top: -26, child: ResultStamp(success: r.cleared)),
+            ],
+          ),
         ),
       ),
     );
@@ -377,7 +401,7 @@ extension on _GameScreenState {
         ),
         FittedBox(
           fit: BoxFit.scaleDown,
-          child: Text(v, style: outlined(22, C.gold, width: 3)),
+          child: Text(v, style: glowNumber(24, const Color(0xFFF0A000), width: 3)),
         ),
       ],
     ),

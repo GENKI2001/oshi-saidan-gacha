@@ -1,0 +1,145 @@
+// English for the fixed Japanese strings (see l10n.dart for the glossary and the rules).
+// The title, the gacha select, the collection, achievements, how to play, ranking and members.
+const enUiMenus = <String, String>{
+  // ── title ──
+  '推し祭壇ガチャ': 'Oshi Altar Gacha',
+  'タップすると しゃべるよ': 'Tap us to chat!',
+  'あそぶ': 'Play',
+  'チュートリアル': 'Tutorial',
+  'コレクション': 'Collection',
+  'メンバー': 'Members',
+  '実績': 'Achievements',
+  'ランキング': 'Ranking',
+  'あそびかた': 'How to play',
+
+  // ── gacha select ──
+  'ガチャをえらぶ': 'Pick a gacha',
+  'はじめる！': 'Start!',
+  'まだ遊べない': 'Locked',
+  'メニュー': 'Menu',
+  'とじる': 'Close',
+  'クリアで 解放されたグッズ': 'Goods unlocked by clearing it',
+  'クリアで 解放されるグッズ': 'Goods a clear unlocks',
+  '全国': 'World',
+
+  // ── collection ──
+  'グッズ': 'Goods',
+  '写真': 'Photos',
+  '♪ 再生中': '♪ Playing',
+  'タイトル・ぷりパレガチャ': 'Title / PriPale Gacha',
+  'ガチャえらび': 'Gacha select',
+  '曲クリア': 'Song clear',
+  '1曲 ノルマを達成する': "Meet a song's quota",
+  'リザルト': 'Results',
+  'ライブを1回 終える': 'Finish a live',
+  'キービジュアル': 'Key visual',
+  'ライブ大成功': 'Live success!',
+  'ライブを成功させる': 'Clear a live',
+  '笑顔': 'smile',
+  'だいすき': 'love you',
+  'てれ顔': 'blushing',
+  'ひなた': 'Hinata',
+  'しずく': 'Shizuku',
+  'こはる': 'Koharu',
+  'よる': 'Yoru',
+  'もも': 'Momo',
+  'つむぎ': 'Tsumugi',
+  '転売ヤー カイシメ': 'Scalper Kaishime',
+  '転売ヤーから 祭壇をまもる': 'Guard the altar from the scalper',
+
+  // ── achievements ──
+  '実績を達成すると、メンバーの「シチュエーションボイス」が聞けるようになるよ。あなただけの特別なひとときを！':
+      "Earn achievements to unlock the members' Situation Voices. A special moment just for you!",
+  '聞く': 'Listen',
+  'もう一度はじめから': 'Play from the start',
+  '▶ 聞く': '▶ Listen',
+
+  // ── how to play ──
+  'ガチャを回す': 'Spin the gacha',
+  '「回す！」をタップすると カプセルが出てくるよ！': 'Tap "Spin!" and out comes a capsule!',
+  'カプセルをタップして開けてね。光っていたら ★3や★4の予感！': "Tap the capsule to open it. If it's glowing, it might be a ★3 or ★4!",
+  '祭壇に置く': 'Place on altar',
+  '「祭壇に置く」で 好きなマスに置こ〜。同じグッズの上に重ねると ×2、×3…と強化されて、ピカピカ光るマスが目印だよ':
+      'Use "Place on altar" and pick any square~ Put it on the same goods to stack it: ×2, ×3... The sparkling squares are where it stacks!',
+  '気に入らなかったら「もう一回ひく」。1曲ごとに 回数がもどるよ': "Don't like it? Use \"Re-pull\". Your re-pulls come back every song.",
+  'ハートを集める': 'Collect Hearts',
+  'グッズは 回すたびにハートを集めます。マスの右下が そのグッズの分です': 'Every spin, your goods earn Hearts. The number at the bottom right of a square is what that goods made.',
+  '「×2」「+2」は ほかのグッズを強くした印。同じ推しを となりに並べると、ぐんと増えます': '"×2" and "+2" mean it powered up other goods. Line up the same oshi side by side and the Hearts shoot up.',
+  '1曲ごとのノルマ': 'The quota for each song',
+  '5回まわすと 1曲おわり。ノルマのハートが足りないと、ライブはそこでおしまいです': "5 spins make a song. If you're short of the quota, the live ends there.",
+  'ノルマを達成しながら 4曲こなしたら ライブ大成功！ そのあとは アンコールです': 'Meet the quota for 4 songs and the live is a success! After that comes the encore.',
+  'つむぎの物販ブース': "Tsumugi's merch booth",
+  'ノルマを達成したら 物販ブースです。最初の1品は タダ！': 'Meet the quota and the merch booth opens. Your first item is FREE!',
+  'グッズ・運アップ・推しの出現率UP・祭壇を広げる などが並びます。ときどき金色の「レア商品」も。2品目からは 値上がりしますよ':
+      "There are goods, luck, oshi rate-ups, a bigger altar and more. Sometimes a golden \"rare item\" too. From the second item on, prices go up.",
+  '転売ヤーの妨害': 'Scalper trouble',
+  'ときどき 転売ヤーのカイシメが 祭壇をねらってくるよ': 'Sometimes Kaishime the scalper comes after your altar!',
+  '「まもる！」でカウントダウン、そのあと「まもれ！」を連打して。まもれたら ハート2倍やグッズのごほうび、負けたら グッズやハートを持っていかれちゃう':
+      'Tap "Guard!" for the countdown, then mash "Push back!". Win and you get double Hearts or goods. Lose and he runs off with goods or Hearts.',
+  'ガチャの解放と新グッズ': 'New gachas and goods',
+  'ガチャを はじめてクリアすると、そのガチャのグッズが 新しくガチャに入るよ。クリアで 次のガチャも 解放されるの':
+      "Clear a gacha for the first time and its goods join the gacha. Clearing also unlocks the next gacha.",
+  'ガチャには 難易度（かんたん〜おに）があるの。ガチャごとに クリアと最高記録も 残るんだよ！': 'Each gacha has a difficulty (Easy to Brutal), and keeps your clears and best records!',
+  'つぎへ': 'Next',
+
+  // ── ranking ──
+  'デモ表示': 'Demo',
+  '1回の最高ハート': 'Best spin',
+  '成功した曲の数': 'Songs cleared',
+  'ハート': 'Hearts',
+  '曲': 'songs',
+  'フレンド': 'Friends',
+  'ログインする': 'Sign in',
+  'もう一回': 'Retry',
+  'あなた': 'You',
+  'Game Center で見る': 'Open in Game Center',
+  'Play ゲームで見る': 'Open in Play Games',
+  'ログイン中…': 'Signing in...',
+  'ランキングを見るにはログインしてね': 'Sign in to see the rankings',
+  'よみこみ中…': 'Loading...',
+  'ランキングを読めませんでした': "Couldn't load the rankings",
+  'フレンドのスコアはまだないよ': 'No friend scores yet',
+  'まだ誰もいない。一番乗りのチャンス！': 'Nobody here yet. Be the first!',
+  'ブラウザ版ではランキングは使えません': "Rankings aren't available in the browser version",
+  'ログインできませんでした': "Couldn't sign in",
+  'このアプリはまだ Game Center に登録されていません': "This app isn't set up in Game Center yet",
+  'Game Center にログインしていません\n設定アプリ →「Game Center」でログインしてね': 'Not signed in to Game Center.\nSign in from Settings → Game Center.',
+  'この環境ではランキングを使えません': "Rankings aren't available here",
+  'ランキングに接続できませんでした': "Couldn't connect to the rankings",
+  'デモ たぬ吉': 'Demo Tanukichi',
+  'デモ こばん': 'Demo Koban',
+  'デモ きつね': 'Demo Kitsune',
+  'デモ わたあめ': 'Demo Cotton Candy',
+  'デモ ラムネ': 'Demo Ramune',
+  'デモ 太鼓': 'Demo Taiko',
+  'デモ 金魚': 'Demo Goldfish',
+  'デモ だるま': 'Demo Daruma',
+
+  // ── members ──
+  'ぷりずむ☆パレット': 'Prism☆Palette',
+  ' タップで ボイス': ' Tap for voice',
+  '天音 ひなた': 'Hinata Amane',
+  '水瀬 しずく': 'Shizuku Minase',
+  '春野 こはる': 'Koharu Haruno',
+  '夜宮 よる': 'Yoru Yomiya',
+  '桃瀬 もも': 'Momo Momose',
+  '若葉 つむぎ': 'Tsumugi Wakaba',
+  'センター・担当カラー 赤': 'Center · Color: red',
+  '歌姫・担当カラー 青': 'Diva · Color: blue',
+  'ふわふわ担当・担当カラー 黄': 'The fluffy one · Color: yellow',
+  '小悪魔担当・担当カラー 紫': 'The little devil · Color: purple',
+  'あまえんぼ担当・担当カラー ピンク': 'The sweet one · Color: pink',
+  'マネージャー・ノルマ担当': 'Manager · In charge of quotas',
+  'いつでも全力、笑顔がとりえの20歳。ステージに立つと だれより輝く。好きな食べ物は からあげ。':
+      'Always all-in, and her smile is her best feature. 20. On stage she shines brighter than anyone. Favorite food: fried chicken.',
+  'クールで ていねいな20歳。透きとおる歌声が自慢。実は ぬいぐるみ集めが趣味。':
+      'Cool and polite, 20. Proud of her crystal-clear voice. Secretly collects plushies.',
+  '明るく元気な ふわふわ笑顔の20歳。お菓子作りが得意で、楽屋では みんなに手作りおやつを配っている。':
+      'Bright and cheerful with a fluffy smile, 20. Great at baking, she hands out homemade snacks backstage.',
+  'からかうのが大好きな20歳。ゴシックな衣装がトレードマーク。じつは さみしがり。':
+      'Loves to tease, 20. Her gothic outfits are her trademark. Actually gets lonely easily.',
+  'あざとさ全開の20歳。ネコ耳カチューシャは ファンからの贈り物。':
+      'Cute on purpose, 20. Her cat-ear headband was a gift from a fan.',
+  'ぷりパレを支える20歳の新人マネージャー。しっかり者で ハートのノルマにはきびしい。じつは ぷりパレの大ファン…なのは ひみつ。':
+      "PriPale's rookie manager, 20. Reliable, and strict about the Heart quota. That she's secretly PriPale's biggest fan is... a secret.",
+};

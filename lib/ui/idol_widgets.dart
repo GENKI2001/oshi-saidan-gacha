@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../logic/defs.dart';
 import 'lines.dart';
 import 'widgets.dart';
@@ -112,8 +113,8 @@ class IdolToast extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(who, style: outlined(13, col, stroke: Colors.white, width: 2.5)),
-                Text(line, style: const TextStyle(fontSize: 14, height: 1.3, color: C.ink, fontWeight: FontWeight.w800)),
+                Text(tr(who), style: outlined(13, col, stroke: Colors.white, width: 2.5)),
+                Text(tr(line), style: const TextStyle(fontSize: 14, height: 1.3, color: C.ink, fontWeight: FontWeight.w800)),
               ],
             ),
           ),
@@ -203,7 +204,7 @@ class CutIn extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             RarityStars(ssr ? Rarity.legend : Rarity.epic, size: ssr ? 50 : 44),
-                            Text(who, style: outlined(34, Colors.white, stroke: col, width: 6)),
+                            Text(tr(who), style: outlined(34, Colors.white, stroke: col, width: 6)),
                           ],
                         ),
                       ),
@@ -225,7 +226,7 @@ class CutIn extends StatelessWidget {
                           boxShadow: [BoxShadow(color: col.withValues(alpha: 0.6), blurRadius: 14)],
                         ),
                         child: Text(
-                          line,
+                          tr(line),
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontSize: 18, height: 1.35, color: C.ink, fontWeight: FontWeight.w900),
                         ),
@@ -235,7 +236,7 @@ class CutIn extends StatelessWidget {
                   Positioned(
                     right: 12,
                     bottom: h * 0.03,
-                    child: Opacity(opacity: ((ms - 900) / 300).clamp(0, 0.8), child: Text('タップでスキップ', style: outlined(12, Colors.white, width: 2))),
+                    child: Opacity(opacity: ((ms - 900) / 300).clamp(0, 0.8), child: Text(tr('タップでスキップ'), style: outlined(12, Colors.white, width: 2))),
                   ),
                 ],
               );
@@ -308,7 +309,7 @@ class SongMeter extends StatelessWidget {
             children: [
               Image.asset('assets/ui/ui_note.png', width: 24, height: 24),
               const SizedBox(width: 3),
-              Text(encore ? 'アンコール' : '$song曲目', style: outlined(15, C.pink, stroke: Colors.white, width: 3)),
+              Text(encore ? tr('アンコール') : (en ? 'Song $song' : '$song曲目'), style: outlined(15, C.pink, stroke: Colors.white, width: 3)),
               if (!encore) Text(' / $songs', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: C.ink)),
               const Spacer(),
               // one note per spin left in this song
@@ -367,7 +368,7 @@ class SongMeter extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 12),
                     child: FittedBox(
-                      child: Text(done ? 'ノルマ達成！' : '$hearts / $quota', style: outlined(13, Colors.white, stroke: C.ink, width: 3)),
+                      child: Text(done ? tr('ノルマ達成！') : '$hearts / $quota', style: outlined(13, Colors.white, stroke: C.ink, width: 3)),
                     ),
                   ),
                 ),
@@ -397,7 +398,7 @@ class TagChip extends StatelessWidget {
         border: Border.all(color: C.ink, width: 2),
       ),
       child: Text(
-        tag,
+        tr(tag),
         style: col != null ? outlined(size, Colors.white, stroke: Color.lerp(col, C.ink, 0.55)!, width: 2.5) : TextStyle(fontSize: size, fontWeight: FontWeight.w900, color: C.ink),
       ),
     );

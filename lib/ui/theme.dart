@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../logic/defs.dart';
 
 class C {
@@ -59,6 +60,7 @@ class StickerText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = TextStyle(fontSize: size, fontWeight: FontWeight.w900, height: 1.2);
+    final text = tr(this.text);
     Text ring(Color c, double w, {Shadow? drop}) => Text(text, style: base.copyWith(
       foreground: Paint()
         ..style = PaintingStyle.stroke

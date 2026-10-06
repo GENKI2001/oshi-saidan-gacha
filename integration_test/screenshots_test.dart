@@ -4,6 +4,7 @@
 //   tool/screenshots.sh <simulator id> <out dir>
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oshi_saidan/l10n/l10n.dart';
 import 'package:oshi_saidan/logic/figures.dart';
 import 'package:oshi_saidan/main.dart';
 import 'package:oshi_saidan/ui/controller.dart';
@@ -35,6 +36,7 @@ void main() {
   testWidgets('store screenshots', (t) async {
     SharedPreferences.setMockInitialValues({});
     Sfx.enabled = false;
+    en = const String.fromEnvironment('LANG') == 'en'; // tool/screenshots.sh … en
     final meta = Meta();
     await meta.load();
     meta.tutorialDone = true;
@@ -47,9 +49,9 @@ void main() {
     await settle(t, 1500);
     await shot(t, '1_title');
 
-    await t.tap(find.text('あそぶ'));
+    await t.tap(find.text(tr('あそぶ')));
     await settle(t, 800);
-    await t.tap(find.text('はじめる！'));
+    await t.tap(find.text(tr('はじめる！')));
     await settle(t, 1200);
     final g = (t.state(find.byType(GameScreen)) as dynamic).g as GameController;
     await settle(t, 1500);
@@ -152,24 +154,26 @@ void main() {
     await shot(t, 'h_result');
     Navigator.of(t.element(find.byType(GameScreen))).pop();
     await settle(t, 1200);
-    await t.tap(find.text('メンバー'));
+    await t.tap(find.text(tr('メンバー')));
     await settle(t, 1200);
+    await t.scrollUntilVisible(find.byKey(const ValueKey('member-よる')), 150, scrollable: find.byType(Scrollable).first);
+    await settle(t, 300);
     await t.tap(find.byKey(const ValueKey('member-よる')));
     await settle(t, 1200);
     await shot(t, '9_members');
-    await t.tap(find.byIcon(Icons.arrow_back_rounded).first);
+    t.state<NavigatorState>(find.byType(Navigator)).pop(); // its back button has scrolled away
     await settle(t, 1000);
-    await t.tap(find.textContaining('図鑑'));
+    await t.tap(find.text(tr('コレクション')));
     await settle(t, 1200);
     await shot(t, '10_book');
     await t.tap(find.byIcon(Icons.arrow_back_rounded).first);
     await settle(t, 1000);
-    await t.tap(find.text('実績'));
+    await t.tap(find.text(tr('実績')));
     await settle(t, 1200);
     await shot(t, '11_achievements');
     await t.tap(find.byIcon(Icons.arrow_back_rounded).first);
     await settle(t, 1000);
-    await t.tap(find.text('あそぶ'));
+    await t.tap(find.text(tr('あそぶ')));
     await settle(t, 1500);
     await shot(t, 'h_select');
     // let the last voice line go quiet before the tree is torn down

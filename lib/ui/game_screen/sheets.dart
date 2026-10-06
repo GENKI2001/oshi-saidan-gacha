@@ -26,7 +26,7 @@ extension on _GameScreenState {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                FittedBox(fit: BoxFit.scaleDown, child: StickerText('${g.machine.name}の中身', size: 22)),
+                FittedBox(fit: BoxFit.scaleDown, child: StickerText(en ? "What's in ${g.machine.name}" : '${g.machine.name}の中身', size: 22)),
                 const SizedBox(height: 6),
                 // each rarity's share in all
                 Wrap(
@@ -54,9 +54,9 @@ extension on _GameScreenState {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       [
-                        if (luck > 0) '運 +$luck% こみ',
-                        if (r.rareSong) 'この曲は ★2以上だけ',
-                        if (r.idolSong != null) 'この曲は「${r.idolSong}」のグッズだけ',
+                        if (luck > 0) en ? 'incl. luck +$luck%' : '運 +$luck% こみ',
+                        if (r.rareSong) tr('この曲は ★2以上だけ'),
+                        if (r.idolSong != null) en ? 'This song: only ${tr(r.idolSong!)} goods' : 'この曲は「${r.idolSong}」のグッズだけ',
                       ].join('　'),
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.woodDark),
@@ -104,7 +104,7 @@ extension on _GameScreenState {
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                      'ほかのガチャを クリアすると あと $later 種 入るよ',
+                      en ? 'Clear other gachas to add $later more' : 'ほかのガチャを クリアすると あと $later 種 入るよ',
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: C.woodDark),
                     ),
                   ),
@@ -190,7 +190,8 @@ extension on _GameScreenState {
         children: [
           d == null ? const SizedBox(width: 64, height: 64, child: Icon(Icons.crop_square_rounded, size: 48, color: C.woodDark)) : FigureArt(d, size: 64),
           Text(
-            d?.name ?? '空きマス',
+            d?.name ?? tr('空きマス'),
+            textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: C.ink),
           ),
           // rarity and types, so you can see what the other figures will make of it
@@ -215,7 +216,8 @@ extension on _GameScreenState {
             ),
           if (note != null)
             Text(
-              note,
+              tr(note),
+              textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: C.red),
             ),
         ],
@@ -230,7 +232,7 @@ extension on _GameScreenState {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(title, style: outlined(20, color, stroke: C.ink, width: 3)),
+              FittedBox(fit: BoxFit.scaleDown, child: Text(tr(title), style: outlined(20, color, stroke: C.ink, width: 3))),
               const SizedBox(height: 10),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,11 +294,11 @@ extension on _GameScreenState {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    tr(title),
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: C.ink),
                   ),
                   Text(
-                    sub,
+                    tr(sub),
                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: C.woodDark),
                   ),
                 ],
@@ -316,15 +318,15 @@ extension on _GameScreenState {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('広告を見て どれかひとつ', style: outlined(22, C.mint, stroke: C.ink, width: 3)),
-              const Text(
-                '1曲ごとに1回まで',
+              FittedBox(fit: BoxFit.scaleDown, child: Text(tr('広告を見て どれかひとつ'), style: outlined(22, C.mint, stroke: C.ink, width: 3))),
+              Text(
+                tr('1曲ごとに1回まで'),
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: C.ink),
               ),
               const SizedBox(height: 10),
-              option(AdReward.coins, const HeartIcon(size: 52), 'ハート +${g.adCoins}', 'すぐにもらえる'),
+              option(AdReward.coins, const HeartIcon(size: 52), en ? 'Hearts +${g.adCoins}' : 'ハート +${g.adCoins}', 'すぐにもらえる'),
               option(AdReward.repull, const Icon(Icons.replay_rounded, size: 44, color: C.pink), 'もう一回ひく 復活', '曲の終わりを待たずに 満タンにもどる'),
-              option(AdReward.luck, FigureArt(figureById['gacha_charm']!, size: 52), '運 +5%', 'Rが出やすくなる'),
+              option(AdReward.luck, FigureArt(figureById['gacha_charm']!, size: 52), en ? 'Luck +5%' : '運 +5%', 'Rが出やすくなる'),
             ],
           ),
         ),
@@ -344,7 +346,7 @@ extension on _GameScreenState {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('メニュー', style: outlined(26, C.pink, stroke: C.ink, width: 3)),
+              Text(tr('メニュー'), style: outlined(26, C.pink, stroke: C.ink, width: 3)),
               const SizedBox(height: 8),
               // sound settings as icons, like on the title
               SoundToggles(m),

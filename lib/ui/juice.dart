@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import 'controller.dart';
 import 'widgets.dart';
 
@@ -481,3 +482,262 @@ class _ShineState extends State<Shine> with SingleTickerProviderStateMixin {
     ],
   );
 }
+
+/// The hearts reached this song's quota mid-song: a pink ribbon (a gold one under it) sweeps across
+/// the screen with 「♪ N曲目 ノルマ達成！」 and confetti, then sweeps on out. Both run well past the
+/// screen's edges, so no end ever shows.
+class QuotaCutIn extends StatelessWidget {
+  final int token, song;
+  const QuotaCutIn({super.key, required this.token, required this.song});
+  @override
+  Widget build(BuildContext context) {
+    if (token == 0) return const SizedBox();
+    final w = MediaQuery.sizeOf(context).width;
+    return IgnorePointer(
+      child: TweenAnimationBuilder<double>(
+        key: ValueKey(token),
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 1900),
+        builder: (_, t, _) {
+          if (t >= 1) return const SizedBox();
+          // in fast, hold, out fast (the gold one a beat behind)
+          double slide(double lag) {
+            final u = (t - lag).clamp(0.0, 1.0);
+            return u < 0.18 ? -w * 1.6 * (1 - Curves.easeOutCubic.transform(u / 0.18)) : (u > 0.8 ? w * 1.6 * Curves.easeInCubic.transform(((u - 0.8) / 0.2).clamp(0.0, 1.0)) : 0.0);
+          }
+          final band = w * 3; // far wider than the screen
+          return Center(
+            child: OverflowBox(
+              maxWidth: band,
+              maxHeight: 420,
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  if (t > 0.12) Sparkles(token: token, size: 380, colors: const [Color(0xFFFFE14D), Color(0xFFFF6FA8), Colors.white, Color(0xFF7FE0C0)], count: 44),
+                  // the gold ribbon underneath, tilted the other way a little more
+                  Transform.translate(
+                    offset: Offset(-slide(0.03), 0),
+                    child: Transform.rotate(
+                      angle: -0.11,
+                      child: Container(
+                        width: band,
+                        height: 178,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFF0A8), Color(0xFFFFC21E), Color(0xFFE6A700)]),
+                          border: Border.symmetric(horizontal: BorderSide(color: Colors.white, width: 3)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // the pink ribbon
+                  Transform.translate(
+                    offset: Offset(slide(0), 0),
+                    child: Transform.rotate(
+                      angle: -0.07,
+                      child: Container(
+                        width: band,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFF9CCB), Color(0xFFFF4F96), Color(0xFFE53B84)]),
+                          boxShadow: [BoxShadow(color: Color(0x66C2306E), blurRadius: 16, offset: Offset(0, 6))],
+                        ),
+                        child: Stack(
+                          children: [
+                            // a light sweeping along it
+                            Positioned.fill(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Colors.white.withValues(alpha: 0), Colors.white.withValues(alpha: 0.35), Colors.white.withValues(alpha: 0)],
+                                    stops: [(t * 1.5 - 0.2).clamp(0.0, 1.0), (t * 1.5 - 0.1).clamp(0.0, 1.0), t * 1.5 > 1 ? 1.0 : (t * 1.5).clamp(0.0, 1.0)],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _edge(),
+                                const SizedBox(height: 4),
+                                Text(en ? '♪ Song $song' : '♪ $song曲目', style: outlined(20, Colors.white, stroke: const Color(0xFFC2306E), width: 5)),
+                                Text(tr('ノルマ達成！'), style: outlined(46, Colors.white, stroke: const Color(0xFFC2306E), width: 7)),
+                                const SizedBox(height: 4),
+                                _edge(),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// A double white line with a row of little hearts between them.
+  Widget _edge() => Column(
+    children: [
+      Container(height: 3, color: Colors.white),
+      SizedBox(
+        height: 14,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var k = 0; k < 40; k++)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Icon(Icons.favorite_rounded, size: 10, color: Colors.white.withValues(alpha: k.isEven ? 0.9 : 0.55)),
+              ),
+          ],
+        ),
+      ),
+      Container(height: 1.5, color: Colors.white.withValues(alpha: 0.8)),
+    ],
+  );
+}
+
+/// A hanko stamp slammed on the result card: 「成功」 in pink-red or 「失敗」 in grey-blue, tilted, with
+/// a double ring, a little smudge and a puff as it lands.
+class ResultStamp extends StatelessWidget {
+  final bool success;
+  final double size;
+  const ResultStamp({super.key, required this.success, this.size = 96});
+
+  @override
+  Widget build(BuildContext context) {
+    final col = success ? const Color(0xFFE5304F) : const Color(0xFF5E6E8A);
+    return IgnorePointer(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 1100),
+        builder: (_, t, _) {
+          // waits a beat, then comes down hard
+          final d = ((t - 0.35) / 0.25).clamp(0.0, 1.0);
+          if (d == 0) return SizedBox.square(dimension: size);
+          final land = Curves.easeIn.transform(d);
+          final puff = ((t - 0.6) / 0.4).clamp(0.0, 1.0);
+          return SizedBox.square(
+            dimension: size,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                if (puff > 0 && puff < 1)
+                  Container(
+                    width: size * (1 + 0.6 * puff),
+                    height: size * (1 + 0.6 * puff),
+                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: col.withValues(alpha: 0.5 * (1 - puff)), width: 4)),
+                  ),
+                Opacity(
+                  opacity: (0.3 + 0.7 * land).clamp(0.0, 1.0),
+                  child: Transform.scale(
+                    scale: 2.4 - 1.4 * land,
+                    child: Transform.rotate(
+                      angle: -0.28,
+                      child: CustomPaint(
+                        size: Size.square(size),
+                        painter: _StampPainter(col),
+                        child: SizedBox.square(
+                          dimension: size,
+                          child: Center(
+                            child: _fitEn(
+                              size,
+                              Text(
+                                tr(success ? '成功' : '失敗'),
+                                style: TextStyle(fontSize: size * 0.32, fontWeight: FontWeight.w900, color: col, height: 1, letterSpacing: 2),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _StampPainter extends CustomPainter {
+  final Color col;
+  _StampPainter(this.col);
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.shortestSide / 2;
+    canvas.drawCircle(c, r * 0.96, Paint()..color = Colors.white.withValues(alpha: 0.55));
+    final ink = Paint()
+      ..color = col
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(c, r * 0.94, ink..strokeWidth = r * 0.09);
+    canvas.drawCircle(c, r * 0.78, ink..strokeWidth = r * 0.035);
+    // little gaps in the ink, like a real stamp
+    final rnd = math.Random(7);
+    for (var k = 0; k < 9; k++) {
+      final a = rnd.nextDouble() * 2 * math.pi;
+      canvas.drawCircle(c + Offset(math.cos(a), math.sin(a)) * r * (0.86 + rnd.nextDouble() * 0.1), r * 0.035, Paint()..color = Colors.white.withValues(alpha: 0.8));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_StampPainter o) => o.col != col;
+}
+
+/// A cleared gacha's card: its own CLEAR stamp on the corner (the same pink stamp for every gacha,
+/// with that gacha's idol popping out of the top — art/gen/stamp_*.txt), tilted a little, a soft shine
+/// passing over it now and then.
+class ClearStamp extends StatefulWidget {
+  final String machine;
+  final double size;
+  const ClearStamp({super.key, required this.machine, this.size = 96});
+  @override
+  State<ClearStamp> createState() => _ClearStampState();
+}
+
+class _ClearStampState extends State<ClearStamp> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 3600))..repeat();
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final img = Image.asset('assets/ui/stamp_${widget.machine}.png', width: widget.size, height: widget.size);
+    return IgnorePointer(
+      child: Transform.rotate(
+        angle: 0.16,
+        child: AnimatedBuilder(
+          animation: _c,
+          child: img,
+          builder: (_, child) {
+            final u = _c.value * 1.8 - 0.4;
+            return ShaderMask(
+              blendMode: BlendMode.srcATop,
+              shaderCallback: (r) => LinearGradient(
+                begin: const Alignment(-1, -0.6),
+                end: const Alignment(1, 0.6),
+                colors: [Colors.white.withValues(alpha: 0), Colors.white.withValues(alpha: 0.5), Colors.white.withValues(alpha: 0)],
+                stops: [(u - 0.15).clamp(0.0, 1.0), u.clamp(0.0, 1.0), (u + 0.15).clamp(0.0, 1.0)],
+              ).createShader(r),
+              child: child,
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// English words are wider than the two kanji on the stamp: they shrink to fit inside it.
+Widget _fitEn(double size, Widget text) => en ? Padding(padding: EdgeInsets.all(size * 0.16), child: FittedBox(fit: BoxFit.scaleDown, child: text)) : text;

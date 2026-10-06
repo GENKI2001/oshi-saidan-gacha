@@ -58,3 +58,6 @@ app.*.map.json
 !/voice/crowd_jobs.json
 /assets/voice/.*.tempo
 /voice/render_song/
+
+# golden test diffs from failed runs
+test/failures/

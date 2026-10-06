@@ -28,6 +28,13 @@ IDOLS = ['hinata', 'shizuku', 'koharu', 'yoru', 'momo']
 # name: (cols, rows, out dir, ids, square size or None to keep the aspect (height))
 SHEETS = {f'{k}': (4, 3, FIG, v, 256) for k, v in json.loads((GEN / 'sheets.json').read_text()).items()}
 SHEETS.update({
+    # each gacha's own CLEAR stamp (the same stamp, its own character on top)
+    'stamp_a': (2, 2, UI, ['stamp_pripare', 'stamp_otameshi', 'stamp_shizumomo', 'stamp_hinata'], 256),
+    'stamp_b': (2, 2, UI, ['stamp_shizuku', 'stamp_koharu', 'stamp_momo', 'stamp_yoru'], 256),
+    'stamp_c': (2, 2, UI, ['stamp_nyan', 'stamp_fan', 'stamp_premium', 'stamp_tenbai'], 256),
+    'stamp_d': (1, 1, UI, ['stamp_dome'], 256),
+    # the ぱれにゃん × idol goods (3 x 2)
+    'goods_new2': (3, 2, FIG, ['nyan_parade', 'nyan_cushion', 'nyan_house', 'nyan_crown', 'nyan_friends', 'nyan_gold'], 256),
     # つむぎ as the manager (edited from out_boss.png: staff hoodie, headset, pass)
     'boss_staff': (4, 1, UI, ['boss_0', 'boss_1', 'boss_2', 'boss_3'], None),
     'uikit': (4, 2, UI, ['ui_heart', 'ui_ribbon', 'ui_note', 'ui_mic', 'ui_penlight', 'ui_medal', 'ui_megaphone', 'ui_balloons'], 256),

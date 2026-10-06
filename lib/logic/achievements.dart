@@ -1,6 +1,7 @@
 // 実績 and the シチュエーションボイス they unlock. Pure Dart: the checks read a
 // small snapshot of the player's records (Stats), so tests and tools can use them.
 
+import '../l10n/l10n.dart';
 import 'figures.dart';
 import 'modes.dart';
 
@@ -30,14 +31,21 @@ class Stats {
 }
 
 class Achievement {
-  final String id, title, text;
+  final String id;
+
+  /// The Japanese title and text; [titleEn] / [textEn] for ones built with a name in them
+  /// (the rest find their English through [tr]).
+  final String titleJa, textJa;
+  final String? titleEn, textEn;
+  String get title => en ? (titleEn ?? tr(titleJa)) : titleJa;
+  String get text => en ? (textEn ?? tr(textJa)) : textJa;
 
   /// How far along: (now, goal).
   final (int, int) Function(Stats s) progress;
 
   /// The シチュエーションボイス it unlocks (an id in [asmrTracks]), if any.
   final String? asmr;
-  const Achievement(this.id, this.title, this.text, this.progress, {this.asmr});
+  const Achievement(this.id, this.titleJa, this.textJa, this.progress, {this.asmr, this.titleEn, this.textEn});
 
   bool done(Stats s) {
     final (now, goal) = progress(s);
@@ -49,28 +57,47 @@ class Achievement {
 const idolMachine = {'ひなた': 'hinata', 'しずく': 'shizuku', 'こはる': 'koharu', 'よる': 'yoru', 'もも': 'momo'};
 const _idolId = {'ひなた': 'hinata', 'しずく': 'shizuku', 'こはる': 'koharu', 'よる': 'yoru', 'もも': 'momo'};
 const _machineName = {'hinata': 'ひなた推しガチャ', 'shizuku': 'しずく推しガチャ', 'koharu': 'こはる推しガチャ', 'yoru': 'よる推しガチャ', 'momo': 'もも推しガチャ'};
+const _nameEn = {'ひなた': 'Hinata', 'しずく': 'Shizuku', 'こはる': 'Koharu', 'よる': 'Yoru', 'もも': 'Momo'};
 
 final achievements = <Achievement>[
   Achievement('first_live', 'はじめてのライブ', 'ライブを1回終える', (s) => (s.runs, 1)),
   Achievement('first_clear', 'ライブ大成功', '4曲成功して ライブを成功させる', (s) => (s.clears, 1)),
   Achievement('encore', 'アンコール！', '1回のライブで 6曲成功する', (s) => (s.bestPaydays, 6)),
   for (final m in ['ひなた', 'しずく', 'こはる', 'よる', 'もも']) ...[
-    Achievement('${_idolId[m]}_altar', '$mの祭壇', '祭壇に「$m」のグッズを 同時に6個 並べる', (s) => (s.altarPeak[m] ?? 0, 6), asmr: '${_idolId[m]}_1'),
-    Achievement('${_idolId[m]}_place', '$m推し', '「$m」のグッズを 合計30個 祭壇に置く', (s) => (s.placed[m] ?? 0, 30), asmr: '${_idolId[m]}_2'),
+    Achievement(
+      '${_idolId[m]}_altar',
+      '$mの祭壇',
+      '祭壇に「$m」のグッズを 同時に6個 並べる',
+      (s) => (s.altarPeak[m] ?? 0, 6),
+      asmr: '${_idolId[m]}_1',
+      titleEn: "${_nameEn[m]}'s Altar",
+      textEn: 'Have 6 ${_nameEn[m]} goods on the altar at once',
+    ),
+    Achievement(
+      '${_idolId[m]}_place',
+      '$m推し',
+      '「$m」のグッズを 合計30個 祭壇に置く',
+      (s) => (s.placed[m] ?? 0, 30),
+      asmr: '${_idolId[m]}_2',
+      titleEn: '${_nameEn[m]} Is My Oshi',
+      textEn: 'Place 30 ${_nameEn[m]} goods on the altar in all',
+    ),
     Achievement(
       '${_idolId[m]}_clear',
       '$mのライブ',
       '${_machineName[idolMachine[m]]}で ライブを成功させる',
       (s) => (s.clearedOn.contains(idolMachine[m]) ? 1 : 0, 1),
       asmr: '${_idolId[m]}_3',
+      titleEn: "${_nameEn[m]}'s Live",
+      textEn: 'Clear a live on ${_nameEn[m]} Oshi Gacha',
     ),
   ],
   Achievement('heart100', 'ハートの嵐', '1回転で ハートを100 集める', (s) => (s.bestTurn, 100)),
   Achievement('heart500', '会場がゆれた', '1回転で ハートを500 集める', (s) => (s.bestTurn, 500)),
   Achievement('star4', 'キセキの星4', '★4のグッズを引く', (s) => (s.pulledStar4 ? 1 : 0, 1)),
-  Achievement('book30', 'コレクター', '図鑑を 30種 うめる', (s) => (s.seen, 30)),
-  Achievement('book60', '推し活のプロ', '図鑑を 60種 うめる', (s) => (s.seen, 60)),
-  Achievement('book96', '図鑑コンプリート', '図鑑を 全部 うめる', (s) => (s.seen, figures.length)),
+  Achievement('book30', 'コレクター', 'グッズを 30種 あつめる', (s) => (s.seen, 30)),
+  Achievement('book60', '推し活のプロ', 'グッズを 60種 あつめる', (s) => (s.seen, 60)),
+  Achievement('book96', 'グッズコンプリート', 'グッズを 全部 あつめる', (s) => (s.seen, figures.length)),
   Achievement('hard_clear', 'きびしいライブ', '難易度「げきむず」以上のガチャで ライブを成功させる', (s) => (s.clearedOn.any((id) => (machineById[id]?.difficulty ?? 0) >= 4) ? 1 : 0, 1)),
   Achievement('runs10', '常連さん', 'ライブを 10回 する', (s) => (s.runs, 10)),
   // ── the hard ones ──
@@ -95,8 +122,22 @@ final achievements = <Achievement>[
   Achievement('earned100k', '推しに捧げた10万', 'ハートを 合計100000 集める', (s) => (s.totalEarned, 100000)),
   Achievement('open_all', '推し活マスター', 'すべてのグッズを ガチャに出るようにする', (s) => (s.open, figures.length)),
   for (final m in ['ひなた', 'しずく', 'こはる', 'よる', 'もも']) ...[
-    Achievement('${_idolId[m]}_place100', '$mにガチ恋', '「$m」のグッズを 合計100個 祭壇に置く', (s) => (s.placed[m] ?? 0, 100)),
-    Achievement('${_idolId[m]}_altar10', '$m一色', '祭壇に「$m」のグッズを 同時に10個 並べる', (s) => (s.altarPeak[m] ?? 0, 10)),
+    Achievement(
+      '${_idolId[m]}_place100',
+      '$mにガチ恋',
+      '「$m」のグッズを 合計100個 祭壇に置く',
+      (s) => (s.placed[m] ?? 0, 100),
+      titleEn: 'Head Over Heels for ${_nameEn[m]}',
+      textEn: 'Place 100 ${_nameEn[m]} goods on the altar in all',
+    ),
+    Achievement(
+      '${_idolId[m]}_altar10',
+      '$m一色',
+      '祭壇に「$m」のグッズを 同時に10個 並べる',
+      (s) => (s.altarPeak[m] ?? 0, 10),
+      titleEn: 'All ${_nameEn[m]}',
+      textEn: 'Have 10 ${_nameEn[m]} goods on the altar at once',
+    ),
   ],
 ];
 

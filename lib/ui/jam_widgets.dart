@@ -8,6 +8,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../logic/run.dart';
 import 'controller.dart';
 import 'idol_widgets.dart';
@@ -138,8 +139,8 @@ class _JamOverlayState extends State<JamOverlay> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('妨害発生！', style: outlined(48, const Color(0xFFFFE14D), stroke: const Color(0xFF2A0F1F), width: 8)),
-                Text('転売ヤー $kJammer', style: outlined(22, Colors.white, stroke: const Color(0xFF2A0F1F), width: 5)),
+                Text(tr('妨害発生！'), style: outlined(en ? 38 : 48, const Color(0xFFFFE14D), stroke: const Color(0xFF2A0F1F), width: 8)),
+                Text(en ? 'Scalper ${tr(kJammer)}' : '転売ヤー $kJammer', style: outlined(22, Colors.white, stroke: const Color(0xFF2A0F1F), width: 5)),
                 const SizedBox(height: 6),
                 _PowerStars(j.power),
               ],
@@ -204,7 +205,7 @@ class _JamOverlayState extends State<JamOverlay> with TickerProviderStateMixin {
                     child: _faceLine(
                       IdolFace(g.jamIdol, size: 60),
                       g.jamIdol,
-                      'まもれないと… ${j.text}\nまもれたら… ${j.rewardText}！',
+                      en ? 'If he gets through... ${j.text}\nIf you hold him off... ${j.rewardText}!' : 'まもれないと… ${j.text}\nまもれたら… ${j.rewardText}！',
                       col,
                     ),
                   ),
@@ -231,10 +232,10 @@ class _JamOverlayState extends State<JamOverlay> with TickerProviderStateMixin {
 
   /// What カイシメ says as he makes off with it (his own words, not the player's).
   String _gloat(Jam j) => switch (j.kind) {
-    JamKind.steal || JamKind.stealTwo => '${g.jamTaken.map((f) => f.name).join('と')}、もらっていくぜ！',
-    JamKind.hearts => 'ハート ${j.pct}%、いただきだぜ！',
-    JamKind.noRepull => '「もう一回ひく」は 使わせないぜ！',
-    JamKind.half => 'この曲のハートは 半分だぜ！ ヒヒッ',
+    JamKind.steal || JamKind.stealTwo => en ? "I'll be taking ${g.jamTaken.map((f) => f.name).join(' and ')}!" : '${g.jamTaken.map((f) => f.name).join('と')}、もらっていくぜ！',
+    JamKind.hearts => en ? '${j.pct}% of your Hearts — mine!' : 'ハート ${j.pct}%、いただきだぜ！',
+    JamKind.noRepull => tr('「もう一回ひく」は 使わせないぜ！'),
+    JamKind.half => tr('この曲のハートは 半分だぜ！ ヒヒッ'),
   };
 
   /// The shoving match: two chibi, palm to palm, crackling where they meet.
@@ -265,7 +266,7 @@ class _JamOverlayState extends State<JamOverlay> with TickerProviderStateMixin {
         top: 8,
         child: Column(
           children: [
-            _bubble('まけると… ${j.text}', C.red),
+            _bubble(en ? 'If you lose... ${j.text}' : 'まけると… ${j.text}', C.red),
             const SizedBox(height: 6),
             _timer(g.jamLeft),
           ],
@@ -322,12 +323,12 @@ class _JamOverlayState extends State<JamOverlay> with TickerProviderStateMixin {
               child: Transform.rotate(
                 angle: 0.18,
                 child: Text(
-                  switch (g.jamMode) {
+                  tr(switch (g.jamMode) {
                     3 => 'グググッ！',
                     4 => 'ゴゴゴゴ…！',
                     5 => 'ズゴゴゴゴ…！！',
                     _ => '本気だぜ…！！！',
-                  },
+                  }),
                   style: outlined(24 + (g.jamMode - 3) * 5.0, g.jamMode >= 5 ? const Color(0xFFB000FF) : const Color(0xFFFF4D6D), stroke: Colors.white, width: 6),
                 ),
               ),
@@ -351,7 +352,7 @@ class _JamOverlayState extends State<JamOverlay> with TickerProviderStateMixin {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('まもれる確率 ', style: outlined(16, Colors.white, width: 3)),
+                Text(tr('まもれる確率 '), style: outlined(16, Colors.white, width: 3)),
                 Text('${(p * 100).round()}', style: outlined(44, Color.lerp(C.red, C.mint, p)!, stroke: Colors.white, width: 5)),
                 Text('%', style: outlined(22, Colors.white, width: 3)),
               ],
@@ -394,7 +395,7 @@ class _JamOverlayState extends State<JamOverlay> with TickerProviderStateMixin {
                 angle: -0.08,
                 child: Transform.scale(
                   scale: Curves.elasticOut.transform((DateTime.now().difference(_goAt).inMilliseconds / 600).clamp(0.0, 1.0)),
-                  child: Text('スタート！', style: outlined(62, const Color(0xFFFFE14D), stroke: col, width: 9)),
+                  child: Text(tr('スタート！'), style: outlined(62, const Color(0xFFFFE14D), stroke: col, width: 9)),
                 ),
               ),
             ),
@@ -441,9 +442,9 @@ class _JamOverlayState extends State<JamOverlay> with TickerProviderStateMixin {
             scale: pop,
             child: Column(
               children: [
-                Transform.rotate(angle: -0.08, child: Text('まもった！', style: outlined(54, C.gold, stroke: const Color(0xFFB4501A), width: 7))),
+                Transform.rotate(angle: -0.08, child: Text(tr('まもった！'), style: outlined(54, C.gold, stroke: const Color(0xFFB4501A), width: 7))),
                 const SizedBox(height: 8),
-                Opacity(opacity: _seg(ms, 700, 1100), child: _faceLine(IdolFace(g.jamIdol, size: 56), g.jamIdol, '追いかえした！ ${j.rewardText}！', idolColor[g.jamIdol]!)),
+                Opacity(opacity: _seg(ms, 700, 1100), child: _faceLine(IdolFace(g.jamIdol, size: 56), g.jamIdol, en ? 'Chased him off! ${j.rewardText}!' : '追いかえした！ ${j.rewardText}！', idolColor[g.jamIdol]!)),
               ],
             ),
           ),
@@ -488,7 +489,7 @@ class _JamOverlayState extends State<JamOverlay> with TickerProviderStateMixin {
           scale: pop,
           child: Column(
             children: [
-              Transform.rotate(angle: -0.08, child: Text('やられた…', style: outlined(54, const Color(0xFF9AA3B5), stroke: C.ink, width: 7))),
+              Transform.rotate(angle: -0.08, child: Text(tr('やられた…'), style: outlined(54, const Color(0xFF9AA3B5), stroke: C.ink, width: 7))),
               const SizedBox(height: 8),
               // the scalper's own icon, with what it cost
               Opacity(
@@ -523,7 +524,7 @@ class _JamOverlayState extends State<JamOverlay> with TickerProviderStateMixin {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(who, style: outlined(13, color, stroke: Colors.white, width: 2.5)),
+              Text(tr(who), style: outlined(13, color, stroke: Colors.white, width: 2.5)),
               Text(text, style: const TextStyle(fontSize: 15, height: 1.3, color: C.ink, fontWeight: FontWeight.w900)),
             ],
           ),
@@ -581,7 +582,7 @@ class _PowerStars extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('押しの強さ ', style: outlined(14, Colors.white, width: 2)),
+          Text(tr('押しの強さ '), style: outlined(14, Colors.white, width: 2)),
           for (var i = 0; i < 3; i++) Icon(Icons.sports_mma_rounded, size: 20, color: i < n ? const Color(0xFFFF5A5A) : Colors.white24),
         ],
       ),
@@ -686,8 +687,8 @@ class _MashButton extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('まもれ！', style: outlined(34, Colors.white, stroke: Color.lerp(color, C.ink, 0.55)!, width: 6)),
-                Text(ready ? '♥ 連打！ ♥' : 'まってね…', style: outlined(15, const Color(0xFFFFF2A8), stroke: Color.lerp(color, C.ink, 0.55)!, width: 4)),
+                FittedBox(fit: BoxFit.scaleDown, child: Text(tr('まもれ！'), style: outlined(34, Colors.white, stroke: Color.lerp(color, C.ink, 0.55)!, width: 6))),
+                FittedBox(fit: BoxFit.scaleDown, child: Text(tr(ready ? '♥ 連打！ ♥' : 'まってね…'), style: outlined(15, const Color(0xFFFFF2A8), stroke: Color.lerp(color, C.ink, 0.55)!, width: 4))),
               ],
             ),
           ),
@@ -920,7 +921,7 @@ class _Onomatopoeia extends StatelessWidget {
       opacity: t < 0.6 ? 1 : (1 - t) / 0.4,
       child: Transform.rotate(angle: -0.2 + (token % 3) * 0.15, child: Transform.scale(scale: 0.4 + 0.9 * Curves.easeOutBack.transform(math.min(1, t * 2.5)), child: c)),
     ),
-    child: Text(text, style: outlined(size, const Color(0xFFFFE14D), stroke: Color.lerp(color, C.ink, 0.5)!, width: 6)),
+    child: Text(tr(text), style: outlined(size, const Color(0xFFFFE14D), stroke: Color.lerp(color, C.ink, 0.5)!, width: 6)),
   );
 }
 

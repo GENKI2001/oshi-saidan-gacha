@@ -34,7 +34,7 @@ void main() {
     expect(r.paydayNow, isTrue);
     final p = r.payday();
     expect(p.paid, isTrue);
-    expect(r.coins, 100 - Run.firstDue);
+    expect(r.coins, 100 - r.baseDue(0));
     r
       ..songTurn = 5
       ..coins = 0;
@@ -78,7 +78,25 @@ void main() {
     expect(r.endTurn().gains[0], 6);
   });
 
-  test('diagonal goods see only the corner-to-corner cells', () {
+  test('the bingo card counts its own up-right diagonal, on any width', () {
+    for (final grow in [false, true]) {
+      final r = Run(seed: 3)..coins = 999;
+      if (grow) {
+        r.shop = [Offer(OfferKind.expand, 1)];
+        r.buy(r.shop.first); // 5 wide
+      }
+      final c = r.cols;
+      final at = 3 * c; // bottom-left corner of a 4-row altar
+      r.place(figureById['hinakoha_bingo']!, at);
+      expect(r.endTurn().gains[at], 1, reason: 'line not filled yet');
+      for (var k = 1; k < 4; k++) {
+        r.place(figureById['coin']!, (3 - k) * c + k);
+      }
+      expect(r.endTurn().gains[at], 17, reason: 'cols $c');
+    }
+  });
+
+    test('diagonal goods see only the corner-to-corner cells', () {
     final r = Run(seed: 3)..coins = 0;
     // 4x4: cell 5 has diagonals 0, 2, 8, 10 and neighbours 1, 4, 6, 9
     r.place(figureById['shizuku_snow']!, 5); // +2 per diagonal goods
