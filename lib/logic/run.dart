@@ -205,8 +205,8 @@ class Run {
   static const turnsPerPayday = 5;
   // 取り立て grows by the same factor every time
   static const firstDue = 17; // raised from 14 with the diagonal goods, stacking and the レア商品 (random ~10%, good play ~40%)
-  /// Every quota ×0.9: the whole game made about 10% easier (2026-10).
-  static const ease = 0.9;
+  /// Every quota ×0.8: the whole game made easier (2026-10: ×0.9, then ×0.8 — expert bot clears ~45%).
+  static const ease = 0.8;
   static const dueGrowth = 3.95;
   static const clearPaydays = 4;
 

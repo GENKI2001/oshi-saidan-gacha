@@ -120,21 +120,17 @@ class _CollectionScreenState extends State<CollectionScreen> {
                   Sfx.play('toggle');
                   setState(() => _tab = k);
                 },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(vertical: 7),
-                  decoration: BoxDecoration(
-                    color: _tab == k ? C.pink : Colors.white.withValues(alpha: 0.85),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: C.ink, width: 2.5),
-                    boxShadow: _tab == k ? const [BoxShadow(color: Color(0x66FF6FA3), blurRadius: 10)] : null,
-                  ),
+                // the open tab is the pink tag, the others white tags (the button look)
+                child: TagSurface(
+                  fill: _tab == k ? C.pink : null,
+                  stitch: _tab == k ? Colors.white.withValues(alpha: 0.75) : C.tagStitch,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(icon, size: 18, color: _tab == k ? Colors.white : C.ink),
+                      Icon(icon, size: 18, color: _tab == k ? Colors.white : C.tagText),
                       const SizedBox(width: 4),
-                      Text(tr(label), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: _tab == k ? Colors.white : C.ink)),
+                      Text(tr(label), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: _tab == k ? Colors.white : C.tagText)),
                     ],
                   ),
                 ),

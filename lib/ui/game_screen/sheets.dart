@@ -109,7 +109,7 @@ extension on _GameScreenState {
                     ),
                   ),
                 const SizedBox(height: 8),
-                PopButton('とじる', fontSize: 16, color: Colors.blueGrey, onTap: () => Navigator.of(ctx).pop()),
+                PopButton('とじる', fontSize: 16, color: Colors.blueGrey, filled: false, onTap: () => Navigator.of(ctx).pop()),
               ],
             ),
           ),
@@ -249,7 +249,7 @@ extension on _GameScreenState {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  PopButton('やめる', fontSize: 16, color: Colors.blueGrey, onTap: () => Navigator.of(ctx).pop()),
+                  PopButton('やめる', fontSize: 16, color: Colors.blueGrey, filled: false, onTap: () => Navigator.of(ctx).pop()),
                   const SizedBox(width: 12),
                   PopButton(
                     yes,
@@ -367,6 +367,7 @@ extension on _GameScreenState {
                   'おわる',
                   fontSize: 18,
                   color: Colors.blueGrey,
+                  filled: false,
                   onTap: g.canGiveUp
                       ? () {
                           Navigator.of(ctx).pop();

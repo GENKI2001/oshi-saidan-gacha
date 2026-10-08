@@ -81,7 +81,7 @@ void main() {
   test('the quota grows ×3.95 a song up to the 4th, then the growth itself ×1.5 each アンコール', () {
     final r = Run(seed: 1);
     final d = [for (var k = 0; k < 7; k++) r.baseDue(k)];
-    expect(d.take(4), [15, 60, 239, 943]); // 17, 67, 265, 1048 before the ×0.9 easing
+    expect(d.take(4), [14, 54, 212, 838]); // 17, 67, 265, 1048 before the ×0.8 easing
     expect(d[4] / d[3], closeTo(3.95 * 1.5, 0.01));
     expect(d[5] / d[4], closeTo(3.95 * 1.5 * 1.5, 0.01));
     expect(d[6] / d[5], closeTo(3.95 * 1.5 * 1.5 * 1.5, 0.01));

@@ -483,6 +483,7 @@ class _GameScreenState extends State<GameScreen> {
                   'すてる',
                   onTap: g.canDiscard ? g.discardPending : null,
                   color: Colors.blueGrey,
+                  filled: false,
                   fontSize: 13,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
                 ),

@@ -22,6 +22,11 @@ class C {
   static const gold = Color(0xFFFFC93C);
   static const mint = Color(0xFF52D6B4);
   static const red = Color(0xFFFF5A5A);
+  // the tag look every button is built on: a near-white card, pink stitching, a soft plum drop
+  static const tag = Color(0xFFFFFDFE);
+  static const tagStitch = Color(0xFFF3A6C9);
+  static const tagText = Color(0xFFA04A80);
+  static const tagShadow = Color(0x338A4A8A);
 
   static Color rarity(Rarity r) => switch (r) {
     Rarity.normal => const Color(0xFF9FB4C8),

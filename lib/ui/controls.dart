@@ -8,8 +8,93 @@ import '../l10n/l10n.dart';
 import 'sfx.dart';
 import 'theme.dart';
 
-/// Chunky candy button. Its label is shown through [tr] (a fixed Japanese label turns English by itself),
-/// and in English it shrinks to fit rather than wrapping or overflowing.
+/// The tag every button is built on: a card with a white edge, dashed stitching just inside it and a
+/// soft drop. Without [fill] it is the near-white card (put coloured text on it); with [fill] it is that
+/// colour, lighter at the top (put white text on it). [circle] makes it round (the icon buttons).
+class TagSurface extends StatelessWidget {
+  final Widget child;
+  final Color? fill;
+  final Color stitch;
+  final double radius;
+  final bool circle, pressed;
+  final EdgeInsets padding;
+  const TagSurface({
+    super.key,
+    required this.child,
+    this.fill,
+    this.stitch = C.tagStitch,
+    this.radius = 16,
+    this.circle = false,
+    this.pressed = false,
+    this.padding = EdgeInsets.zero,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final f = fill;
+    final drop = f == null ? C.tagShadow : f.withValues(alpha: 0.4);
+    return CustomPaint(
+      foregroundPainter: _Stitch(stitch, circle ? null : radius),
+      child: Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          color: f == null ? C.tag : null,
+          gradient: f == null
+              ? null
+              : LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color.lerp(f, Colors.white, 0.32)!, Color.lerp(f, C.ink, 0.04)!],
+                ),
+          shape: circle ? BoxShape.circle : BoxShape.rectangle,
+          borderRadius: circle ? null : BorderRadius.circular(radius),
+          border: Border.all(color: Colors.white, width: 2),
+          // pressed, it sits down on the page and its drop shrinks
+          boxShadow: [
+            pressed
+                ? BoxShadow(color: drop.withValues(alpha: drop.a * 0.6), blurRadius: 5, offset: const Offset(0, 2))
+                : BoxShadow(color: drop, blurRadius: f == null ? 14 : 18, offset: Offset(0, f == null ? 5 : 7)),
+          ],
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// The dashed line 5px in from a [TagSurface]'s edge ([radius] null: a circle).
+class _Stitch extends CustomPainter {
+  final Color color;
+  final double? radius;
+  const _Stitch(this.color, this.radius);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = (Offset.zero & size).deflate(5);
+    if (r.isEmpty) return;
+    final r0 = radius;
+    final path = r0 == null ? (Path()..addOval(r)) : (Path()..addRRect(RRect.fromRectAndRadius(r, Radius.circular(math.max(2, r0 - 5)))));
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round;
+    for (final m in path.computeMetrics()) {
+      for (double d = 0; d < m.length; d += 8) {
+        canvas.drawPath(m.extractPath(d, math.min(d + 4.5, m.length)), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Stitch old) => old.color != color || old.radius != radius;
+}
+
+/// The game's button: a [TagSurface]. [filled] (the default) is the coloured tag with white lettering,
+/// for the thing to do next; otherwise it is the white tag with the colour in its lettering and
+/// stitching, for everything beside it (the menu row, とじる, おわる). Its label is shown through [tr]
+/// (a fixed Japanese label turns English by itself), and in English it shrinks to fit rather than
+/// wrapping or overflowing.
 class PopButton extends StatefulWidget {
   final String label;
   final VoidCallback? onTap;
@@ -17,6 +102,7 @@ class PopButton extends StatefulWidget {
   final double fontSize;
   final EdgeInsets padding;
   final String? sound;
+  final bool filled;
 
   /// Looks disabled but still takes taps (e.g. to point the player elsewhere).
   final bool dimmed;
@@ -28,6 +114,7 @@ class PopButton extends StatefulWidget {
     super.key,
     this.onTap,
     this.dimmed = false,
+    this.filled = true,
     this.trailing,
     this.sound = 'tap',
     this.color = C.pink,
@@ -44,6 +131,11 @@ class _PopButtonState extends State<PopButton> {
   Widget build(BuildContext context) {
     final enabled = widget.onTap != null;
     final col = enabled && !widget.dimmed ? widget.color : Colors.grey.shade400;
+    final filled = widget.filled;
+    // white lettering keeps a thin ring of its own colour, deepened, so it reads on gold and mint too
+    final style = filled
+        ? outlined(widget.fontSize, Colors.white, stroke: Color.lerp(col, C.ink, 0.45)!, width: 1.6).copyWith(fontWeight: FontWeight.w900)
+        : TextStyle(fontSize: widget.fontSize, fontWeight: FontWeight.w900, color: Color.lerp(col, const Color(0xFF3A1F3A), 0.35));
     return GestureDetector(
       onTapDown: enabled ? (_) => setState(() => _down = true) : null,
       onTapCancel: () => setState(() => _down = false),
@@ -56,35 +148,21 @@ class _PopButtonState extends State<PopButton> {
           : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 70),
-        transform: Matrix4.translationValues(0, _down ? 4 : 0, 0),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(40),
-          border: Border.all(color: C.ink, width: 3),
-          boxShadow: [if (!_down) BoxShadow(color: Color.lerp(col, C.ink, 0.55)!, offset: const Offset(0, 4))],
-        ),
-        child: Container(
-          padding: widget.padding,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(37),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.75), width: 2),
-            // candy gloss: light on top, the color in the middle, a little deeper at the bottom
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color.lerp(col, Colors.white, 0.45)!, col, Color.lerp(col, C.ink, 0.12)!],
-              stops: const [0, 0.55, 1],
-            ),
-          ),
+        transform: Matrix4.translationValues(0, _down ? 3 : 0, 0),
+        child: TagSurface(
+          fill: filled ? col : null,
+          stitch: filled ? Colors.white.withValues(alpha: 0.75) : Color.lerp(col, Colors.white, 0.3)!,
+          radius: widget.fontSize >= 20 ? 18 : 14,
+          pressed: _down,
+          // the old candy button had a 5px rim; the tag has 2, so the label keeps its room
+          padding: widget.padding + const EdgeInsets.all(3),
           child: _fit(
             widget.trailing == null
-                ? Text(tr(widget.label), textAlign: TextAlign.center, style: outlined(widget.fontSize, Colors.white, stroke: Color.lerp(col, C.ink, 0.6)!, width: 3))
+                ? Text(tr(widget.label), textAlign: TextAlign.center, style: style)
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(tr(widget.label), style: outlined(widget.fontSize, Colors.white, stroke: Color.lerp(col, C.ink, 0.6)!, width: 3)),
-                      widget.trailing!,
-                    ],
+                    children: [Text(tr(widget.label), style: style), widget.trailing!],
                   ),
           ),
         ),
@@ -267,7 +345,7 @@ PreferredSizeWidget ribbonBar(String title, {String? note}) => PreferredSize(
   child: SafeArea(bottom: false, child: ScreenHeader(title, note: note)),
 );
 
-/// A round cream button with an icon (the menu buttons, the sound switches).
+/// A round white tag with an icon (the menu buttons, the sound switches).
 class RoundIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
@@ -277,14 +355,7 @@ class RoundIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
-    child: Container(
-      padding: EdgeInsets.all(padding),
-      decoration: BoxDecoration(
-        color: C.cream,
-        shape: BoxShape.circle,
-        border: Border.all(color: C.ink, width: 3),
-      ),
-      child: Icon(icon, color: C.ink, size: size),
-    ),
+    // the tag's edge is 1px thinner than the old ring, so the padding takes it and the size stays
+    child: TagSurface(circle: true, padding: EdgeInsets.all(padding + 1), child: Icon(icon, color: C.tagText, size: size)),
   );
 }

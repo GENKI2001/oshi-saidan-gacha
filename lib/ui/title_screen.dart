@@ -230,7 +230,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                             animation: _c,
                             builder: (_, c) => Transform.translate(offset: Offset(0, -5 * Curves.easeInOut.transform(_c.value)), child: c),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 30),
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
                               child: Image.asset('assets/ui/title.png', semanticLabel: tr('推し祭壇ガチャ')),
                             ),
                           ),
@@ -263,15 +263,15 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                               ),
                             ),
                           ),
-                          // the very first time it is the tutorial; afterwards it just plays
-                          // coloured after the members on the key visual above them: ひなた in the middle …
-                          PopButton(tr(m.tutorialDone ? 'あそぶ' : 'チュートリアル'), fontSize: m.tutorialDone ? 32 : 26, color: idolColor['ひなた']!, onTap: _play),
+                          // the very first time it is the tutorial; afterwards it just plays. The one pink tag;
+                          PopButton(tr(m.tutorialDone ? 'あそぶ' : 'チュートリアル'), fontSize: m.tutorialDone ? 32 : 26, onTap: _play),
                           const SizedBox(height: 12),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Row(
                               children: [
-                                // … and left to right こはる, しずく, よる, もも, as they stand
+                                // the rest are white tags lettered in the members' colours, left to right
+                                // こはる, しずく, よる, もも, as they stand on the key visual above them
                                 for (final (ja, color, page) in [
                                   ('コレクション', idolColor['こはる']!, CollectionScreen(meta: m) as Widget),
                                   ('メンバー', idolColor['しずく']!, const MemberScreen()),
@@ -287,6 +287,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                                       child: PopButton(
                                         label,
                                         color: color,
+                                        filled: false,
                                         fontSize: 13,
                                         padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
                                         onTap: () => _go(page),
@@ -308,26 +309,23 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                             Sfx.play('toggle');
                             _go(HowToScreen(meta: m));
                           },
-                          // same height as the round sound toggles on the right (8 + 24 + 8 + borders)
-                          child: Container(
+                          // a white tag, the same height as the round sound toggles on the right (8 + 24 + 8 + edges)
+                          child: SizedBox(
                             height: 46,
-                            alignment: Alignment.center,
-                            padding: const EdgeInsets.fromLTRB(10, 0, 14, 0),
-                            decoration: BoxDecoration(
-                              color: C.cream,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: C.ink, width: 3),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.help_rounded, color: C.ink, size: 22),
-                                const SizedBox(width: 4),
-                                Text(
-                                  tr('あそびかた'),
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: C.ink),
-                                ),
-                              ],
+                            child: TagSurface(
+                              radius: 20,
+                              padding: const EdgeInsets.fromLTRB(11, 0, 15, 0),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.help_rounded, color: C.tagText, size: 22),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    tr('あそびかた'),
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: C.tagText),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
