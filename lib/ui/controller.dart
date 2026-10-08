@@ -1169,12 +1169,15 @@ class GameController extends ChangeNotifier {
     if (!await Ads.instance.show(postpone)) _adNotReady();
   }
 
+  /// After the ad: back into the same song for [Run.extraSpins] more spins (hearts kept).
   void postpone() {
     if (!run.canPostpone) return;
-    Bgm.play('bgm_clear');
     run.postpone();
+    payday = null;
+    coinsShown = run.coins;
+    Bgm.play('bgm_${machine.bgm}'); // the song picks up again
+    phase = Phase.ready;
     say(0, pick(linePostpone));
-    _openShop();
     notifyListeners();
   }
 

@@ -44,8 +44,9 @@ void main() {
   test('the cooking stream earns more for every こはる on the altar', () {
     final few = _altar(['こはる'], 'hinakoha_stream').endTurn().total;
     final many = _altar(['こはる', 'こはる', 'こはる', 'こはる'], 'hinakoha_stream').endTurn().total;
-    expect(few, 2 + 3 + 5);
-    expect(many, 8 + 3 + 20);
+    // it is a こはる goods itself, so it counts itself too
+    expect(few, 2 + 3 + 10);
+    expect(many, 8 + 3 + 25);
   });
 
   test('they count toward the 4 on the altar', () {

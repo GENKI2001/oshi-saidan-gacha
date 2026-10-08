@@ -173,7 +173,7 @@ extension on _GameScreenState {
         children: [
           FittedBox(fit: BoxFit.scaleDown, child: Text(en ? '$short Hearts short...' : 'ハートが あと $short 足りない…', style: outlined(22, C.red, stroke: Colors.white))),
           const SizedBox(height: 12),
-          if (kAdsEnabled && g.run.canPostpone) _wide(PopButton('▶ 広告を見て延長！', onTap: g.watchAdToPostpone, color: C.mint, fontSize: 17)),
+          if (kAdsEnabled && g.run.canPostpone) _wide(PopButton('▶ 広告を見て あと5回！', onTap: g.watchAdToPostpone, color: C.mint, fontSize: 17)),
           const SizedBox(height: 10),
           _wide(PopButton('おわる', onTap: g.giveUp, color: Colors.blueGrey, filled: false, fontSize: 16)),
         ],

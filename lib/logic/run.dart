@@ -276,6 +276,7 @@ class Run {
       ..rerollMax = rerollMax
       ..rerolls = rerolls
       ..continueUsed = continueUsed
+      ..lastPaydayBonus = lastPaydayBonus
       ..halfThisSong = halfThisSong
       ..doubleThisSong = doubleThisSong
       ..boost.addAll(boost)
@@ -352,7 +353,8 @@ class Run {
     return count.isEmpty ? null : (count.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
   }
 
-  int get luck => luckBonus + figs.fold(0, (s, f) => s + (f.def.effect<Luck>()?.v ?? 0));
+  // stacking a lucky goods makes it luckier (×stack), like every other number on it
+  int get luck => luckBonus + figs.fold(0, (s, f) => s + (f.def.effect<Luck>()?.v ?? 0) * f.stack);
 
   // ── payday ──
   int get turnsToPayday => turnsPerSong - songTurn;
@@ -372,11 +374,16 @@ class Run {
 
   static const encoreGrowth = 1.5;
 
+  /// The quota cutters: stacking one cuts more (its % ×stack, at most 90% from one goods), but only
+  /// the [maxDiscounts] strongest count and the quota never drops below 40% of itself.
   int get due {
+    final cuts = [
+      for (final x in figs)
+        if (x.def.effect<PaydayDiscount>() case final d?) math.min(90, d.pct * x.stack),
+    ]..sort((a, b) => b.compareTo(a));
     var f = 1.0;
-    for (final x in figs) {
-      final d = x.def.effect<PaydayDiscount>();
-      if (d != null) f *= 1 - d.pct / 100;
+    for (final pct in cuts.take(maxDiscounts)) {
+      f *= 1 - pct / 100;
     }
     final wall = paydaysPaid == 2 ? rules.thirdDueMult : 1.0;
     return (baseDue(paydaysPaid) * rules.dueMult * wall * math.max(f, 0.4)).round() + carriedDebt;
@@ -842,12 +849,15 @@ class Run {
       final f = cells[i];
       final sp = f?.def.effect<SpawnEveryN>();
       if (sp == null || f!.age % sp.n != 0) continue;
-      final empty = emptyCells;
-      if (empty.isEmpty) continue;
-      final at = rng.pick(empty);
-      final nf = _newFig(pullOne(maxRarity: Rarity.rare));
-      cells[at] = nf;
-      steps.add(Step(StepKind.spawn, at, fig: nf));
+      // stacked, it puts out that many at a time (as many as there are empty cells)
+      for (var k = 0; k < f.stack; k++) {
+        final empty = emptyCells;
+        if (empty.isEmpty) break;
+        final at = rng.pick(empty);
+        final nf = _newFig(pullOne(maxRarity: Rarity.rare));
+        cells[at] = nf;
+        steps.add(Step(StepKind.spawn, at, fig: nf));
+      }
     }
   }
 
@@ -859,6 +869,7 @@ class Run {
     final before = coins;
     final bonus = paydayBonus;
     coins += bonus;
+    lastPaydayBonus = bonus;
     final d = due;
     if (coins < d) return PaydayResult(d, bonus, before, false);
     coins -= d;
@@ -874,19 +885,18 @@ class Run {
     return PaydayResult(d, bonus, before, true);
   }
 
-  /// The once-per-run rescue (rewarded ad): this payday's bill moves to the next one.
+  /// The once-per-live rescue (rewarded ad) when a song comes up short: [extraSpins] more spins in
+  /// the same song against the same quota. The hearts made so far stay; the 「曲の終わりに +N」 goods
+  /// paid in at the short payday come back out, since they pay again when the song really ends.
   bool get canPostpone => !continueUsed && !rules.noContinue;
+  static const extraSpins = 5;
+  int lastPaydayBonus = 0; // what the goods paid in at the last payday
 
   void postpone() {
     continueUsed = true;
-    carriedDebt = due;
-    paydaysPaid++;
-    songTurn = 0;
-    repulls = repullMax;
-    halfThisSong = false;
-    doubleThisSong = false;
-    rareSong = false;
-    idolSong = null;
+    coins = math.max(0, coins - lastPaydayBonus);
+    lastPaydayBonus = 0;
+    songTurn = math.max(0, turnsPerSong - extraSpins);
   }
 
   // ── 妨害 (a scalper barges in before the hearts are counted) ──

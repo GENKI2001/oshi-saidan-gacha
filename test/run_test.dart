@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oshi_saidan/logic/defs.dart';
 import 'package:oshi_saidan/logic/figures.dart';
@@ -28,7 +30,7 @@ void main() {
     expect(r.cells[10], isNull);
   });
 
-  test('payday takes coins, fails when short, and can be postponed once', () {
+  test('payday takes coins, fails when short, and the ad gives 5 more spins in the same song, once', () {
     final r = Run(seed: 3)..coins = 100;
     r.songTurn = 5;
     expect(r.paydayNow, isTrue);
@@ -37,11 +39,77 @@ void main() {
     expect(r.coins, 100 - r.baseDue(0));
     r
       ..songTurn = 5
-      ..coins = 0;
+      ..coins = 7;
+    final dueBefore = r.due;
     expect(r.payday().paid, isFalse);
+    expect(r.canPostpone, isTrue);
     r.postpone();
-    expect(r.paydaysPaid, 2);
-    expect(r.due, r.baseDue(2) + r.baseDue(1));
+    // the same song against the same quota, the hearts kept, 5 spins to go
+    expect(r.paydaysPaid, 1);
+    expect(r.due, dueBefore);
+    expect(r.coins, 7);
+    expect(r.turnsToPayday, Run.extraSpins);
+    expect(r.paydayNow, isFalse);
+    // and never again this live
+    expect(r.canPostpone, isFalse);
+  });
+
+  test('the extension takes back what the 「曲の終わりに」 goods paid in, since they pay again', () {
+    final r = Run(seed: 3);
+    r.place(figureById.values.firstWhere((d) => d.has<OnPaydayGain>()), 0);
+    final bonus = r.paydayBonus;
+    expect(bonus, greaterThan(0));
+    r
+      ..paydaysPaid = 2 // a quota well above what the goods pay in
+      ..songTurn = 5
+      ..coins = 3;
+    expect(r.payday().paid, isFalse);
+    expect(r.coins, 3 + bonus);
+    r.postpone();
+    expect(r.coins, 3);
+  });
+
+  test('stacking makes quota cutters, luck and spawners stronger; only two cutters count', () {
+    final cut = figureById.values.firstWhere((d) => d.has<PaydayDiscount>());
+    final pct = cut.effect<PaydayDiscount>()!.pct;
+    final r = Run(seed: 3);
+    final base = r.due;
+    r.place(cut, 0);
+    expect(r.due, (base * (1 - pct / 100)).round());
+    r.overwrite(cut, 0); // stacked: ×2
+    expect(r.due, (base * math.max(0.4, 1 - math.min(90, pct * 2) / 100)).round());
+
+    final lucky = figureById['gacha_charm']!;
+    final l = Run(seed: 3);
+    l.place(lucky, 0);
+    final one = l.luck;
+    l.overwrite(lucky, 0);
+    expect(l.luck, one * 2);
+
+    final spawner = figureById['blind_bag']!;
+    final n = spawner.effect<SpawnEveryN>()!.n;
+    final s1 = Run(seed: 3)..place(spawner, 0);
+    final s2 = Run(seed: 3)
+      ..place(spawner, 0)
+      ..overwrite(spawner, 0);
+    for (var k = 0; k < n; k++) {
+      s1.endTurn();
+      s2.endTurn();
+    }
+    expect(s1.figs.length, 2);
+    expect(s2.figs.length, 3);
+  });
+
+  test('three quota cutters on the altar: only the two strongest count', () {
+    final cuts = figureById.values.where((d) => d.has<PaydayDiscount>()).toList();
+    final r = Run(seed: 3);
+    final base = r.due;
+    for (var i = 0; i < 3; i++) {
+      r.place(cuts[i % cuts.length], i);
+    }
+    final pcts = [for (var i = 0; i < 3; i++) cuts[i % cuts.length].effect<PaydayDiscount>()!.pct]..sort((a, b) => b.compareTo(a));
+    final f = pcts.take(2).fold(1.0, (a, p) => a * (1 - p / 100));
+    expect(r.due, (base * math.max(0.4, f)).round());
   });
 
   test('expanding the shelf keeps figures in their row and column', () {

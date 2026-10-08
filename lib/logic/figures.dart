@@ -133,7 +133,7 @@ const figures = <FigureDef>[
     name: 'ひなこはのお料理配信',
     emoji: '🍳',
     rarity: Rarity.legend,
-    tags: ['ひなた', 'ファン'], cast: ['ひなた', 'こはる'],
+    tags: ['ひなた', 'こはる', 'ファン'], cast: ['ひなた', 'こはる'],
     effects: [Add(3), AddPerShelfTag('こはる', 5)],
   ),
   FigureDef(

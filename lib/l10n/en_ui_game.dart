@@ -46,7 +46,7 @@ const enUiGame = <String, String>{
   '曲の終わりのおまけ ': 'End-of-song bonus ',
   'ハートを届ける！': 'Deliver the Hearts!',
   'ノルマ未達成…': 'Quota missed...',
-  '▶ 広告を見て延長！': '▶ Watch an ad to extend!',
+  '▶ 広告を見て あと5回！': '▶ Watch an ad: 5 more spins!',
   'おわる': 'End',
   'ライブ大成功！': 'Live success!',
   'アンコールへ！': 'On to the encore!',

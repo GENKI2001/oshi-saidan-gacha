@@ -81,8 +81,8 @@ const lineFail = [
   'もう、推しが泣いちゃいますよ！',
   'リハーサルからやり直しです！',
 ];
+// the ad's extension: the same song goes on for a few more spins (these takes say nothing of a next song)
 const linePostpone = [
-  'しかたないですね。今回だけですよ。次の曲で、まとめて取り返しましょう',
   '特別に、待ってあげます。次は、ちゃんと届けてくださいね',
   '今回だけ、見なかったことにします。次でお願いしますよ',
 ];
