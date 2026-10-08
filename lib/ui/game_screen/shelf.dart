@@ -249,7 +249,7 @@ extension on _GameScreenState {
     final life = f.def.effect<Lifetime>();
     final every = f.def.effect<EveryN>() ?? f.def.effect<SpawnEveryN>();
     if (fuse != null) left = fuse.n - f.age;
-    if (life != null) left = life.n - f.age;
+    if (life != null) left = f.lifetime(life) - f.age;
     if (every != null) {
       final n = every is EveryN ? every.n : (every as SpawnEveryN).n;
       left = n - f.age % n;

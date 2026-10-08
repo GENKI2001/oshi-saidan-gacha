@@ -346,7 +346,7 @@ extension on _GameScreenState {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(tr('メニュー'), style: outlined(26, C.pink, stroke: C.ink, width: 3)),
+              Text(tr('メニュー'), style: outlined(26, C.pink, stroke: Colors.white, width: 3)),
               const SizedBox(height: 8),
               // sound settings as icons, like on the title
               SoundToggles(m),

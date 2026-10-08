@@ -100,6 +100,65 @@ void main() {
     expect(s2.figs.length, 3);
   });
 
+  test('stacking also grows the end-of-song gain, the seller, the copycat, the placing bonus and the lifetime', () {
+    FigureDef first<T extends Effect>() => figureById.values.firstWhere((d) => d.has<T>() && d.effects.length <= 2);
+
+    // 「曲の終わりに +N」 ×stack
+    final drink = first<OnPaydayGain>();
+    final a = Run(seed: 3)..place(drink, 0);
+    final one = a.paydayBonus;
+    a.overwrite(drink, 0);
+    expect(a.paydayBonus, one * 2);
+
+    // the seller: ×m of its right neighbour, ×stack
+    final seller = figureById['flea']!;
+    int sold(int stack) {
+      final r = Run(seed: 3)
+        ..place(seller, 0)
+        ..place(_plain('x'), 1);
+      for (var k = 1; k < stack; k++) {
+        r.overwrite(seller, 0);
+      }
+      return r.endTurn().gains[0]!;
+    }
+    expect(sold(2), sold(1) * 2);
+
+    // the copycat earns its copy ×stack; two side by side don't run away
+    final cat = first<CopyBestAdjacent>();
+    final c = Run(seed: 3)
+      ..place(_plain('x'), 0)
+      ..place(cat, 1)
+      ..overwrite(cat, 1)
+      ..place(cat, 2);
+    final g = c.endTurn().gains;
+    expect(g[1], g[0]! * 2);
+    expect(g[2], lessThanOrEqualTo(g[1]!));
+
+    // 「置いた時 +N」 pays again on stacking
+    final fan = first<GainOnPlaced>();
+    final v = fan.effect<GainOnPlaced>()!.v;
+    final p = Run(seed: 3)..coins = 0;
+    p.place(fan, 0);
+    expect(p.coins, v);
+    p.overwrite(fan, 0);
+    expect(p.coins, v * 2);
+
+    // a limited-time goods stacked lasts twice as long
+    final balloon = first<Lifetime>();
+    final n = balloon.effect<Lifetime>()!.n;
+    final l = Run(seed: 3)
+      ..place(balloon, 0)
+      ..overwrite(balloon, 0);
+    for (var k = 0; k < n; k++) {
+      l.endTurn();
+    }
+    expect(l.cells[0], isNotNull);
+    for (var k = 0; k < n; k++) {
+      l.endTurn();
+    }
+    expect(l.cells[0], isNull);
+  });
+
   test('three quota cutters on the altar: only the two strongest count', () {
     final cuts = figureById.values.where((d) => d.has<PaydayDiscount>()).toList();
     final r = Run(seed: 3);

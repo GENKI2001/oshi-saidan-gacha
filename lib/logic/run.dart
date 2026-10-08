@@ -41,6 +41,9 @@ class Fig {
 
   /// A multiplier [f] of a stacked goods grows with the stack: ×3 stacked twice is ×6, ×2 three times ×6.
   int factor(int f) => f * stack;
+
+  /// How many spins a limited-time goods lasts: stacked, it lasts that many times as long.
+  int lifetime(Lifetime l) => l.n * stack;
 }
 
 enum StepKind { add, buff, mult, shoot, remove, spawn, instant, copy }
@@ -619,7 +622,12 @@ class Run {
       seen.add(d.id);
       cells[idx]!.stack++;
       _usedShelfMult(d);
-      return const [];
+      // a 「置いた時 +N」 goods pays it again when one more is stacked on it
+      final bonus = d.effect<GainOnPlaced>();
+      if (bonus == null) return const [];
+      coins += bonus.v;
+      earned += bonus.v;
+      return [Step(StepKind.instant, idx, amount: bonus.v)];
     }
     cells[idx] = null;
     return place(d, idx);
@@ -680,7 +688,7 @@ class Run {
       // only the cell to its right
       if (colOf(i) == cols - 1 || cells[i + 1] == null) continue;
       final v = i + 1;
-      final g = math.max(_base(v), 1) * sh.m;
+      final g = math.max(_base(v), 1) * sh.m * f!.stack;
       cells[v] = null;
       gain[i] = g;
       steps.add(Step(StepKind.shoot, i, amount: g, targets: [v]));
@@ -808,11 +816,15 @@ class Run {
         }
       }
     }
-    // each one shows where its number came from: the neighbour it copied ([Step.targets])
+    // each one shows where its number came from: the neighbour it copied ([Step.targets]); a stacked
+    // one earns that ×stack (applied once the copying has settled, so two side by side can't run away)
+    final from = {for (final i in copycats) i: neighbors(i).where((n) => (gain[n] ?? 0) == gain[i]).firstOrNull};
+    for (final i in copycats) {
+      gain[i] = gain[i]! * cells[i]!.stack;
+    }
     for (final i in copycats) {
       if (gain[i]! == 0) continue;
-      final from = neighbors(i).where((n) => (gain[n] ?? 0) == gain[i]).firstOrNull;
-      steps.add(Step(StepKind.copy, i, amount: gain[i]!, targets: [?from]));
+      steps.add(Step(StepKind.copy, i, amount: gain[i]!, targets: [?from[i]]));
     }
   }
 
@@ -840,7 +852,7 @@ class Run {
     for (var i = 0; i < size; i++) {
       final f = cells[i];
       final life = f?.def.effect<Lifetime>();
-      if (life != null && f!.age >= life.n) {
+      if (life != null && f!.age >= f.lifetime(life)) {
         cells[i] = null;
         steps.add(Step(StepKind.remove, i));
       }
@@ -863,7 +875,7 @@ class Run {
 
   // ── payday ──
   /// What the 「曲の終わりに +N」 goods add when the song ends.
-  int get paydayBonus => figs.fold(0, (a, f) => a + (f.def.effect<OnPaydayGain>()?.v ?? 0));
+  int get paydayBonus => figs.fold(0, (a, f) => a + (f.def.effect<OnPaydayGain>()?.v ?? 0) * f.stack);
 
   PaydayResult payday() {
     final before = coins;
