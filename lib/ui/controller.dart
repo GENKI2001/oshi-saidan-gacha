@@ -209,7 +209,7 @@ class GameController extends ChangeNotifier {
   bool turnRecord = false; // beat the best single turn this run
 
   // ── tutorial ──
-  final bool tutorial;
+  bool tutorial; // only the first game: もう一回 after it is a normal one
   Coach coach = Coach.none;
   int _pulls = 0;
   static const tutorialCell1 = 6, tutorialCell2 = 5; // こはるのアクキー, then こはるのアクスタ to its left
@@ -297,10 +297,10 @@ class GameController extends ChangeNotifier {
     coinsShown = run.coins;
     lastTotal = 0;
     say(0, pick(lineStart));
-    if (tutorial) {
-      coach = Coach.spin1;
-      _pulls = 0;
-    }
+    // once the tutorial is done (or given up on), もう一回 plays a normal game, not the guided one again
+    if (tutorial && meta.tutorialDone) tutorial = false;
+    coach = tutorial ? Coach.spin1 : Coach.none;
+    _pulls = 0;
     Bgm.play('bgm_${machine.bgm}', fromStart: true); // a new live: its song from the top
     notifyListeners();
   }

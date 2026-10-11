@@ -129,7 +129,7 @@ class Fuse extends Effect {
   final List<String> tags;
   const Fuse(this.n, this.f, this.tags);
   @override
-  String describe() => en ? 'Spin $n: MAX hype! All ${tags.map(tr).join(' and ')} on the altar ×$f (then it\'s gone)' : '$n回転目に 盛り上がりMAX！ 祭壇の「${tags.join('」と「')}」を全部 ×$f（消える）';
+  String describe() => en ? 'Spin $n: MAX hype! All ${tags.map(tr).join(' and ')} on the altar ×$f' : '$n回転目に 盛り上がりMAX！ 祭壇の「${tags.join('」と「')}」を全部 ×$f';
 }
 
 /// n回転で消える
