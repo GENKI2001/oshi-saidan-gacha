@@ -1,12 +1,14 @@
 """Batch-render Mio's voice with Irodori-TTS (https://github.com/Aratako/Irodori-TTS).
 
-Run from inside an Irodori-TTS checkout:
-    uv run --no-sync python /path/to/voice_batch.py jobs.json
+Usually run through voice/irodori.py (sets up Irodori-TTS on any PC):
+    python3 voice/irodori.py render voice/jobs.json
 
 jobs.json is a list of {"out": "...wav", "text": "...", "caption": "...",
 "ref": "...wav" (optional), "seed": 1, "duration_scale": 1.0 (below 1 is
-faster)}. The model is loaded once and every job
-is rendered in turn; existing outputs are skipped so a run can resume.
+faster)}; relative paths are read from the folder of jobs.json. The model is
+loaded once and every job is rendered in turn; existing outputs are skipped so
+a run can resume. A job whose "asset" (the file the app plays) exists is skipped
+too, so a fresh PC only records new lines. Runs on CUDA, Apple MPS or the CPU, whichever is there.
 
 The model now and then starts a clip mid-syllable, swallowing the first
 sound, mostly on short openers like 「あっ」「えっ」. Each take is checked
@@ -32,6 +34,36 @@ from irodori_tts.inference_runtime import (
 CHECKPOINT = "Aratako/Irodori-TTS-v4.1-Small"
 TAKES = 6
 WHISPER = "mlx-community/whisper-large-v3-turbo"
+# off a Mac (no mlx): the same model through transformers, which Irodori-TTS already needs
+WHISPER_HF = "openai/whisper-large-v3-turbo"
+_asr = None
+
+
+def device() -> str:
+    import torch
+
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
+def transcribe(path: Path) -> str:
+    global _asr
+    try:
+        import mlx_whisper
+
+        return mlx_whisper.transcribe(str(path), path_or_hf_repo=WHISPER, language="ja")["text"]
+    except ImportError:
+        pass
+    if _asr is None:
+        from transformers import pipeline
+
+        # not on MPS: there it hears only "!"
+        _asr = pipeline("automatic-speech-recognition", model=WHISPER_HF,
+                        device="cuda" if device() == "cuda" else "cpu")
+    return _asr(str(path), generate_kwargs={"language": "ja", "task": "transcribe"})["text"]
 
 
 def _plain(text: str) -> str:
@@ -39,13 +71,8 @@ def _plain(text: str) -> str:
 
 
 def says_the_line(path: Path, text: str) -> bool:
-    """Transcribe the take (when mlx-whisper is installed) and reject one
-    that drifts far from the script."""
-    try:
-        import mlx_whisper
-    except ImportError:
-        return True
-    heard = mlx_whisper.transcribe(str(path), path_or_hf_repo=WHISPER, language="ja")["text"]
+    """Transcribe the take (Whisper) and reject one that drifts far from the script."""
+    heard = transcribe(path)
     return SequenceMatcher(None, _plain(heard), _plain(text)).ratio() >= 0.5
 
 
@@ -56,14 +83,17 @@ def opens_cleanly(audio, sample_rate: int) -> bool:
 
 
 def main() -> None:
-    jobs = json.loads(Path(sys.argv[1]).read_text())
+    jobs_file = Path(sys.argv[1]).resolve()
+    jobs = json.loads(jobs_file.read_text())
+    dev = device()
+    print(f"device: {dev}", flush=True)
     runtime = InferenceRuntime.from_key(
         RuntimeKey(
             checkpoint=download_hf_checkpoint(CHECKPOINT),
-            model_device="mps",
+            model_device=dev,
             codec_repo="Aratako/Semantic-DACVAE-Japanese-32dim",
             model_precision="fp32",
-            codec_device="mps",
+            codec_device=dev,
             codec_precision="fp32",
             codec_deterministic_encode=True,
             codec_deterministic_decode=True,
@@ -72,11 +102,11 @@ def main() -> None:
         )
     )
     for index, job in enumerate(jobs, start=1):
-        out = Path(job["out"])
-        if out.exists():
+        out = jobs_file.parent / job["out"]
+        if out.exists() or job.get("asset") and (jobs_file.parent / job["asset"]).exists():
             continue
         out.parent.mkdir(parents=True, exist_ok=True)
-        ref = job.get("ref")
+        ref = job.get("ref") and str(jobs_file.parent / job["ref"])
         seed = int(job.get("seed", 1))
         for take in range(TAKES):
             result = runtime.synthesize(

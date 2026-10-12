@@ -20,11 +20,12 @@ def main() -> None:
     for j in json.loads((HERE / 'jobs.json').read_text()):
         if j.get('kind') == 'scene':
             continue  # シチュエーションボイス are mixed into tracks by art/asmr.py
-        src = Path(j['out'])
+        src = HERE / j['out']
         keep.add(src.stem)
         dst = OUT / f'{src.stem}.m4a'
         if not src.exists():
-            print('missing', src.stem, j['text'])
+            if not dst.exists():  # (on another PC the old renders are not there; the m4a is)
+                print('missing', src.stem, j['text'])
             continue
         tempo = TEMPO_OF.get(j.get('who'), TEMPO)
         stamp = OUT / f'.{src.stem}.tempo'

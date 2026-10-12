@@ -45,13 +45,17 @@ flutter test integration_test/app_test.dart -d <シミュレーターID> --dart-
 | `lib/ui/venue.dart` / `lib/ui/crowd.dart` | 盛り上がる会場の背景／客席の音 |
 
 ## ボイスを作り直す
-台詞を変えたら（Irodori-TTS：`~/Desktop/escape-games/tadaima-hiyori/tools/Irodori-TTS` を使用）
+台詞を変えたら（Irodori-TTS。どの PC でも同じメンバーの声になる）
 ```
+python3 voice/irodori.py setup            # その PC で最初の1回だけ：Irodori-TTS を ~/tools/Irodori-TTS に入れる（git と uv が必要）
 dart run tool/voice_lines.dart > voice/lines.json
 python3 voice/make_voice_jobs.py          # voice/jobs.json と lib/ui/voice_ids.dart（変わった台詞だけ新しいID）
-cd ~/Desktop/escape-games/tadaima-hiyori/tools/Irodori-TTS && PYTHONPATH=. .venv/bin/python <このフォルダ>/voice/voice_batch.py <このフォルダ>/voice/jobs.json
+python3 voice/irodori.py render           # voice/render/*.wav（まだ無いものだけ。CUDA / Mac の MPS / CPU）
 python3 voice/convert_voice.py            # assets/voice/*.m4a（使われなくなったものは消す）
 ```
+- 同じ声になるわけ：声のもとの参照音声 `voice/candidates/*.wav`、話し方の説明（`VOICES` と `MOOD`）、シードはどれも git に入っていて、Irodori-TTS のコミットとモデル（v4.1-Small）も固定している。PC が変わっても同じ人の声になる（ただし波形まではそろわないので、録り直した台詞は耳で確認する）
+- Irodori-TTS をもう入れてある PC では `IRODORI_DIR=<そのフォルダ>` を付ける（例：このMacでは `IRODORI_DIR=~/Desktop/escape-games/tadaima-hiyori/tools/Irodori-TTS`）。Irodori の venv が要るスクリプトは `python3 voice/irodori.py run art/asmr.py` で動かす
+- `voice/render/` は git に入れていない。別の PC で全部作り直さなくていいように、録り直す台詞だけが render される（既にある `assets/voice` はそのまま使える）
 - 歓声の元の叫び声：`voice/crowd_jobs.json`（`check: false` で ASR チェックなし）→ `python3 art/crowd.py`
 - 声の元：`voice/candidates/<話者>_<A-C>.wav` から1つを参照音声にしている（`make_voice_jobs.py` の `VOICES`）。つむぎは A だと声が高くなりすぎたので B
 - 読みの直し：`READINGS`（×2→2倍、SSR→エスエスアール、推し祭壇→おしさいだん…）。言い間違いの撮り直しは `SEED` に台詞と別のシードを書く

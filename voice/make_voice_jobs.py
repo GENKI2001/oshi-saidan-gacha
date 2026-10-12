@@ -15,7 +15,6 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-RENDER = HERE / 'render'
 
 # speaker: (reference take, caption)
 VOICES = {
@@ -68,6 +67,7 @@ def spoken(text: str) -> str:
 
 def main() -> None:
     lines = json.loads((HERE / 'lines.json').read_text())
+    built = json.loads((HERE / 'asmr_built.json').read_text())
     jobs, table, seen, asmr = [], {}, set(), {}
     for l in lines:
         who, text, mood = l['who'], l['text'], l['mood']
@@ -83,9 +83,18 @@ def main() -> None:
         if vid in seen:
             continue
         seen.add(vid)
-        jobs.append({'out': str(RENDER / f'{vid}.wav'), 'text': say, 'caption': caption,
-                     'ref': str(HERE / 'candidates' / f'{ref}.wav'), 'seed': seed,
-                     'duration_scale': 0.92 if mood == 'scene' else 0.85, 'kind': 'scene' if mood == 'scene' else 'line', 'who': who})
+        # what the app plays; voice_batch.py skips the job while it exists (so another PC
+        # does not re-record lines that are already in the app)
+        if mood != 'scene':
+            asset = f'../assets/voice/{vid}.m4a'
+        elif vid in built.get(l['track'], {}).get('ids', []):
+            asset = f"../assets/asmr/{l['track']}.m4a"
+        else:
+            asset = None
+        # paths relative to voice/ so the jobs run on any PC (voice_batch.py resolves them)
+        jobs.append({'out': f'render/{vid}.wav', 'text': say, 'caption': caption,
+                     'ref': f'candidates/{ref}.wav', 'seed': seed,
+                     'duration_scale': 0.92 if mood == 'scene' else 0.85, 'kind': 'scene' if mood == 'scene' else 'line', 'who': who, 'asset': asset})
     (HERE / 'jobs.json').write_text(json.dumps(jobs, ensure_ascii=False, indent=1))
     (HERE / 'asmr.json').write_text(json.dumps(asmr, ensure_ascii=False, indent=1))
     body = ''.join(f"  {json.dumps(k, ensure_ascii=False)}: '{v}',\n" for k, v in sorted(table.items()))
